@@ -1269,8 +1269,8 @@ void free_notes(struct notes_tree *t)
  * (raw != 0) gives the %N userformat; otherwise, the note message is given
  * for human consumption.
  */
-static void format_note(struct notes_tree *t, const struct object_id *object_oid,
-			struct strbuf *sb, const char *output_encoding, int raw)
+void format_note(struct notes_tree *t, const struct object_id *object_oid,
+		 struct strbuf *sb, const char *output_encoding, int raw)
 {
 	static const char utf8[] = "utf-8";
 	const struct object_id *oid;
