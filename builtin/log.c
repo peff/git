@@ -54,6 +54,7 @@ static int use_mailmap_config = 1;
 static const char *fmt_patch_subject_prefix = "PATCH";
 static int fmt_patch_name_max = FORMAT_PATCH_NAME_MAX_DEFAULT;
 static const char *fmt_pretty;
+static int progress = -1;
 
 static const char * const builtin_log_usage[] = {
 	N_("git log [<options>] [<revision-range>] [[--] <path>...]"),
@@ -189,6 +190,8 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
 		OPT_CALLBACK('L', NULL, &line_cb, "range:file",
 			     N_("trace the evolution of line range <start>,<end> or function :<funcname> in <file>"),
 			     log_line_range_callback),
+		OPT_SET_INT(0, "progress", &progress,
+			    "force progress reporting", 1),
 		OPT_END()
 	};
 
@@ -233,6 +236,9 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
 		rev->mailmap = xcalloc(1, sizeof(struct string_list));
 		read_mailmap(rev->mailmap);
 	}
+
+	if (progress == -1)
+		progress = isatty(2);
 
 	if (rev->pretty_given && rev->commit_format == CMIT_FMT_RAW) {
 		/*
@@ -413,6 +419,9 @@ static int cmd_log_walk(struct rev_info *rev)
 	if (rev->early_output)
 		finish_early_output(rev);
 
+	if (progress)
+		rev->diffopt.show_rename_progress = 1;
+
 	/*
 	 * For --check and --exit-code, the exit code is based on CHECK_FAILED
 	 * and HAS_CHANGES being accumulated in rev->diffopt, so be careful to
@@ -420,12 +429,16 @@ static int cmd_log_walk(struct rev_info *rev)
 	 */
 	rev->diffopt.no_free = 1;
 	while ((commit = get_revision(rev)) != NULL) {
-		if (!log_tree_commit(rev, commit) && rev->max_count >= 0)
+		int showed = log_tree_commit(rev, commit);
+		if (!showed && rev->max_count >= 0)
 			/*
 			 * We decremented max_count in get_revision,
 			 * but we didn't actually show the commit.
 			 */
 			rev->max_count++;
+		/* Once we have output, progress will clutter the terminal. */
+		if (showed)
+			rev->diffopt.show_rename_progress = 0;
 		if (!rev->reflog_info) {
 			/*
 			 * We may show a given commit multiple times when
