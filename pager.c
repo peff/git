@@ -7,6 +7,7 @@
 #include "run-command.h"
 #include "sigchain.h"
 #include "alias.h"
+#include "environment.h"
 
 int pager_use_color = 1;
 

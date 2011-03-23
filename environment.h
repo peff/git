@@ -217,6 +217,8 @@ extern char *editor_program;
 extern char *askpass_program;
 extern char *excludes_file;
 
+extern FILE *original_stderr;
+
 /*
  * The character that begins a commented line in user-editable file
  * that is subject to stripspace.
