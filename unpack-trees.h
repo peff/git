@@ -63,6 +63,7 @@ struct unpack_trees_options {
 		     trivial_merges_only,
 		     verbose_update,
 		     aggressive,
+		     file_level_merge,
 		     skip_unmerged,
 		     initial_checkout,
 		     diff_index_cached,
