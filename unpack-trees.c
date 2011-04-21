@@ -30,6 +30,8 @@
 #include "entry.h"
 #include "parallel-checkout.h"
 #include "setup.h"
+#include "xdiff-interface.h"
+#include "blob.h"
 
 /*
  * Error messages expected by scripts out of plumbing commands such as
@@ -2713,6 +2715,45 @@ static void show_stage_entry(FILE *o,
 }
 #endif
 
+static int file_level_merge(unsigned char sha1[20],
+			    struct cache_entry *old,
+			    struct cache_entry *head,
+			    struct cache_entry *remote)
+{
+	mmfile_t old_data = {0}, head_data = {0}, remote_data = {0};
+	mmbuffer_t resolved = {0};
+	xmparam_t xmp = {{0}};
+	int ret = -1;
+
+	if (remote->ce_mode != head->ce_mode &&
+	    remote->ce_mode != old->ce_mode)
+		goto out;
+
+	read_mmblob(&old_data, old->sha1);
+	if (buffer_is_binary(old_data.ptr, old_data.size))
+		goto out;
+	read_mmblob(&head_data, head->sha1);
+	if (buffer_is_binary(head_data.ptr, head_data.size))
+		goto out;
+	read_mmblob(&remote_data, remote->sha1);
+	if (buffer_is_binary(remote_data.ptr, remote_data.size))
+		goto out;
+
+	xmp.level = XDL_MERGE_ZEALOUS_ALNUM;
+	if (xdl_merge(&old_data, &head_data, &remote_data, &xmp, &resolved))
+		goto out;
+	if (write_sha1_file(resolved.ptr, resolved.size, blob_type, sha1) < 0)
+		die("unable to write resolved blob object");
+	ret = 0;
+
+out:
+	free(old_data.ptr);
+	free(head_data.ptr);
+	free(remote_data.ptr);
+	free(resolved.ptr);
+	return ret;
+}
+
 int threeway_merge(const struct cache_entry * const *stages,
 		   struct unpack_trees_options *o)
 {
@@ -2868,6 +2909,34 @@ int threeway_merge(const struct cache_entry * const *stages,
 		 */
 		if (verify_uptodate(index, o))
 			return -1;
+	}
+
+	if (o->file_level_merge &&
+	    !no_anc_exists && head && remote && !head_match && !remote_match) {
+		int i;
+		struct cache_entry *old = NULL;
+		unsigned char sha1[20];
+
+		for (i = 1; i < o->head_idx; i++) {
+			if (stages[i] && stages[i] != o->df_conflict_entry) {
+				old = stages[i];
+				break;
+			}
+		}
+		if (!old)
+			die("BUG: file-level merge couldn't find ancestor");
+
+		if (file_level_merge(sha1, old, head, remote) == 0) {
+			/* ugh */
+			unsigned char tmp[20];
+			int r;
+
+			hashcpy(tmp, head->sha1);
+			hashcpy(head->sha1, sha1);
+			r = merged_entry(head, index, o);
+			hashcpy(head->sha1, tmp);
+			return r;
+		}
 	}
 
 	o->internal.nontrivial_merge = 1;
