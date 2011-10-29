@@ -1914,8 +1914,8 @@ static void http_opt_request_remainder(CURL *curl, off_t pos)
 #define HTTP_REQUEST_STRBUF	0
 #define HTTP_REQUEST_FILE	1
 
-static int http_request(const char *url,
-			void *result, int target,
+static int http_request(const char *url, curl_write_callback cb,
+			void *result, long offset,
 			const struct http_get_options *options)
 {
 	struct active_request_slot *slot;
@@ -1933,17 +1933,11 @@ static int http_request(const char *url,
 	} else {
 		curl_easy_setopt(slot->curl, CURLOPT_NOBODY, 0);
 		curl_easy_setopt(slot->curl, CURLOPT_FILE, result);
-
-		if (target == HTTP_REQUEST_FILE) {
-			off_t posn = ftello(result);
-			curl_easy_setopt(slot->curl, CURLOPT_WRITEFUNCTION,
-					 fwrite);
-			if (posn > 0)
-				http_opt_request_remainder(slot->curl, posn);
-		} else
-			curl_easy_setopt(slot->curl, CURLOPT_WRITEFUNCTION,
-					 fwrite_buffer);
+		curl_easy_setopt(slot->curl, CURLOPT_WRITEFUNCTION, cb);
 	}
+
+	if (offset > 0)
+		http_opt_request_remainder(slot->curl, offset);
 
 	accept_language = get_accept_language();
 
@@ -2044,11 +2038,11 @@ static int update_url_from_redirect(struct strbuf *base,
 	return 1;
 }
 
-static int http_request_reauth(const char *url,
-			       void *result, int target,
+static int http_request_reauth(const char *url, curl_write_callback cb,
+			       void *result, unsigned long offset,
 			       struct http_get_options *options)
 {
-	int ret = http_request(url, result, target, options);
+	int ret = http_request(url, cb, result, offset, options);
 
 	if (ret != HTTP_OK && ret != HTTP_REAUTH)
 		return ret;
@@ -2089,14 +2083,14 @@ static int http_request_reauth(const char *url,
 
 	credential_fill(&http_auth);
 
-	return http_request(url, result, target, options);
+	return http_request(url, cb, result, offset, options);
 }
 
 int http_get_strbuf(const char *url,
 		    struct strbuf *result,
 		    struct http_get_options *options)
 {
-	return http_request_reauth(url, result, HTTP_REQUEST_STRBUF, options);
+	return http_request_reauth(url, fwrite_buffer, result, 0, options);
 }
 
 /*
@@ -2120,7 +2114,7 @@ static int http_get_file(const char *url, const char *filename,
 		goto cleanup;
 	}
 
-	ret = http_request_reauth(url, result, HTTP_REQUEST_FILE, options);
+	ret = http_request_reauth(url, NULL, result, ftell(result), options);
 	fclose(result);
 
 	if (ret == HTTP_OK && finalize_object_file(tmpfile.buf, filename))
