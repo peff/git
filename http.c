@@ -2225,8 +2225,8 @@ static void http_opt_request_remainder(CURL *curl, off_t pos)
 #define HTTP_REQUEST_STRBUF	0
 #define HTTP_REQUEST_FILE	1
 
-static int http_request(const char *url,
-			void *result, int target,
+static int http_request(const char *url, curl_write_callback cb,
+			void *result, long offset,
 			struct http_get_options *options)
 {
 	struct active_request_slot *slot;
@@ -2244,19 +2244,13 @@ static int http_request(const char *url,
 	} else {
 		curl_easy_setopt(slot->curl, CURLOPT_NOBODY, 0L);
 		curl_easy_setopt(slot->curl, CURLOPT_WRITEDATA, result);
-
-		if (target == HTTP_REQUEST_FILE) {
-			off_t posn = ftello(result);
-			curl_easy_setopt(slot->curl, CURLOPT_WRITEFUNCTION,
-					 fwrite);
-			if (posn > 0)
-				http_opt_request_remainder(slot->curl, posn);
-		} else
-			curl_easy_setopt(slot->curl, CURLOPT_WRITEFUNCTION,
-					 fwrite_buffer);
+		curl_easy_setopt(slot->curl, CURLOPT_WRITEFUNCTION, cb);
 	}
 
 	curl_easy_setopt(slot->curl, CURLOPT_HEADERFUNCTION, fwrite_wwwauth);
+
+	if (offset > 0)
+		http_opt_request_remainder(slot->curl, offset);
 
 	accept_language = http_get_accept_language_header();
 
@@ -2405,8 +2399,9 @@ static long handle_rate_limit_retry(long slot_retry_after)
 }
 
 static int http_request_recoverable(const char *url,
-			       void *result, int target,
-			       struct http_get_options *options)
+				    curl_write_callback cb,
+				    void *result, unsigned long offset,
+				    struct http_get_options *options)
 {
 	static struct http_get_options empty_opts;
 	int i = 3;
@@ -2419,7 +2414,7 @@ static int http_request_recoverable(const char *url,
 	if (always_auth_proactively())
 		credential_fill(the_repository, &http_auth, 1);
 
-	ret = http_request(url, result, target, options);
+	ret = http_request(url, cb, result, offset, options);
 
 	if (ret != HTTP_OK && ret != HTTP_REAUTH && ret != HTTP_RATE_LIMITED)
 		return ret;
@@ -2478,7 +2473,7 @@ static int http_request_recoverable(const char *url,
 			http_reauth_prepare(1);
 		}
 
-		ret = http_request(url, result, target, options);
+		ret = http_request(url, cb, result, offset, options);
 	}
 	if (ret == HTTP_RATE_LIMITED) {
 		trace2_data_string("http", the_repository,
@@ -2492,7 +2487,7 @@ int http_get_strbuf(const char *url,
 		    struct strbuf *result,
 		    struct http_get_options *options)
 {
-	return http_request_recoverable(url, result, HTTP_REQUEST_STRBUF, options);
+	return http_request_recoverable(url, fwrite_buffer, result, 0, options);
 }
 
 /*
@@ -2516,7 +2511,7 @@ int http_get_file(const char *url, const char *filename,
 		goto cleanup;
 	}
 
-	ret = http_request_recoverable(url, result, HTTP_REQUEST_FILE, options);
+	ret = http_request_recoverable(url, NULL, result, ftell(result), options);
 	fclose(result);
 
 	if (ret == HTTP_OK && finalize_object_file(the_repository, tmpfile.buf, filename))
