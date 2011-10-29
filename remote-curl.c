@@ -461,6 +461,25 @@ static void check_smart_http(struct discovery *d, const char *service,
 	}
 }
 
+struct get_refs_cb_data {
+	struct strbuf *out;
+};
+
+static size_t get_refs_callback(char *buf, size_t sz, size_t n, void *vdata)
+{
+	struct get_refs_cb_data *data = vdata;
+	strbuf_add(data->out, buf, sz * n);
+	return sz * n;
+}
+
+static int get_refs_from_url(const char *url, struct strbuf *out,
+			     struct http_get_options *options)
+{
+	struct get_refs_cb_data data;
+	data.out = out;
+	return http_get_callback(url, get_refs_callback, &data, 0, options);
+}
+
 static struct discovery *discover_refs(const char *service, int for_push)
 {
 	struct strbuf type = STRBUF_INIT;
@@ -512,7 +531,7 @@ static struct discovery *discover_refs(const char *service, int for_push)
 	http_options.initial_request = 1;
 	http_options.no_cache = 1;
 
-	http_ret = http_get_strbuf(refs_url.buf, &buffer, &http_options);
+	http_ret = get_refs_from_url(refs_url.buf, &buffer, &http_options);
 	switch (http_ret) {
 	case HTTP_OK:
 		break;
