@@ -208,6 +208,10 @@ struct http_get_options {
  */
 int http_get_strbuf(const char *url, struct strbuf *result, struct http_get_options *options);
 
+int http_get_callback(const char *url, curl_write_callback cb,
+		      void *data, long offset,
+		      struct http_get_options *options);
+
 int http_fetch_ref(const char *base, struct ref *ref);
 
 /* Helpers for fetching packs */
