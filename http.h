@@ -173,6 +173,10 @@ int http_get_strbuf(const char *url, struct strbuf *result, struct http_get_opti
 int http_get_file(const char *url, const char *filename,
 		  struct http_get_options *options);
 
+int http_get_callback(const char *url, curl_write_callback cb,
+		      void *data, long offset,
+		      struct http_get_options *options);
+
 int http_fetch_ref(const char *base, struct ref *ref);
 
 struct curl_slist *http_append_auth_header(const struct credential *c,

@@ -2315,6 +2315,14 @@ int http_get_strbuf(const char *url,
 	return http_request_reauth(url, fwrite_buffer, result, 0, options);
 }
 
+int http_get_callback(const char *url,
+		      curl_write_callback cb,
+		      void *data, long offset,
+		      struct http_get_options *options)
+{
+	return http_request_reauth(url, cb, data, offset, options);
+}
+
 /*
  * Downloads a URL and stores the result in the given file.
  *
