@@ -1678,6 +1678,7 @@ int cmd_main(int argc, const char **argv)
 		strbuf_reset(&buf);
 	} while (1);
 
+	free_discovery(last_discovery);
 	http_cleanup();
 	ret = 0;
 cleanup:
