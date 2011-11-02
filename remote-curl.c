@@ -25,6 +25,7 @@
 #include "transport.h"
 #include "url.h"
 #include "write-or-die.h"
+#include "bundle.h"
 
 static struct remote *remote;
 /* always ends with a trailing slash */
@@ -232,6 +233,10 @@ struct discovery {
 	struct oid_array shallow;
 	enum protocol_version version;
 	unsigned proto_git : 1;
+
+	char *bundle_filename;
+	int bundle_fd;
+	struct bundle_header bundle_header;
 };
 static struct discovery *last_discovery;
 
@@ -353,6 +358,22 @@ static struct ref *parse_info_refs(struct discovery *heads)
 	return refs;
 }
 
+static void ensure_bundle_open(struct discovery *heads)
+{
+	if (heads->bundle_fd >= 0)
+		return;
+	heads->bundle_fd = read_bundle_header(heads->bundle_filename,
+					      &heads->bundle_header);
+	if (heads->bundle_fd < 0)
+		die("could not read bundle from %s", url.buf);
+}
+
+static struct ref *parse_bundle_refs(struct discovery *heads)
+{
+	ensure_bundle_open(heads);
+	return bundle_header_to_refs(&heads->bundle_header);
+}
+
 static void free_discovery(struct discovery *d)
 {
 	if (d) {
@@ -362,6 +383,12 @@ static void free_discovery(struct discovery *d)
 		free(d->buf_alloc);
 		free_refs(d->refs);
 		free(d->service);
+		if (d->bundle_fd >= 0)
+			close(d->bundle_fd);
+		if (d->bundle_filename) {
+			unlink(d->bundle_filename);
+			free(d->bundle_filename);
+		}
 		free(d);
 	}
 }
@@ -463,21 +490,82 @@ static void check_smart_http(struct discovery *d, const char *service,
 
 struct get_refs_cb_data {
 	struct strbuf *out;
+
+	int is_bundle;
+	const char *tmpname;
+	FILE *fh;
 };
 
 static size_t get_refs_callback(char *buf, size_t sz, size_t n, void *vdata)
 {
 	struct get_refs_cb_data *data = vdata;
-	strbuf_add(data->out, buf, sz * n);
+	struct strbuf *out = data->out;
+
+	if (data->is_bundle > 0)
+		return fwrite(buf, sz, n, data->fh);
+
+	strbuf_add(out, buf, sz * n);
+
+	if (data->is_bundle == 0)
+		return sz * n;
+
+	data->is_bundle = is_bundle_buf(out->buf, out->len);
+	if (data->is_bundle > 0) {
+		data->fh = fopen(data->tmpname, "wb");
+		if (!data->fh)
+			die_errno("unable to open %s", data->tmpname);
+		if (fwrite(out->buf, 1, out->len, data->fh) < out->len)
+			die_errno("unable to write to %s", data->tmpname);
+	}
 	return sz * n;
 }
 
 static int get_refs_from_url(const char *url, struct strbuf *out,
-			     struct http_get_options *options)
+			     struct http_get_options *options,
+			     const char *tmpname, int *is_bundle)
 {
 	struct get_refs_cb_data data;
+	int ret;
+
 	data.out = out;
-	return http_get_callback(url, get_refs_callback, &data, 0, options);
+	data.is_bundle = -1;
+	data.tmpname = tmpname;
+	data.fh = NULL;
+
+	ret = http_get_callback(url, get_refs_callback, &data, 0, options);
+
+	if (data.fh) {
+		if (fclose(data.fh))
+			die_errno("unable to write to %s", data.tmpname);
+	}
+
+	*is_bundle = data.is_bundle > 0;
+	return ret;
+}
+
+static const char *url_to_bundle_tmpfile(const char *url)
+{
+	struct strbuf buf = STRBUF_INIT;
+	int last_was_quoted = 1;
+	const char *ret;
+
+	strbuf_addstr(&buf, "tmp_bundle_");
+	for (; *url; url++) {
+		if (isalpha(*url) || isdigit(*url)) {
+			strbuf_addch(&buf, *url);
+			last_was_quoted = 0;
+		}
+		else if (!last_was_quoted) {
+			strbuf_addch(&buf, '_');
+			last_was_quoted = 1;
+		}
+	}
+	if (last_was_quoted)
+		strbuf_setlen(&buf, buf.len - 1);
+
+	ret = git_path("objects/%s", buf.buf);
+	strbuf_release(&buf);
+	return ret;
 }
 
 static struct discovery *discover_refs(const char *service, int for_push)
@@ -493,10 +581,14 @@ static struct discovery *discover_refs(const char *service, int for_push)
 	int http_ret, maybe_smart = 0;
 	struct http_get_options http_options;
 	enum protocol_version version = get_protocol_version_config();
+	const char *filename;
+	int is_bundle;
 
 	if (last && !strcmp(service, last->service))
 		return last;
 	free_discovery(last);
+
+	filename = url_to_bundle_tmpfile(url.buf);
 
 	strbuf_addf(&refs_url, "%sinfo/refs", url.buf);
 	if ((starts_with(url.buf, "http://") || starts_with(url.buf, "https://")) &&
@@ -531,7 +623,8 @@ static struct discovery *discover_refs(const char *service, int for_push)
 	http_options.initial_request = 1;
 	http_options.no_cache = 1;
 
-	http_ret = get_refs_from_url(refs_url.buf, &buffer, &http_options);
+	http_ret = get_refs_from_url(refs_url.buf, &buffer, &http_options,
+				     filename, &is_bundle);
 	switch (http_ret) {
 	case HTTP_OK:
 		break;
@@ -563,12 +656,19 @@ static struct discovery *discover_refs(const char *service, int for_push)
 	last->service = xstrdup(service);
 	last->buf_alloc = strbuf_detach(&buffer, &last->len);
 	last->buf = last->buf_alloc;
+	last->bundle_fd = -1;
 
 	if (maybe_smart)
 		check_smart_http(last, service, &type);
 
 	if (last->proto_git)
 		last->refs = parse_git_refs(last, for_push);
+	else if (is_bundle) {
+		if (for_push)
+			die("cannot push into a remote bundle");
+		last->bundle_filename = xstrdup(filename);
+		last->refs = parse_bundle_refs(last);
+	}
 	else
 		last->refs = parse_info_refs(last);
 
@@ -1269,11 +1369,21 @@ static int fetch_git(struct discovery *heads,
 	return err;
 }
 
+static int fetch_bundle(struct discovery *d,
+			int nr_heads, struct ref **to_fetch)
+{
+	ensure_bundle_open(d);
+	return unbundle(&d->bundle_header, d->bundle_fd,
+			options.progress ? BUNDLE_VERBOSE : 0);
+}
+
 static int fetch(int nr_heads, struct ref **to_fetch)
 {
 	struct discovery *d = discover_refs("git-upload-pack", 0);
 	if (d->proto_git)
 		return fetch_git(d, nr_heads, to_fetch);
+	else if (d->bundle_filename)
+		return fetch_bundle(d, nr_heads, to_fetch);
 	else
 		return fetch_dumb(nr_heads, to_fetch);
 }
