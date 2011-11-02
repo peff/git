@@ -173,6 +173,20 @@ int is_bundle(const char *path, int quiet)
 	return (fd >= 0);
 }
 
+int is_bundle_buf(const char *s, int len)
+{
+	if (len > strlen(bundle_signature))
+		len = strlen(bundle_signature);
+	/* If we don't match what we already have, then definitely not. */
+	if (memcmp(s, bundle_signature, len))
+		return 0;
+	/* If we have enough bytes, we can say yes */
+	if (len == strlen(bundle_signature))
+		return 1;
+	/* otherwise, we can only say "maybe" */
+	return -1;
+}
+
 static int list_refs(struct string_list *r, int argc, const char **argv)
 {
 	int i;
