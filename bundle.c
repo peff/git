@@ -19,6 +19,7 @@
 #include "list-objects-filter-options.h"
 #include "connected.h"
 #include "write-or-die.h"
+#include "remote.h"
 
 /*
  * NEEDSWORK: this function implicitly depends on `the_repository` and is not
@@ -648,4 +649,20 @@ int unbundle(struct repository *r, struct bundle_header *header,
 	if (run_command(&ip))
 		return error(_("index-pack died"));
 	return 0;
+}
+
+struct ref *bundle_header_to_refs(const struct bundle_header *header)
+{
+	struct ref *result = NULL;
+
+	for (size_t i = 0; i < data->header.references.nr; i++) {
+		struct string_list_item *e = data->header.references.items + i;
+		const char *name = e->string;
+		struct ref *ref = alloc_ref(name);
+		struct object_id *oid = e->util;
+		oidcpy(&ref->old_oid, oid);
+		ref->next = result;
+		result = ref;
+	}
+	return result;
 }
