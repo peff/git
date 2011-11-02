@@ -20,6 +20,7 @@ struct bundle_header {
 };
 
 int is_bundle(const char *path, int quiet);
+int is_bundle_buf(const char *s, int len);
 int read_bundle_header(const char *path, struct bundle_header *header);
 int create_bundle(struct repository *r, const char *path,
 		  int argc, const char **argv, struct strvec *pack_options,
