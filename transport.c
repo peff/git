@@ -130,8 +130,6 @@ static struct ref *get_refs_from_bundle(struct transport *transport,
 					struct transport_ls_refs_options *transport_options)
 {
 	struct bundle_transport_data *data = transport->data;
-	struct ref *result = NULL;
-	int i;
 
 	if (for_push)
 		return NULL;
@@ -146,14 +144,7 @@ static struct ref *get_refs_from_bundle(struct transport *transport,
 
 	transport->hash_algo = data->header.hash_algo;
 
-	for (i = 0; i < data->header.references.nr; i++) {
-		struct ref_list_entry *e = data->header.references.list + i;
-		struct ref *ref = alloc_ref(e->name);
-		oidcpy(&ref->old_oid, &e->oid);
-		ref->next = result;
-		result = ref;
-	}
-	return result;
+	return bundle_header_to_refs(&data->header);
 }
 
 static int fetch_refs_from_bundle(struct transport *transport,
