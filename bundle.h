@@ -23,6 +23,7 @@ void bundle_header_init(struct bundle_header *header);
 void bundle_header_release(struct bundle_header *header);
 
 int is_bundle(const char *path, int quiet);
+int is_bundle_buf(const char *s, int len);
 int read_bundle_header(const char *path, struct bundle_header *header);
 int read_bundle_header_fd(int fd, struct bundle_header *header,
 			  const char *report_path);
