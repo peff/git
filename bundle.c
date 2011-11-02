@@ -19,6 +19,7 @@
 #include "list-objects-filter-options.h"
 #include "connected.h"
 #include "write-or-die.h"
+#include "remote.h"
 
 static const char v2_bundle_signature[] = "# v2 git bundle\n";
 static const char v3_bundle_signature[] = "# v3 git bundle\n";
@@ -653,4 +654,21 @@ int unbundle(struct repository *r, struct bundle_header *header,
 	if (run_command(&ip))
 		return error(_("index-pack died"));
 	return 0;
+}
+
+struct ref *bundle_header_to_refs(const struct bundle_header *header)
+{
+	struct ref *result = NULL;
+	int i;
+
+	for (i = 0; i < data->header.references.nr; i++) {
+		struct string_list_item *e = data->header.references.items + i;
+		const char *name = e->string;
+		struct ref *ref = alloc_ref(name);
+		struct object_id *oid = e->util;
+		oidcpy(&ref->old_oid, oid);
+		ref->next = result;
+		result = ref;
+	}
+	return result;
 }

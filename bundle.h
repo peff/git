@@ -58,4 +58,6 @@ int unbundle(struct repository *r, struct bundle_header *header,
 int list_bundle_refs(struct bundle_header *header,
 		int argc, const char **argv);
 
+struct ref *bundle_header_to_refs(const struct bundle_header *header);
+
 #endif

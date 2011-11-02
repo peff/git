@@ -152,24 +152,13 @@ static struct ref *get_refs_from_bundle(struct transport *transport,
 					struct transport_ls_refs_options *transport_options UNUSED)
 {
 	struct bundle_transport_data *data = transport->data;
-	struct ref *result = NULL;
-	int i;
 
 	if (for_push)
 		return NULL;
 
 	get_refs_from_bundle_inner(transport);
 
-	for (i = 0; i < data->header.references.nr; i++) {
-		struct string_list_item *e = data->header.references.items + i;
-		const char *name = e->string;
-		struct ref *ref = alloc_ref(name);
-		struct object_id *oid = e->util;
-		oidcpy(&ref->old_oid, oid);
-		ref->next = result;
-		result = ref;
-	}
-	return result;
+	return bundle_header_to_refs(&data->header);
 }
 
 static int fetch_refs_from_bundle(struct transport *transport,
