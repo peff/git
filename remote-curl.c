@@ -625,6 +625,26 @@ static struct discovery *discover_refs(const char *service, int for_push)
 
 	http_ret = get_refs_from_url(refs_url.buf, &buffer, &http_options,
 				     filename, &is_bundle);
+
+	/* try the straight URL for a bundle, but don't impact the
+	 * error reporting that happens below. */
+	if (http_ret != HTTP_OK && http_ret != HTTP_NOAUTH) {
+		struct strbuf trimmed = STRBUF_INIT;
+		int r;
+
+		strbuf_reset(&buffer);
+
+		strbuf_addbuf(&trimmed, &url);
+		while (trimmed.len > 0 && trimmed.buf[trimmed.len-1] == '/')
+			strbuf_setlen(&trimmed, trimmed.len - 1);
+
+		r = get_refs_from_url(trimmed.buf, &buffer, &options,
+				      filename, &is_bundle);
+		if (r == HTTP_OK && is_bundle)
+			http_ret = r;
+		strbuf_release(&trimmed);
+	}
+
 	switch (http_ret) {
 	case HTTP_OK:
 		break;
