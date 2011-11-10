@@ -27,6 +27,7 @@
 #include "url.h"
 #include "write-or-die.h"
 #include "bundle.h"
+#include "progress.h"
 
 static struct remote *remote;
 /* always ends with a trailing slash */
@@ -495,6 +496,9 @@ struct get_refs_cb_data {
 	int is_bundle;
 	const char *tmpname;
 	FILE *fh;
+
+	struct progress *progress;
+	off_t total;
 };
 
 static size_t get_refs_callback(char *buf, size_t sz, size_t n, void *vdata)
@@ -502,8 +506,11 @@ static size_t get_refs_callback(char *buf, size_t sz, size_t n, void *vdata)
 	struct get_refs_cb_data *data = vdata;
 	struct strbuf *out = data->out;
 
-	if (data->is_bundle > 0)
+	if (data->is_bundle > 0) {
+		data->total += sz * n;
+		display_throughput(data->progress, data->total);
 		return fwrite(buf, sz, n, data->fh);
+	}
 
 	strbuf_add(out, buf, sz * n);
 
@@ -517,6 +524,12 @@ static size_t get_refs_callback(char *buf, size_t sz, size_t n, void *vdata)
 			die_errno("unable to open %s", data->tmpname);
 		if (fwrite(out->buf, 1, out->len, data->fh) < out->len)
 			die_errno("unable to write to %s", data->tmpname);
+		if (options.progress) {
+			data->total = out->len;
+			data->progress = start_progress("Downloading bundle", 0);
+			display_progress(data->progress, 0);
+			display_throughput(data->progress, data->total);
+		}
 	}
 	return sz * n;
 }
@@ -532,6 +545,8 @@ static int get_refs_from_url(const char *url, struct strbuf *out,
 	data.is_bundle = -1;
 	data.tmpname = tmpname;
 	data.fh = NULL;
+	data.progress = NULL;
+	data.total = 0;
 
 	ret = http_get_callback(url, get_refs_callback, &data, 0, options);
 
@@ -539,6 +554,7 @@ static int get_refs_from_url(const char *url, struct strbuf *out,
 		if (fclose(data.fh))
 			die_errno("unable to write to %s", data.tmpname);
 	}
+	stop_progress(&data.progress);
 
 	*is_bundle = data.is_bundle > 0;
 	return ret;
