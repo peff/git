@@ -133,8 +133,10 @@ static void display(struct progress *progress, uint64_t n, const char *done)
 			show_update = 1;
 		}
 	} else if (progress_update) {
-		strbuf_reset(counters_sb);
-		strbuf_addf(counters_sb, "%"PRIuMAX"%s", (uintmax_t)n, tp);
+		if (n) {
+			strbuf_reset(counters_sb);
+			strbuf_addf(counters_sb, "%"PRIuMAX"%s", (uintmax_t)n, tp);
+		}
 		show_update = 1;
 	}
 
@@ -170,10 +172,11 @@ static void display(struct progress *progress, uint64_t n, const char *done)
 }
 
 static void throughput_string(struct strbuf *buf, uint64_t total,
-			      unsigned int rate)
+			      unsigned int rate, struct progress *p)
 {
 	strbuf_reset(buf);
-	strbuf_addstr(buf, ", ");
+	if (p->total || p->last_value > 0)
+		strbuf_addstr(buf, ", ");
 	strbuf_humanise_bytes(buf, total);
 	strbuf_addstr(buf, " | ");
 	strbuf_humanise_rate(buf, rate * 1024);
@@ -242,7 +245,7 @@ void display_throughput(struct progress *progress, uint64_t total)
 	tp->last_misecs[tp->idx] = misecs;
 	tp->idx = (tp->idx + 1) % TP_IDX_MAX;
 
-	throughput_string(&tp->display, total, rate);
+	throughput_string(&tp->display, total, rate, progress);
 	if (progress->last_value != -1 && progress_update)
 		display(progress, progress->last_value, NULL);
 }
@@ -330,7 +333,7 @@ static void force_last_update(struct progress *progress, const char *msg)
 		unsigned int misecs, rate;
 		misecs = ((now_ns - progress->start_ns) * 4398) >> 32;
 		rate = tp->curr_total / (misecs ? misecs : 1);
-		throughput_string(&tp->display, tp->curr_total, rate);
+		throughput_string(&tp->display, tp->curr_total, rate, progress);
 	}
 	progress_update = 1;
 	buf = xstrfmt(", %s.\n", msg);
