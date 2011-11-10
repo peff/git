@@ -449,6 +449,36 @@ static void clone_local(const char *src_repo, const char *dest_repo)
 		fprintf(stderr, _("done.\n"));
 }
 
+static int git_dir_is_resumable(const char *dir)
+{
+	const char *objects = mkpath("%s/objects", dir);
+	DIR *dh = opendir(objects);
+	struct dirent *de;
+
+	if (!dh)
+		return 0;
+
+	while ((de = readdir(dh))) {
+		if (starts_with(de->d_name, "tmp_bundle_")) {
+			closedir(dh);
+			return 1;
+		}
+	}
+
+	closedir(dh);
+	return 0;
+}
+
+static void give_resume_advice(void)
+{
+	advise("Cloning failed, but partial results were saved.");
+	advise("You can resume the fetch with:");
+	advise("  git fetch");
+	if (!option_bare)
+		advise("  git checkout %s",
+		       option_branch ? option_branch : "master");
+}
+
 static const char *junk_work_tree;
 static int junk_work_tree_flags;
 static const char *junk_git_dir;
@@ -480,6 +510,10 @@ static void remove_junk(void)
 	}
 
 	if (junk_git_dir) {
+		if (git_dir_is_resumable(junk_git_dir)) {
+			give_resume_advice();
+			return;
+		}
 		strbuf_addstr(&sb, junk_git_dir);
 		remove_dir_recursively(&sb, junk_git_dir_flags);
 		strbuf_reset(&sb);
