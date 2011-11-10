@@ -1352,6 +1352,8 @@ static CURL *get_curl_handle(void)
 		curl_easy_setopt(result, CURLOPT_TCP_KEEPCNT, curl_tcp_keepcnt);
 #endif
 
+	curl_easy_setopt(result, CURLOPT_NOSIGNAL, 1);
+
 	return result;
 }
 
