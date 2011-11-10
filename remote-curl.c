@@ -27,6 +27,7 @@
 #include "write-or-die.h"
 #include "bundle.h"
 #include "progress.h"
+#include "dir.h"
 
 static struct remote *remote;
 /* always ends with a trailing slash */
@@ -559,6 +560,32 @@ static int get_refs_from_url(const char *url, struct strbuf *out,
 	return ret;
 }
 
+static int resume_bundle(const char *url, const char *tmpname)
+{
+	struct get_refs_cb_data data;
+	int ret;
+
+	data.fh = fopen(tmpname, "ab");
+	if (!data.fh)
+		die_errno("unable to open %s", tmpname);
+
+	data.is_bundle = 1;
+	data.total = ftell(data.fh);
+	if (options.progress) {
+		data.progress = start_progress("Resuming bundle", 0);
+		display_progress(data.progress, 0);
+		display_throughput(data.progress, data.total);
+	}
+
+	ret = http_get_callback(url, get_refs_callback, &data, data.total, NULL);
+
+	if (fclose(data.fh))
+		die_errno("unable to write to %s", tmpname);
+	stop_progress(&data.progress);
+
+	return ret;
+}
+
 static const char *url_to_bundle_tmpfile(const char *url)
 {
 	struct strbuf buf = STRBUF_INIT;
@@ -605,17 +632,19 @@ static struct discovery *discover_refs(const char *service, int for_push)
 	free_discovery(last);
 
 	filename = url_to_bundle_tmpfile(url.buf);
+	if (file_exists(filename)) {
+		struct strbuf trimmed = STRBUF_INIT;
 
-	strbuf_addf(&refs_url, "%sinfo/refs", url.buf);
-	if ((starts_with(url.buf, "http://") || starts_with(url.buf, "https://")) &&
-	     git_env_bool("GIT_SMART_HTTP", 1)) {
-		maybe_smart = 1;
-		if (!strchr(url.buf, '?'))
-			strbuf_addch(&refs_url, '?');
-		else
-			strbuf_addch(&refs_url, '&');
-		strbuf_addf(&refs_url, "service=%s", service);
+		strbuf_addbuf(&trimmed, &url);
+		while (trimmed.len > 0 && trimmed.buf[trimmed.len-1] == '/')
+			strbuf_setlen(&trimmed, trimmed.len - 1);
+
+		http_ret = resume_bundle(trimmed.buf, filename);
+		is_bundle = 1;
+		strbuf_release(&trimmed);
 	}
+	else
+		http_ret = HTTP_MISSING_TARGET;
 
 	/*
 	 * NEEDSWORK: If we are trying to use protocol v2 and we are planning
@@ -630,17 +659,30 @@ static struct discovery *discover_refs(const char *service, int for_push)
 	if (get_protocol_http_header(version, &protocol_header))
 		string_list_append(&extra_headers, protocol_header.buf);
 
-	memset(&http_options, 0, sizeof(http_options));
-	http_options.content_type = &type;
-	http_options.charset = &charset;
-	http_options.effective_url = &effective_url;
-	http_options.base_url = &url;
-	http_options.extra_headers = &extra_headers;
-	http_options.initial_request = 1;
-	http_options.no_cache = 1;
+	if (http_ret != HTTP_OK && http_ret != HTTP_NOAUTH) {
+		strbuf_addf(&refs_url, "%sinfo/refs", url.buf);
+		if ((starts_with(url.buf, "http://") || starts_with(url.buf, "https://")) &&
+		     git_env_bool("GIT_SMART_HTTP", 1)) {
+			maybe_smart = 1;
+			if (!strchr(url.buf, '?'))
+				strbuf_addch(&refs_url, '?');
+			else
+				strbuf_addch(&refs_url, '&');
+			strbuf_addf(&refs_url, "service=%s", service);
+		}
 
-	http_ret = get_refs_from_url(refs_url.buf, &buffer, &http_options,
-				     filename, &is_bundle);
+		memset(&http_options, 0, sizeof(http_options));
+		http_options.content_type = &type;
+		http_options.charset = &charset;
+		http_options.effective_url = &effective_url;
+		http_options.base_url = &url;
+		http_options.extra_headers = &extra_headers;
+		http_options.initial_request = 1;
+		http_options.no_cache = 1;
+
+		http_ret = get_refs_from_url(refs_url.buf, &buffer, &http_options,
+					     filename, &is_bundle);
+	}
 
 	/* try the straight URL for a bundle, but don't impact the
 	 * error reporting that happens below. */
@@ -654,7 +696,7 @@ static struct discovery *discover_refs(const char *service, int for_push)
 		while (trimmed.len > 0 && trimmed.buf[trimmed.len-1] == '/')
 			strbuf_setlen(&trimmed, trimmed.len - 1);
 
-		r = get_refs_from_url(trimmed.buf, &buffer, &options,
+		r = get_refs_from_url(trimmed.buf, &buffer, &http_options,
 				      filename, &is_bundle);
 		if (r == HTTP_OK && is_bundle)
 			http_ret = r;
