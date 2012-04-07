@@ -518,6 +518,7 @@ void credential_fill(struct credential *c, int all_capabilities)
 		}
 		if ((c->username && c->password) || c->credential) {
 			strvec_clear(&c->wwwauth_headers);
+			c->approved = 1;
 			return;
 		}
 		if (c->quit)
