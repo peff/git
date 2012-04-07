@@ -124,12 +124,16 @@ test_expect_success 'http auth can request both user and pass' '
 test_expect_success 'http auth respects credential helper config' '
 	test_config_global credential.helper "!f() {
 		cat >/dev/null
+		echo helper: \$* >>helper-trace
 		echo username=user@host
 		echo password=pass@host
 	}; f" &&
+	>helper-trace &&
 	set_askpass wrong &&
 	git clone "$HTTPD_URL/auth/dumb/repo.git" clone-auth-helper &&
-	expect_askpass none
+	expect_askpass none &&
+	echo "helper: get" >helper-expect &&
+	test_cmp helper-expect helper-trace
 '
 
 test_expect_success 'http auth can get username from config' '
