@@ -532,6 +532,7 @@ void credential_fill(struct repository *r,
 		}
 		if ((c->username && c->password) || c->credential) {
 			strvec_clear(&c->wwwauth_headers);
+			c->approved = 1;
 			return;
 		}
 		if (c->quit)
