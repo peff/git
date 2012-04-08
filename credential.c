@@ -35,6 +35,7 @@ void credential_clear(struct credential *c)
 	strvec_clear(&c->wwwauth_headers);
 	strvec_clear(&c->state_headers);
 	strvec_clear(&c->state_headers_to_send);
+	strvec_clear(&c->extra);
 
 	credential_init(c);
 }
@@ -370,11 +371,14 @@ int credential_read(struct credential *c, FILE *fp,
 		} else if (!strcmp(key, "quit")) {
 			c->quit = !!git_config_bool("quit", value);
 		}
-		/*
-		 * Ignore other lines; we don't know what they mean, but
-		 * this future-proofs us when later versions of git do
-		 * learn new lines, and the helpers are updated to match.
-		 */
+		else {
+			/*
+			 * Save other lines so they can be fed back to the
+			 * helper or transported to other helpers.
+			 */
+			*(value-1) = '=';
+			strvec_push(&c->extra, line.buf);
+		}
 	}
 
 	strbuf_release(&line);
@@ -426,6 +430,9 @@ void credential_write(const struct credential *c, FILE *fp,
 		for (size_t i = 0; i < c->state_headers_to_send.nr; i++)
 			credential_write_item(fp, "state[]", c->state_headers_to_send.v[i], 0);
 	}
+	/* XXX check for newlines? */
+	for (size_t i = 0; i < c->extra.nr; i++)
+		fprintf(fp, "%s\n", c->extra.v[i]);
 }
 
 static int run_credential_helper(struct credential *c,
