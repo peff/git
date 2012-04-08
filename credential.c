@@ -468,7 +468,7 @@ static int run_credential_helper(struct credential *c,
 	return 0;
 }
 
-static int credential_do(struct credential *c, const char *helper,
+int credential_do(struct credential *c, const char *helper,
 			 const char *operation)
 {
 	struct strbuf cmd = STRBUF_INIT;

@@ -147,6 +147,7 @@ int cmd_credential(int argc, const char **argv, const char *prefix, struct repos
 int cmd_credential_cache(int argc, const char **argv, const char *prefix, struct repository *repo);
 int cmd_credential_cache_daemon(int argc, const char **argv, const char *prefix, struct repository *repo);
 int cmd_credential_store(int argc, const char **argv, const char *prefix, struct repository *repo);
+int cmd_credential_wrap(int argc, const char **argv, const char *prefix, struct repository *repo);
 int cmd_describe(int argc, const char **argv, const char *prefix, struct repository *repo);
 int cmd_diagnose(int argc, const char **argv, const char *prefix, struct repository *repo);
 int cmd_diff_files(int argc, const char **argv, const char *prefix, struct repository *repo);
