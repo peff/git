@@ -683,6 +683,7 @@ EXTRA_PROGRAMS =
 # ... and all the rest that could be moved out of bindir to gitexecdir
 PROGRAMS += $(EXTRA_PROGRAMS)
 
+PROGRAM_OBJS += credential-wrap.o
 PROGRAM_OBJS += daemon.o
 PROGRAM_OBJS += http-backend.o
 PROGRAM_OBJS += imap-send.o
