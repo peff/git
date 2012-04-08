@@ -155,6 +155,8 @@ struct credential {
 	 */
 	struct strvec state_headers_to_send;
 
+	struct strvec extra;
+
 	/**
 	 * Internal use only. Keeps track of if we previously matched against a
 	 * WWW-Authenticate header line in order to re-fold future continuation
@@ -195,6 +197,7 @@ struct credential {
 	.wwwauth_headers = STRVEC_INIT, \
 	.state_headers = STRVEC_INIT, \
 	.state_headers_to_send = STRVEC_INIT, \
+	.extra = STRVEC_INIT, \
 }
 
 /* Initialize a credential structure, setting all fields to empty. */
