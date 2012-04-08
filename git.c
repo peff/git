@@ -538,6 +538,7 @@ static struct cmd_struct commands[] = {
 	{ "credential-cache", cmd_credential_cache },
 	{ "credential-cache--daemon", cmd_credential_cache_daemon },
 	{ "credential-store", cmd_credential_store },
+	{ "credential-wrap", cmd_credential_wrap },
 	{ "describe", cmd_describe, RUN_SETUP },
 	{ "diagnose", cmd_diagnose, RUN_SETUP_GENTLY },
 	{ "diff", cmd_diff, NO_PARSEOPT },
