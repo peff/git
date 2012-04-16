@@ -410,11 +410,11 @@ git filter-branch ... D..H --not C
 To move the whole tree into a subdirectory, or remove it from there:
 
 ---------------------------------------------------------------
-git filter-branch --index-filter \
-	'git ls-files -s | sed "s-\t\"*-&newsubdir/-" |
-		GIT_INDEX_FILE=$GIT_INDEX_FILE.new \
-			git update-index --index-info &&
-	 mv "$GIT_INDEX_FILE.new" "$GIT_INDEX_FILE"' HEAD
+git filter-branch --index-filter '
+	git ls-files -sz |
+	perl -0pe "s{\t}{\tnewsubdir/}" |
+	git update-index -z --clear --index-info
+' HEAD
 ---------------------------------------------------------------
 
 
