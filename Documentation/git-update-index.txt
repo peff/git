@@ -80,6 +80,9 @@ OPTIONS
 	arguments as three separate parameters, but new users are
 	encouraged to use a single-parameter form.
 
+--clear::
+	Discard all existing entries from the index.
+
 --index-info::
         Read index information from stdin.
 
