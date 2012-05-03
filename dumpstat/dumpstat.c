@@ -34,6 +34,10 @@ static struct dumpstat_writer *parse_writer(const char *s)
 		return dumpstat_to_file(s + 5);
 	else if (s[0] == '/')
 		return dumpstat_to_file(s);
+	else if (starts_with(s, "fd:"))
+		return dumpstat_to_fd(s + 3);
+	else if (isdigit(s[0]))
+		return dumpstat_to_fd(s);
 
 	warning("unknown dumpstat type: %s", s);
 	return NULL;
