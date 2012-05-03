@@ -38,6 +38,8 @@ static struct dumpstat_writer *parse_writer(const char *s)
 		return dumpstat_to_fd(s + 3);
 	else if (isdigit(s[0]))
 		return dumpstat_to_fd(s);
+	else if (starts_with(s, "zeromq:"))
+		return dumpstat_to_zeromq(s + 7);
 
 	warning("unknown dumpstat type: %s", s);
 	return NULL;

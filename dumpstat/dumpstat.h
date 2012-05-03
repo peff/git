@@ -40,6 +40,7 @@ struct dumpstat_writer {
 };
 struct dumpstat_writer *dumpstat_to_file(const char *path);
 struct dumpstat_writer *dumpstat_to_fd(const char *desc);
+struct dumpstat_writer *dumpstat_to_zeromq(const char *endpoint);
 
 struct dumpstat_formatter {
 	void (*start)(void);
