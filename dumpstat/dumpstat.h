@@ -39,6 +39,7 @@ struct dumpstat_writer {
 	int (*write)(const char *buf, size_t len);
 };
 struct dumpstat_writer *dumpstat_to_file(const char *path);
+struct dumpstat_writer *dumpstat_to_fd(const char *desc);
 
 struct dumpstat_formatter {
 	void (*start)(void);
