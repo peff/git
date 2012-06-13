@@ -11,10 +11,16 @@ struct blame_tree {
 	struct rev_info rev;
 };
 
+struct blame_tree_entry {
+	struct commit *commit;
+	char name[FLEX_ARRAY];
+};
+
 void blame_tree_init(struct blame_tree *, int argc, const char **argv);
 void blame_tree_release(struct blame_tree *);
 
-typedef void (*blame_tree_callback)(const char *, const struct commit *, void *);
+typedef void (*blame_tree_callback)(const char *path, const char *orig_path,
+				    const struct commit *, void *data);
 int blame_tree_run(struct blame_tree *, blame_tree_callback, void *);
 
 #endif /* BLAME_TREE_H */

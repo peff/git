@@ -3,7 +3,8 @@
 #include "quote.h"
 #include "parse-options.h"
 
-static void show_entry(const char *path, const struct commit *commit, void *d)
+static void show_entry(const char *path, const char *orig_path,
+		       const struct commit *commit, void *d)
 {
 	printf("%s\t", oid_to_hex(&commit->object.oid));
 	write_name_quoted(path, stdout, '\n');
