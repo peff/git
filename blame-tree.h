@@ -16,11 +16,13 @@ struct blame_tree_entry {
 	char name[FLEX_ARRAY];
 };
 
-void blame_tree_init(struct blame_tree *, int argc, const char **argv);
+void blame_tree_init(struct blame_tree *, const char *prefix);
+void blame_tree_finish_setup(struct blame_tree *, int argc, const char **argv);
 void blame_tree_release(struct blame_tree *);
 
 typedef void (*blame_tree_callback)(const char *path, const char *orig_path,
-				    const struct commit *, void *data);
+				    struct commit *, void *data);
 int blame_tree_run(struct blame_tree *, blame_tree_callback, void *);
+void blame_tree_show(struct blame_tree *, blame_tree_callback, void *);
 
 #endif /* BLAME_TREE_H */
