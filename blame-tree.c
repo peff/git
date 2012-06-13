@@ -54,14 +54,19 @@ static int add_from_revs(struct blame_tree *bt)
 	return 0;
 }
 
-void blame_tree_init(struct blame_tree *bt, int argc, const char **argv)
+void blame_tree_init(struct blame_tree *bt, const char *prefix)
 {
 	memset(bt, 0, sizeof(*bt));
 	bt->paths.strdup_strings = 1;
 
-	init_revisions(&bt->rev, NULL);
+	init_revisions(&bt->rev, prefix);
 	bt->rev.def = "HEAD";
 	bt->rev.combine_merges = 1;
+}
+
+void blame_tree_finish_setup(struct blame_tree *bt,
+			     int argc, const char **argv)
+{
 	setup_revisions(argc, argv, &bt->rev, NULL);
 
 	if (add_from_revs(bt) < 0)
@@ -180,4 +185,19 @@ int blame_tree_run(struct blame_tree *bt, blame_tree_callback cb, void *cbdata)
 		log_tree_commit(&bt->rev, data.commit);
 	}
 	return 0;
+}
+
+void blame_tree_show(struct blame_tree *bt, blame_tree_callback cb, void *data)
+{
+	int i;
+
+	for (i = 0; i < bt->paths.nr; i++) {
+		struct string_list_item *item = &bt->paths.items[i];
+		struct blame_tree_entry *e = item->util;
+
+		if (!e)
+			continue;
+
+		cb(e->name, item->string, e->commit, data);
+	}
 }
