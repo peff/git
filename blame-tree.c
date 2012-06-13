@@ -15,8 +15,13 @@ static int add_path(const unsigned char *sha1, struct strbuf *base,
 
 	if (!S_ISDIR(mode) || !recursive || show_tree) {
 		size_t orig_len = base->len;
+		struct string_list_item *item;
+		struct blame_tree_entry *e;
+
 		strbuf_addstr(base, name);
-		string_list_append(&bt->paths, base->buf);
+		item = string_list_append(&bt->paths, base->buf);
+		FLEX_ALLOC_STR(e, name, base->buf);
+		item->util = e;
 		strbuf_setlen(base, orig_len);
 	}
 
@@ -80,16 +85,38 @@ struct blame_tree_callback_data {
 static void mark_path(const char *path, struct blame_tree_callback_data *data)
 {
 	struct string_list_item *item = string_list_lookup(data->paths, path);
+	struct blame_tree_entry *e;
 
-	if (!item)
+	if (!item || !item->util)
 		return;
-	if (item->util)
+	e = item->util;
+
+	if (e->commit)
 		return;
 
-	item->util = data->commit;
+	e->commit = data->commit;
 	data->num_interesting--;
 	if (data->callback)
-		data->callback(path, data->commit, data->callback_data);
+		data->callback(e->name, path, e->commit, data->callback_data);
+}
+
+static void rename_path(const char *from, const char *to,
+			struct blame_tree_callback_data *data)
+{
+	struct string_list_item *old_item = string_list_lookup(data->paths, to);
+	struct string_list_item *new_item;
+	struct blame_tree_entry *e;
+
+	if (!old_item || !old_item->util)
+		return;
+	e = old_item->util;
+
+	if (e->commit)
+		return;
+
+	new_item = string_list_insert(data->paths, from);
+	new_item->util = old_item->util;
+	old_item->util = NULL;
 }
 
 static void process_diff(struct diff_queue_struct *q,
@@ -103,10 +130,16 @@ static void process_diff(struct diff_queue_struct *q,
 		switch (p->status) {
 		case DIFF_STATUS_RENAMED:
 			mark_path(p->one->path, data);
-			mark_path(p->two->path, data);
+			if (p->score == (int)MAX_SCORE)
+				rename_path(p->one->path, p->two->path, data);
+			else
+				mark_path(p->two->path, data);
 			break;
 		case DIFF_STATUS_COPIED:
-			mark_path(p->two->path, data);
+			if (p->score == (int)MAX_SCORE)
+				rename_path(p->one->path, p->two->path, data);
+			else
+				mark_path(p->two->path, data);
 			break;
 		case DIFF_STATUS_ADDED:
 			mark_path(p->two->path, data);
