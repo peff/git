@@ -148,6 +148,16 @@ static int opt_parse_porcelain(const struct option *opt, const char *arg, int un
 	return 0;
 }
 
+static int mention_abandoned_message;
+static void maybe_mention_abandoned_message(void)
+{
+	if (!mention_abandoned_message)
+		return;
+	advise(_("Your commit message has been saved in '%s' and will be\n"
+		 "overwritten by the next invocation of \"git commit\"."),
+	       git_path_commit_editmsg());
+}
+
 static int opt_parse_m(const struct option *opt, const char *arg, int unset)
 {
 	struct strbuf *buf = opt->value;
@@ -1012,6 +1022,8 @@ static int prepare_to_commit(const char *index_file, const char *prefix,
 			exit(1);
 		}
 		strvec_clear(&env);
+		atexit(maybe_mention_abandoned_message);
+		mention_abandoned_message = 1;
 	}
 
 	if (!no_verify &&
@@ -1655,11 +1667,13 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 	if (message_is_empty(&sb, cleanup_mode) && !allow_empty_message) {
 		rollback_index_files();
 		fprintf(stderr, _("Aborting commit due to empty commit message.\n"));
+		mention_abandoned_message = 0;
 		exit(1);
 	}
 	if (template_untouched(&sb, template_file, cleanup_mode) && !allow_empty_message) {
 		rollback_index_files();
 		fprintf(stderr, _("Aborting commit; you did not edit the message.\n"));
+		mention_abandoned_message = 0;
 		exit(1);
 	}
 
@@ -1686,6 +1700,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 		die("%s", err.buf);
 	}
 
+	mention_abandoned_message = 0;
 	sequencer_post_commit_cleanup(the_repository, 0);
 	unlink(git_path_merge_head(the_repository));
 	unlink(git_path_merge_msg(the_repository));
