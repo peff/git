@@ -4699,6 +4699,9 @@ void diff_setup_done(struct diff_options *options)
 	if (!options->use_color || external_diff())
 		options->color_moved = 0;
 
+	if (options->pathspec.has_wildcard && options->max_depth_valid)
+		die("max-depth cannot be used with wildcard pathspecs");
+
 	FREE_AND_NULL(options->parseopts);
 }
 
@@ -5319,6 +5322,18 @@ static int diff_opt_word_diff_regex(const struct option *opt,
 	return 0;
 }
 
+static int diff_opt_max_depth(const struct option *opt,
+			      const char *arg, int unset)
+{
+	struct diff_options *options = opt->value;
+
+	BUG_ON_OPT_NEG(unset);
+	options->flags.recursive = 1;
+	options->max_depth = strtol(arg, NULL, 10);
+	options->max_depth_valid = 1;
+	return 0;
+}
+
 static void prep_parse_options(struct diff_options *options)
 {
 	struct option parseopts[] = {
@@ -5576,6 +5591,9 @@ static void prep_parse_options(struct diff_options *options)
 		{ OPTION_CALLBACK, 0, "output", options, N_("<file>"),
 		  N_("Output to a specific file"),
 		  PARSE_OPT_NONEG, NULL, 0, diff_opt_output },
+		OPT_CALLBACK_F(0, "max-depth", options, N_("<depth>"),
+			       N_("maximum tree depth to recurse"),
+			       PARSE_OPT_NONEG, diff_opt_max_depth),
 
 		OPT_END()
 	};
