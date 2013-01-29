@@ -180,7 +180,7 @@ then
 		  do
 			case " $fullbases " in
 			*" $e "*) ;;
-			*)	rm -f "$e.pack" "$e.idx" "$e.keep" ;;
+			*)	rm -f "$e.pack" "$e.idx" "$e.keep" "$e.commits";;
 			esac
 		  done
 		)
