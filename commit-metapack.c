@@ -82,7 +82,7 @@ static void prepare_commit_metapacks(void)
 	initialized = 1;
 }
 
-int commit_metapack(const unsigned char *sha1,
+int commit_metapack(const struct object_id *oid,
 		    uint32_t *timestamp,
 		    unsigned char **tree,
 		    unsigned char **parent1,
@@ -93,7 +93,7 @@ int commit_metapack(const unsigned char *sha1,
 	prepare_commit_metapacks();
 	for (p = commit_metapacks; p; p = p->next) {
 		unsigned char *data;
-		int pos = sha1_entry_pos(p->index, 20, 0, 0, p->nr, p->nr, sha1);
+		int pos = sha1_entry_pos(p->index, 20, 0, 0, p->nr, p->nr, oid->hash);
 		if (pos < 0)
 			continue;
 

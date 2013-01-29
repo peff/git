@@ -1,7 +1,7 @@
 #ifndef METAPACK_COMMIT_H
 #define METAPACK_COMMIT_H
 
-int commit_metapack(const unsigned char *sha1,
+int commit_metapack(const struct object_id *oid,
 		    uint32_t *timestamp,
 		    unsigned char **tree,
 		    unsigned char **parent1,
