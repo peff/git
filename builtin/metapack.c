@@ -54,6 +54,7 @@ int cmd_metapack(int argc, const char **argv, const char *prefix)
 		OPT_END()
 	};
 
+	save_commit_buffer = 0;
 	argc = parse_options(argc, argv, prefix, opts, metapack_usage, 0);
 
 	if (all && argc)

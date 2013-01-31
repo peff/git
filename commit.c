@@ -375,7 +375,7 @@ int parse_commit_buffer(struct commit *item, const void *buffer, unsigned long s
 
 static int parse_commit_metapack(struct commit *item)
 {
-	unsigned char *tree, *p1, *p2;
+	const unsigned char *tree, *p1, *p2;
 	uint32_t ts;
 
 	if (commit_metapack(&item->object.oid, &ts, &tree, &p1, &p2) < 0)

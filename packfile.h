@@ -104,6 +104,7 @@ extern off_t nth_packed_object_offset(const struct packed_git *, uint32_t n);
  */
 extern off_t find_pack_entry_one(const unsigned char *sha1, struct packed_git *);
 
+extern int find_pack_entry_pos(const unsigned char *, struct packed_git *);
 extern int is_pack_valid(struct packed_git *);
 extern void *unpack_entry(struct packed_git *, off_t, enum object_type *, unsigned long *);
 extern unsigned long unpack_object_header_buffer(const unsigned char *buf, unsigned long len, enum object_type *type, unsigned long *sizep);
