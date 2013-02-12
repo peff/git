@@ -636,6 +636,8 @@ int cmd_branch(int argc, const char **argv, const char *prefix)
 	filter.kind = FILTER_REFS_BRANCHES;
 	filter.abbrev = -1;
 
+	save_commit_buffer = 0;
+
 	if (argc == 2 && !strcmp(argv[1], "-h"))
 		usage_with_options(builtin_branch_usage, options);
 
