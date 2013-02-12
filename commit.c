@@ -378,7 +378,7 @@ static int parse_commit_metapack(struct commit *item)
 	const unsigned char *tree, *p1, *p2;
 	uint32_t ts;
 
-	if (commit_metapack(&item->object.oid, &ts, &tree, &p1, &p2) < 0)
+	if (commit_metapack(item->object.oid.hash, &ts, &tree, &p1, &p2) < 0)
 		return -1;
 
 	item->date = ts;

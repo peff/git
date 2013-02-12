@@ -95,7 +95,7 @@ static void prepare_commit_metapacks(void)
 	initialized = 1;
 }
 
-int commit_metapack(const struct object_id *oid,
+int commit_metapack(const unsigned char *sha1,
 		    uint32_t *timestamp,
 		    const unsigned char **tree,
 		    const unsigned char **parent1,
@@ -119,7 +119,7 @@ int commit_metapack(const struct object_id *oid,
 		pos = -1;
 		do {
 			unsigned mi = (lo + hi) / 2;
-			int cmp = memcmp(p->index + mi * p->abbrev_len, oid->hash, p->abbrev_len);
+			int cmp = memcmp(p->index + mi * p->abbrev_len, sha1, p->abbrev_len);
 
 			if (!cmp) {
 				pos = mi;
@@ -136,7 +136,8 @@ int commit_metapack(const struct object_id *oid,
 		data = p->data + pos;
 
 		/* full sha-1 check again */
-		if (hashcmp(nth_packed_object_sha1(p->pack, ntohl(data->commit)), oid->hash))
+		if (hashcmp(nth_packed_object_sha1(p->pack,
+						   ntohl(data->commit)), sha1))
 			continue;
 
 		*timestamp = ntohl(data->timestamp);

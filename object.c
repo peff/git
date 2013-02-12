@@ -4,6 +4,7 @@
 #include "tree.h"
 #include "commit.h"
 #include "tag.h"
+#include "commit-metapack.h"
 
 static struct object **obj_hash;
 static int nr_objs, obj_hash_size;
@@ -251,6 +252,27 @@ struct object *parse_object(const struct object_id *oid)
 	obj = lookup_object(oid->hash);
 	if (obj && obj->parsed)
 		return obj;
+
+	if (!save_commit_buffer &&
+	    (!obj || (obj && obj->type == OBJ_COMMIT))) {
+		uint32_t timestamp;
+		const unsigned char *tree, *p1, *p2;
+		if (!commit_metapack(sha1, &timestamp, &tree, &p1, &p2)) {
+			struct commit *commit;
+			if (obj)
+				commit = (struct commit *)obj;
+			else
+				commit = lookup_commit(sha1);
+
+			commit->date = timestamp;
+			commit->tree = lookup_tree(tree);
+			commit_list_insert(lookup_commit(p1), &commit->parents);
+			if (!is_null_sha1(p2))
+				commit_list_insert(lookup_commit(p2), &commit->parents->next);
+			commit->object.parsed = 1;
+			return &commit->object;
+		}
+	}
 
 	if ((obj && obj->type == OBJ_BLOB && has_object_file(oid)) ||
 	    (!obj && has_object_file(oid) &&
