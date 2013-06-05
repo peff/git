@@ -428,6 +428,7 @@ static int object_is_reachable(struct object_id *oid)
 	save_commit_buffer = 0;
 	init_revisions(&data.revs, NULL);
 	setup_revisions(ARRAY_SIZE(argv) - 1, argv, &data.revs, NULL);
+	data.revs.blob_objects = 0;
 	if (prepare_revision_walk(&data.revs))
 		return 0;
 
