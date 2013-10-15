@@ -39,7 +39,7 @@ check() {
 		test_expect_success "archive $desc ($where, should work)" '
 			'"$cmd"' &&
 			for i in '"$expect"'; do
-				echo "$i:`basename $i`"
+				echo "$i:`basename $i`" || return 1
 			done >expect &&
 			rm -rf result &&
 			mkdir result &&
