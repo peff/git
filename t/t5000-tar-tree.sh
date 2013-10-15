@@ -231,6 +231,7 @@ test_expect_success 'git archive --remote outside of a git repo' '
 
 test_expect_success 'clients cannot access unreachable commits' '
 	test_commit unreachable &&
+	git tag -d unreachable &&
 	sha1=$(git rev-parse HEAD) &&
 	git reset --hard HEAD^ &&
 	git archive $sha1 >remote.tar &&
