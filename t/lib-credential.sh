@@ -14,6 +14,9 @@ check() {
 	read_chunk >stdin &&
 	read_chunk >expect-stdout &&
 	read_chunk >expect-stderr &&
+	if grep askpass expect-stderr; then
+		echo interactive=1 >>expect-stdout
+	fi
 	if ! eval "git $credential_opts credential $credential_cmd <stdin >stdout 2>stderr"; then
 		echo "git credential failed with code $?" &&
 		cat stderr &&
