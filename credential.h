@@ -119,6 +119,7 @@ struct credential {
 		 configured:1,
 		 quit:1,
 		 use_http_path:1,
+		 interactive:1,
 		 username_from_proto:1;
 
 	char *username;
