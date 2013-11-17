@@ -12,6 +12,8 @@
 #include "tree-walk.h"
 #include "environment.h"
 #include "repository.h"
+#include "dir.h"
+#include "pathspec.h"
 
 /*
  * Some mode bits are also used internally for computations.
@@ -595,14 +597,16 @@ struct combine_diff_path *diff_tree_paths(
 }
 
 /*
- * Does it look like the resulting diff might be due to a rename?
- *  - single entry
- *  - not a valid previous file
+ * Does it look like the resulting diff might be due to a rename? If we have
+ * any files that appeared, then maybe.
  */
 static inline int diff_might_be_rename(void)
 {
-	return diff_queued_diff.nr == 1 &&
-		!DIFF_FILE_VALID(diff_queued_diff.queue[0]->one);
+	int i;
+	for (i = 0; i < diff_queued_diff.nr; i++)
+		if (!DIFF_FILE_VALID(diff_queued_diff.queue[i]->one))
+			return 1;
+	return 0;
 }
 
 static void try_to_follow_renames(const struct object_id *old_oid,
@@ -610,97 +614,92 @@ static void try_to_follow_renames(const struct object_id *old_oid,
 				  struct strbuf *base, struct diff_options *opt)
 {
 	struct diff_options diff_opts;
+	struct diff_queue_struct outq;
 	struct diff_queue_struct *q = &diff_queued_diff;
-	struct diff_filepair *choice;
+	const char **new_paths;
+	int new_paths_num, new_paths_alloc;
 	int i;
 
-	/*
-	 * follow-rename code is very specific, we need exactly one
-	 * path. Magic that matches more than one path is not
-	 * supported.
-	 */
-	GUARD_PATHSPEC(&opt->pathspec, PATHSPEC_FROMTOP | PATHSPEC_LITERAL);
-#if 0
-	/*
-	 * We should reject wildcards as well. Unfortunately we
-	 * haven't got a reliable way to detect that 'foo\*bar' in
-	 * fact has no wildcards. nowildcard_len is merely a hint for
-	 * optimization. Let it slip for now until wildmatch is taught
-	 * about dry-run mode and returns wildcard info.
-	 */
-	if (opt->pathspec.has_wildcard)
-		BUG("wildcards are not supported");
-#endif
-
-	/* Remove the file creation entry from the diff queue, and remember it */
-	choice = q->queue[0];
-	q->nr = 0;
+	free(q->queue);
+	DIFF_QUEUE_CLEAR(q);
+	DIFF_QUEUE_CLEAR(&outq);
 
 	repo_diff_setup(opt->repo, &diff_opts);
 	diff_opts.flags.recursive = 1;
 	diff_opts.flags.find_copies_harder = 1;
 	diff_opts.output_format = DIFF_FORMAT_NO_OUTPUT;
-	diff_opts.single_follow = opt->pathspec.items[0].match;
 	diff_opts.break_opt = opt->break_opt;
 	diff_opts.rename_score = opt->rename_score;
 	diff_setup_done(&diff_opts);
 	ll_diff_tree_oid(old_oid, new_oid, base, &diff_opts);
 	diffcore_std(&diff_opts);
-	clear_pathspec(&diff_opts.pathspec);
 
-	/* Go through the new set of filepairing, and see if we find a more interesting one */
-	opt->found_follow = 0;
+	new_paths = NULL;
 	for (i = 0; i < q->nr; i++) {
 		struct diff_filepair *p = q->queue[i];
 
 		/*
-		 * Found a source? Not only do we use that for the new
-		 * diff_queued_diff, we will also use that as the path in
-		 * the future!
+		 * We widened our pathspec to find renames, so let's make
+		 * sure to throw away anything uninteresting at this point.
 		 */
-		if ((p->status == 'R' || p->status == 'C') &&
-		    !strcmp(p->two->path, opt->pathspec.items[0].match)) {
-			const char *path[2];
-
-			/* Switch the file-pairs around */
-			q->queue[i] = choice;
-			choice = p;
-
-			/* Update the path we use from now on.. */
-			path[0] = p->one->path;
-			path[1] = NULL;
-			clear_pathspec(&opt->pathspec);
-			parse_pathspec(&opt->pathspec,
-				       PATHSPEC_ALL_MAGIC & ~PATHSPEC_LITERAL,
-				       PATHSPEC_LITERAL_PATH, "", path);
-
-			/*
-			 * The caller expects us to return a set of vanilla
-			 * filepairs to let a later call to diffcore_std()
-			 * it makes to sort the renames out (among other
-			 * things), but we already have found renames
-			 * ourselves; signal diffcore_std() not to muck with
-			 * rename information.
-			 */
-			opt->found_follow = 1;
-			break;
+		if (!match_pathspec(&opt->pathspec, p->two->path,
+				    strlen(p->two->path), 0, NULL, 0)) {
+			diff_free_filepair(p);
+			continue;
 		}
+
+		/*
+		 * Everything else gets added into our diff (in case we are
+		 * actually showing one).
+		 */
+		diff_q(&outq, p);
+
+		/*
+		 * And then we proceed to treat copies and renames specially;
+		 * filter out anything else
+		 */
+		if (p->status != 'R' && p->status != 'C')
+		    continue;
+
+		/*
+		 * Do not bother with renames from sources that we already
+		 * match; expanding our pathspec would not have any value
+		 */
+		if (match_pathspec(&opt->pathspec, p->one->path,
+				   strlen(p->one->path), 0, NULL, 0))
+			continue;
+
+		/* Lazily initialize the pathspec with existing entries */
+		if (!new_paths) {
+			new_paths_num = new_paths_alloc = opt->pathspec.nr;
+			new_paths = xmalloc(opt->pathspec.nr * sizeof(*new_paths));
+			memcpy(new_paths, opt->pathspec._raw,
+			       opt->pathspec.nr * sizeof(*new_paths));
+		}
+
+		ALLOC_GROW(new_paths, new_paths_num + 1, new_paths_alloc);
+		new_paths[new_paths_num++] = xstrdup(p->one->path);
 	}
 
-	/*
-	 * Then, discard all the non-relevant file pairs...
-	 */
-	for (i = 0; i < q->nr; i++) {
-		struct diff_filepair *p = q->queue[i];
-		diff_free_filepair(p);
+	/* now finalize the new paths (if we found any) */
+	if (new_paths) {
+		ALLOC_GROW(new_paths, new_paths_num + 1, new_paths_alloc);
+		new_paths[new_paths_num] = NULL;
+		clear_pathspec(&opt->pathspec);
+		/*
+		 * XXX we need to somehow tell the pathspec machinery that
+		 * the new entries are all literals. Just adding the literal
+		 * flag might be enough, but since we are _adding_
+		 * to the pathspec, that would negatively affect the
+		 * existing pathspecs. Probably we should be teaching the
+		 * pathspec machinery to append new entries, which would solve
+		 * that problem (and be more efficient, too).
+		 */
+		parse_pathspec(&opt->pathspec, PATHSPEC_ALL_MAGIC, 0, "", new_paths);
 	}
 
-	/*
-	 * .. and re-instate the one we want (which might be either the
-	 * original one, or the rename/copy we found)
-	 */
-	q->queue[0] = choice;
-	q->nr = 1;
+	free(q->queue);
+	*q = outq;
 }
 
 static void ll_diff_tree_oid(const struct object_id *old_oid,
