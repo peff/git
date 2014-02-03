@@ -201,7 +201,7 @@ get_var_from_env_or_config "GIT_PERF_CODESPEED_OUTPUT" "perf" "codespeedOutput" 
 get_var_from_env_or_config "GIT_PERF_SEND_TO_CODESPEED" "perf" "sendToCodespeed"
 
 cd "$(dirname $0)"
-. ../../GIT-BUILD-OPTIONS
+. ../../MAKE/BUILD-OPTIONS
 
 mkdir -p test-results
 get_subsections "perf" >test-results/run_subsections.names
