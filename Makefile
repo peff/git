@@ -2003,6 +2003,20 @@ ifneq ("$(PROFILE)","")
 endif
 endif
 
+# usage: $(eval $(call make-var,FN,DESC,CONTENTS))
+#
+# Create a rule to write $CONTENTS (which should come from a make variable)
+# to GIT-$FN, but only if not already there. This can be used to create a
+# dependency on a Makefile variable. Prints $DESC to the user.
+define make-var
+GIT-$1: FORCE
+	@VALUE='$$(subst ','\'',$3)'; \
+	if test x"$$$$VALUE" != x"`cat $$@ 2>/dev/null`"; then \
+		echo >&2 "    * new $2"; \
+		echo "$$$$VALUE" >$$@; \
+	fi
+endef
+
 # Shell quote (do not use $(call) to accommodate ancient setups);
 
 ETC_GITCONFIG_SQ = $(subst ','\'',$(ETC_GITCONFIG))
@@ -2095,13 +2109,9 @@ SHELL_PATH_CQ_SQ = $(subst ','\'',$(SHELL_PATH_CQ))
 BASIC_CFLAGS += -DSHELL_PATH='$(SHELL_PATH_CQ_SQ)'
 endif
 
-GIT_USER_AGENT_SQ = $(subst ','\'',$(GIT_USER_AGENT))
 GIT_USER_AGENT_CQ = "$(subst ",\",$(subst \,\\,$(GIT_USER_AGENT)))"
 GIT_USER_AGENT_CQ_SQ = $(subst ','\'',$(GIT_USER_AGENT_CQ))
-GIT-USER-AGENT: FORCE
-	@if test x'$(GIT_USER_AGENT_SQ)' != x"`cat GIT-USER-AGENT 2>/dev/null`"; then \
-		echo '$(GIT_USER_AGENT_SQ)' >GIT-USER-AGENT; \
-	fi
+$(eval $(call make-var,USER-AGENT,user agent string,$(GIT_USER_AGENT)))
 
 ifdef DEFAULT_HELP_FORMAT
 BASIC_CFLAGS += -DDEFAULT_HELP_FORMAT='"$(DEFAULT_HELP_FORMAT)"'
@@ -2242,10 +2252,20 @@ command-list.h: $(wildcard Documentation/git*.txt)
 		$(patsubst %,--exclude-program %,$(EXCLUDED_PROGRAMS)) \
 		command-list.txt >$@+ && mv $@+ $@
 
-SCRIPT_DEFINES = $(SHELL_PATH_SQ):$(DIFF_SQ):$(GIT_VERSION):\
-	$(localedir_SQ):$(NO_CURL):$(USE_GETTEXT_SCHEME):$(SANE_TOOL_PATH_SQ):\
-	$(gitwebdir_SQ):$(PERL_PATH_SQ):$(SANE_TEXT_GREP):$(PAGER_ENV):\
-	$(perllibdir_SQ)
+$(eval $(call make-var,SCRIPT-DEFINES,script parameters,\
+	:$(SHELL_PATH)\
+	:$(DIFF)\
+	:$(GIT_VERSION)\
+	:$(localedir)\
+	:$(NO_CURL)\
+	:$(USE_GETTEXT_SCHEME)\
+	:$(SANE_TOOL_PATH)\
+	:$(gitwebdir)\
+	:$(PERL_PATH)\
+	:$(SANE_TEXT_GREP)\
+	:$(PAGER_ENV)\
+	:$(perllibdir)\
+))
 define cmd_munge_script
 $(RM) $@ $@+ && \
 sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
@@ -2261,14 +2281,6 @@ sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
     -e 's|@@PAGER_ENV@@|$(PAGER_ENV_SQ)|g' \
     $@.sh >$@+
 endef
-
-GIT-SCRIPT-DEFINES: FORCE
-	@FLAGS='$(SCRIPT_DEFINES)'; \
-	    if test x"$$FLAGS" != x"`cat $@ 2>/dev/null`" ; then \
-		echo >&2 "    * new script parameters"; \
-		echo "$$FLAGS" >$@; \
-            fi
-
 
 $(SCRIPT_SH_GEN) : % : %.sh GIT-SCRIPT-DEFINES
 	$(QUIET_GEN)$(cmd_munge_script) && \
@@ -2329,12 +2341,11 @@ $(SCRIPT_PERL_GEN): % : %.perl GIT-PERL-DEFINES GIT-PERL-HEADER GIT-VERSION-FILE
 	mv $@+ $@
 
 PERL_DEFINES := $(subst $(space),:,$(PERL_DEFINES))
-GIT-PERL-DEFINES: FORCE
-	@FLAGS='$(PERL_DEFINES)'; \
-	    if test x"$$FLAGS" != x"`cat $@ 2>/dev/null`" ; then \
-		echo >&2 "    * new perl-specific parameters"; \
-		echo "$$FLAGS" >$@; \
-	    fi
+$(eval $(call make-var,PERL-DEFINES,perl-specific parameters,\
+	:$(PERL_PATH)\
+	:$(PERLLIB_EXTRA)\
+	:$(perllibdir)\
+))
 
 GIT-PERL-HEADER: $(PERL_HEADER_TEMPLATE) GIT-PERL-DEFINES Makefile
 	$(QUIET_GEN)$(RM) $@ && \
@@ -2376,6 +2387,7 @@ endif # NO_PERL
 $(SCRIPT_PYTHON_GEN): GIT-BUILD-OPTIONS
 
 ifndef NO_PYTHON
+$(eval $(call make-var,PYTHON-VARS,Python interpreter location,$(PYTHON_PATH)))
 $(SCRIPT_PYTHON_GEN): GIT-CFLAGS GIT-PREFIX GIT-PYTHON-VARS
 $(SCRIPT_PYTHON_GEN): % : %.py
 	$(QUIET_GEN)$(RM) $@ $@+ && \
@@ -2746,34 +2758,15 @@ cscope:
 	$(RM) cscope*
 	$(FIND_SOURCE_FILES) | xargs cscope -b
 
-### Detect prefix changes
-TRACK_PREFIX = $(bindir_SQ):$(gitexecdir_SQ):$(template_dir_SQ):$(prefix_SQ):\
-		$(localedir_SQ)
-
-GIT-PREFIX: FORCE
-	@FLAGS='$(TRACK_PREFIX)'; \
-	if test x"$$FLAGS" != x"`cat GIT-PREFIX 2>/dev/null`" ; then \
-		echo >&2 "    * new prefix flags"; \
-		echo "$$FLAGS" >GIT-PREFIX; \
-	fi
-
-TRACK_CFLAGS = $(CC):$(subst ','\'',$(ALL_CFLAGS))
-
-GIT-CFLAGS: FORCE
-	@FLAGS='$(TRACK_CFLAGS)'; \
-	    if test x"$$FLAGS" != x"`cat GIT-CFLAGS 2>/dev/null`" ; then \
-		echo >&2 "    * new build flags"; \
-		echo "$$FLAGS" >GIT-CFLAGS; \
-            fi
-
-TRACK_LDFLAGS = $(subst ','\'',$(ALL_LDFLAGS))
-
-GIT-LDFLAGS: FORCE
-	@FLAGS='$(TRACK_LDFLAGS)'; \
-	    if test x"$$FLAGS" != x"`cat GIT-LDFLAGS 2>/dev/null`" ; then \
-		echo >&2 "    * new link flags"; \
-		echo "$$FLAGS" >GIT-LDFLAGS; \
-            fi
+$(eval $(call make-var,PREFIX,prefix flags,\
+	:$(bindir)\
+	:$(gitexecdir)\
+	:$(template_dir)\
+	:$(prefix)\
+	:$(localedir)\
+))
+$(eval $(call make-var,CFLAGS,build flags,$(ALL_CFLAGS)))
+$(eval $(call make-var,LDFLAGS,link flags,$(ALL_LDFLAGS)))
 
 # We need to apply sq twice, once to protect from the shell
 # that runs GIT-BUILD-OPTIONS, and then again to protect it
@@ -2836,18 +2829,6 @@ ifdef GIT_TEST_PERL_FATAL_WARNINGS
 	@echo GIT_TEST_PERL_FATAL_WARNINGS=\''$(subst ','\'',$(subst ','\'',$(GIT_TEST_PERL_FATAL_WARNINGS)))'\' >>$@+
 endif
 	@if cmp $@+ $@ >/dev/null 2>&1; then $(RM) $@+; else mv $@+ $@; fi
-
-### Detect Python interpreter path changes
-ifndef NO_PYTHON
-TRACK_PYTHON = $(subst ','\'',-DPYTHON_PATH='$(PYTHON_PATH_SQ)')
-
-GIT-PYTHON-VARS: FORCE
-	@VARS='$(TRACK_PYTHON)'; \
-	    if test x"$$VARS" != x"`cat $@ 2>/dev/null`" ; then \
-		echo >&2 "    * new Python interpreter location"; \
-		echo "$$VARS" >$@; \
-            fi
-endif
 
 test_bindir_programs := $(patsubst %,bin-wrappers/%,$(BINDIR_PROGRAMS_NEED_X) $(BINDIR_PROGRAMS_NO_X) $(TEST_PROGRAMS_NEED_X))
 
