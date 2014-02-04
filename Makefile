@@ -2756,7 +2756,7 @@ GIT-PREFIX: FORCE
 		echo "$$FLAGS" >GIT-PREFIX; \
 	fi
 
-TRACK_CFLAGS = $(CC):$(subst ','\'',$(ALL_CFLAGS)):$(USE_GETTEXT_SCHEME)
+TRACK_CFLAGS = $(CC):$(subst ','\'',$(ALL_CFLAGS))
 
 GIT-CFLAGS: FORCE
 	@FLAGS='$(TRACK_CFLAGS)'; \
