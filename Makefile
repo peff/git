@@ -2035,6 +2035,11 @@ MAKE/$1: FORCE
 	fi
 endef
 
+MAKE/%-string.h: MAKE/% script/mkcstring
+	$(QUIET_GEN)$(SHELL_PATH) script/mkcstring \
+		$(subst -,_,$*) <$< >$@+ && \
+		mv $@+ $@
+
 # RUNTIME_PREFIX's resolution logic requires resource paths to be expressed
 # relative to each other and share an installation path.
 #
@@ -2088,6 +2093,7 @@ BASIC_CFLAGS += -DSHELL_PATH=$(call scq,$(SHELL_PATH))
 endif
 
 $(eval $(call make-var,USER-AGENT,user agent string,$(GIT_USER_AGENT)))
+$(eval $(call make-var,VERSION,version,$(GIT_VERSION)))
 
 ifdef DEFAULT_HELP_FORMAT
 BASIC_CFLAGS += -DDEFAULT_HELP_FORMAT='"$(DEFAULT_HELP_FORMAT)"'
@@ -2201,10 +2207,8 @@ builtin/help.sp builtin/help.s builtin/help.o: EXTRA_CPPFLAGS = \
 	-DGIT_MAN_PATH=$(call scq,$(mandir_relative)) \
 	-DGIT_INFO_PATH=$(call scq,$(infodir_relative))
 
-version.sp version.s version.o: GIT-VERSION-FILE MAKE/USER-AGENT
+version.sp version.s version.o: MAKE/VERSION-string.h MAKE/USER-AGENT-string.h
 version.sp version.s version.o: EXTRA_CPPFLAGS = \
-	'-DGIT_VERSION="$(call scq,$(GIT_VERSION))"' \
-	'-DGIT_USER_AGENT="$(call scq,$(GIT_USER_AGENT))"' \
 	'-DGIT_BUILT_FROM_COMMIT="$(call scq,$(shell \
 		GIT_CEILING_DIRECTORIES="$(CURDIR)/.." \
 		git rev-parse -q --verify HEAD 2>/dev/null))"'

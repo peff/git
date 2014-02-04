@@ -1,8 +1,10 @@
 #include "git-compat-util.h"
 #include "version.h"
 #include "strbuf.h"
+#include "MAKE/USER-AGENT-string.h"
+#include "MAKE/VERSION-string.h"
 
-const char git_version_string[] = GIT_VERSION;
+const char git_version_string[] = MAKE_VERSION;
 const char git_built_from_commit_string[] = GIT_BUILT_FROM_COMMIT;
 
 const char *git_user_agent(void)
@@ -12,7 +14,7 @@ const char *git_user_agent(void)
 	if (!agent) {
 		agent = getenv("GIT_USER_AGENT");
 		if (!agent)
-			agent = GIT_USER_AGENT;
+			agent = MAKE_USER_AGENT;
 	}
 
 	return agent;
