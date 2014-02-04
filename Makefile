@@ -2013,7 +2013,7 @@ GIT-$1: FORCE
 	@VALUE='$$(subst ','\'',$3)'; \
 	if test x"$$$$VALUE" != x"`cat $$@ 2>/dev/null`"; then \
 		echo >&2 "    * new $2"; \
-		echo "$$$$VALUE" >$$@+ && \
+		printf '%s\n' "$$$$VALUE" >$$@+ && \
 		mv $$@+ $$@; \
 	fi
 endef
