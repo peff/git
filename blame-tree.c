@@ -6,6 +6,7 @@
 #include "revision.h"
 #include "log-tree.h"
 #include "dir.h"
+#include "argv-array.h"
 
 struct blame_tree_entry {
 	struct object_id oid;
@@ -58,6 +59,38 @@ static int add_from_revs(struct blame_tree *bt)
 	return 0;
 }
 
+static void setup_pathspec(struct pathspec *ps,
+			   const struct string_list *paths)
+{
+	struct argv_array argv = ARGV_ARRAY_INIT;
+	int i;
+
+	for (i = 0; i < paths->nr; i++)
+		argv_array_push(&argv, paths->items[i].string);
+
+	clear_pathspec(ps);
+	parse_pathspec(ps, PATHSPEC_ALL_MAGIC & ~PATHSPEC_LITERAL,
+		       PATHSPEC_PREFER_FULL | PATHSPEC_LITERAL_PATH, "",
+		       argv.argv);
+}
+
+static void drop_pathspec(struct pathspec *ps, const char *path)
+{
+	int i;
+
+	/* We know these are literals, so we can just strcmp */
+	for (i = 0; i < ps->nr; i++)
+		if (!strcmp(ps->items[i].match, path))
+			break;
+
+	if (i == ps->nr)
+		die("BUG: didn't find the pathspec we just matched");
+
+	memmove(ps->items + i, ps->items + i + 1,
+		sizeof(*ps->items) * (ps->nr - i - 1));
+	ps->nr--;
+}
+
 void blame_tree_init(struct blame_tree *bt, int argc, const char **argv,
 		     const char *prefix)
 {
@@ -76,6 +109,18 @@ void blame_tree_init(struct blame_tree *bt, int argc, const char **argv,
 
 	if (add_from_revs(bt) < 0)
 		die("unable to setup blame-tree");
+
+	setup_pathspec(&bt->rev.prune_data, &bt->paths);
+	copy_pathspec(&bt->rev.pruning.pathspec, &bt->rev.prune_data);
+	copy_pathspec(&bt->rev.diffopt.pathspec, &bt->rev.prune_data);
+	bt->rev.prune = 1;
+
+	/*
+	 * Have the diff engine tell us about everything, including trees.
+	 * We may have used --max-depth to get our list of paths to blame,
+	 * in which case we would mention trees explicitly.
+	 */
+	DIFF_OPT_SET(&bt->rev.diffopt, TREE_IN_RECURSIVE);
 }
 
 void blame_tree_release(struct blame_tree *bt)
@@ -88,6 +133,7 @@ struct blame_tree_callback_data {
 	struct commit *commit;
 	struct string_list *paths;
 	int num_interesting;
+	struct rev_info *rev;
 
 	blame_tree_callback callback;
 	void *callback_data;
@@ -118,6 +164,10 @@ static void mark_path(const char *path, const struct object_id *oid,
 	data->num_interesting--;
 	if (data->callback)
 		data->callback(path, data->commit, data->callback_data);
+
+	drop_pathspec(&data->rev->pruning.pathspec, path);
+	clear_pathspec(&data->rev->diffopt.pathspec);
+	copy_pathspec(&data->rev->diffopt.pathspec, &data->rev->pruning.pathspec);
 }
 
 static void blame_diff(struct diff_queue_struct *q,
@@ -169,6 +219,7 @@ int blame_tree_run(struct blame_tree *bt, blame_tree_callback cb, void *cbdata)
 	data.num_interesting = bt->paths.nr;
 	data.callback = cb;
 	data.callback_data = cbdata;
+	data.rev = &bt->rev;
 
 	bt->rev.diffopt.output_format = DIFF_FORMAT_CALLBACK;
 	bt->rev.diffopt.format_callback = blame_diff;
