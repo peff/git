@@ -645,11 +645,11 @@ build-python-script: $(SCRIPT_PYTHON_GEN)
 
 .PHONY: install-perl-script install-sh-script install-python-script
 install-sh-script: $(SCRIPT_SH_GEN)
-	$(INSTALL) $^ '$(DESTDIR_SQ)$(gitexec_instdir_SQ)'
+	$(INSTALL) $^ $(call sq,$(DESTDIR)$(gitexec_instdir))
 install-perl-script: $(SCRIPT_PERL_GEN)
-	$(INSTALL) $^ '$(DESTDIR_SQ)$(gitexec_instdir_SQ)'
+	$(INSTALL) $^ $(call sq,$(DESTDIR)$(gitexec_instdir))
 install-python-script: $(SCRIPT_PYTHON_GEN)
-	$(INSTALL) $^ '$(DESTDIR_SQ)$(gitexec_instdir_SQ)'
+	$(INSTALL) $^ $(call sq,$(DESTDIR)$(gitexec_instdir))
 
 .PHONY: clean-perl-script clean-sh-script clean-python-script
 clean-sh-script:
@@ -1322,7 +1322,7 @@ endif
 
 ifdef SANE_TOOL_PATH
 SANE_TOOL_PATH_SQ = $(subst ','\'',$(SANE_TOOL_PATH))
-BROKEN_PATH_FIX = 's|^\# @@BROKEN_PATH_FIX@@$$|git_broken_path_fix "$(SANE_TOOL_PATH_SQ)"|'
+BROKEN_PATH_FIX = 's|^\# @@BROKEN_PATH_FIX@@$$|git_broken_path_fix "$(call sqi,$(SANE_TOOL_PATH))"|'
 PATH := $(SANE_TOOL_PATH):${PATH}
 else
 BROKEN_PATH_FIX = '/^\# @@BROKEN_PATH_FIX@@$$/d'
@@ -1909,7 +1909,7 @@ endif
 
 ifneq ($(PROCFS_EXECUTABLE_PATH),)
 	procfs_executable_path_SQ = $(subst ','\'',$(PROCFS_EXECUTABLE_PATH))
-	BASIC_CFLAGS += '-DPROCFS_EXECUTABLE_PATH="$(procfs_executable_path_SQ)"'
+	BASIC_CFLAGS += '-DPROCFS_EXECUTABLE_PATH="$(call sq,$(procfs_executable_path))"'
 endif
 
 ifdef HAVE_NS_GET_EXECUTABLE_PATH
@@ -2003,6 +2003,13 @@ ifneq ("$(PROFILE)","")
 endif
 endif
 
+# usage: $(call sq,CONTENTS)
+#
+# Quote the value as appropriate for the shell. Use "sqi" if you are
+# already "i"nside single-quotes.
+sqi = $(subst ','\'',$1)
+sq = '$(call sqi,$1)'
+
 # usage: $(eval $(call make-var,FN,DESC,CONTENTS))
 #
 # Create a rule to write $CONTENTS (which should come from a make variable)
@@ -2010,7 +2017,7 @@ endif
 # dependency on a Makefile variable. Prints $DESC to the user.
 define make-var
 MAKE/$1: FORCE
-	@VALUE='$$(subst ','\'',$3)'; \
+	@VALUE=$$(call sq,$3); \
 	if ! test -e $$@ || test x"$$$$VALUE" != x"`cat $$@`"; then \
 		echo >&2 "    * new $2"; \
 		printf '%s\n' "$$$$VALUE" >$$@+ && \
@@ -2162,10 +2169,10 @@ endif
 
 all::
 ifndef NO_TCLTK
-	$(QUIET_SUBDIR0)git-gui $(QUIET_SUBDIR1) gitexecdir='$(gitexec_instdir_SQ)' all
+	$(QUIET_SUBDIR0)git-gui $(QUIET_SUBDIR1) gitexecdir=$(call sq,$(gitexec_instdir)) all
 	$(QUIET_SUBDIR0)gitk-git $(QUIET_SUBDIR1) all
 endif
-	$(QUIET_SUBDIR0)templates $(QUIET_SUBDIR1) SHELL_PATH='$(SHELL_PATH_SQ)' PERL_PATH='$(PERL_PATH_SQ)'
+	$(QUIET_SUBDIR0)templates $(QUIET_SUBDIR1) SHELL_PATH=$(call sq,$(SHELL_PATH)) PERL_PATH=$(call sq,$(PERL_PATH))
 
 please_set_SHELL_PATH_to_a_more_modern_shell:
 	@$$(:)
@@ -2269,17 +2276,17 @@ $(eval $(call make-var,SCRIPT-DEFINES,script parameters,\
 ))
 define cmd_munge_script
 $(RM) $@ $@+ && \
-sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
-    -e 's|@SHELL_PATH@|$(SHELL_PATH_SQ)|' \
-    -e 's|@@DIFF@@|$(DIFF_SQ)|' \
-    -e 's|@@LOCALEDIR@@|$(localedir_SQ)|g' \
+sed -e '1s|#!.*/sh|#!$(call sqi,$(SHELL_PATH))|' \
+    -e 's|@SHELL_PATH@|$(call sqi,$(SHELL_PATH))|' \
+    -e 's|@@DIFF@@|$(call sqi,$(DIFF))|' \
+    -e 's|@@LOCALEDIR@@|$(call sqi,$(localedir))|g' \
     -e 's/@@NO_CURL@@/$(NO_CURL)/g' \
     -e 's/@@USE_GETTEXT_SCHEME@@/$(USE_GETTEXT_SCHEME)/g' \
     -e $(BROKEN_PATH_FIX) \
-    -e 's|@@GITWEBDIR@@|$(gitwebdir_SQ)|g' \
-    -e 's|@@PERL@@|$(PERL_PATH_SQ)|g' \
-    -e 's|@@SANE_TEXT_GREP@@|$(SANE_TEXT_GREP)|g' \
-    -e 's|@@PAGER_ENV@@|$(PAGER_ENV_SQ)|g' \
+    -e 's|@@GITWEBDIR@@|$(call sqi,$(gitwebdir))|g' \
+    -e 's|@@PERL@@|$(call sqi,$(PERL_PATH))|g' \
+    -e 's|@@SANE_TEXT_GREP@@|$(call sqi,$(SANE_TEXT_GREP))|g' \
+    -e 's|@@PAGER_ENV@@|$(call sqi,$(PAGER_ENV))|g' \
     $@.sh >$@+
 endef
 
@@ -2303,14 +2310,14 @@ $(SCRIPT_PERL_GEN): MAKE/BUILD-OPTIONS
 
 # Used for substitution in Perl modules. Disabled when using RUNTIME_PREFIX
 # since the locale directory is injected.
-perl_localedir_SQ = $(localedir_SQ)
+perl_localedir_SQ = $(call sq,$(localedir))
 
 ifndef NO_PERL
 PERL_HEADER_TEMPLATE = perl/header_templates/fixed_prefix.template.pl
 PERL_DEFINES =
-PERL_DEFINES += $(PERL_PATH_SQ)
-PERL_DEFINES += $(PERLLIB_EXTRA_SQ)
-PERL_DEFINES += $(perllibdir_SQ)
+PERL_DEFINES += $(call sq,$(PERL_PATH))
+PERL_DEFINES += $(call sq,$(PERLLIB_EXTRA))
+PERL_DEFINES += $(call sq,$(perllibdir))
 PERL_DEFINES += $(RUNTIME_PREFIX)
 PERL_DEFINES += $(NO_PERL_CPAN_FALLBACKS)
 PERL_DEFINES += $(NO_GETTEXT)
@@ -2332,7 +2339,7 @@ PERL_DEFINES += $(gitexecdir) $(perllibdir) $(localedir)
 $(SCRIPT_PERL_GEN): % : %.perl MAKE/PERL-DEFINES MAKE/PERL-HEADER GIT-VERSION-FILE
 	$(QUIET_GEN)$(RM) $@ $@+ && \
 	sed -e '1{' \
-	    -e '	s|#!.*perl|#!$(PERL_PATH_SQ)|' \
+	    -e '	s|#!.*perl|#!$(call sq,$(PERL_PATH))|' \
 	    -e '	r MAKE/PERL-HEADER' \
 	    -e '	G' \
 	    -e '}' \
@@ -2350,20 +2357,20 @@ $(eval $(call make-var,PERL-DEFINES,perl-specific parameters,\
 
 MAKE/PERL-HEADER: $(PERL_HEADER_TEMPLATE) MAKE/PERL-DEFINES Makefile
 	$(QUIET_GEN)$(RM) $@ && \
-	INSTLIBDIR='$(perllibdir_SQ)' && \
-	INSTLIBDIR_EXTRA='$(PERLLIB_EXTRA_SQ)' && \
+	INSTLIBDIR='$(call sq,$(perllibdir))' && \
+	INSTLIBDIR_EXTRA='$(call sq,$(PERLLIB_EXTRA))' && \
 	INSTLIBDIR="$$INSTLIBDIR$${INSTLIBDIR_EXTRA:+:$$INSTLIBDIR_EXTRA}" && \
 	sed -e 's=@@PATHSEP@@=$(pathsep)=g' \
 	    -e "s=@@INSTLIBDIR@@=$$INSTLIBDIR=g" \
-	    -e 's=@@PERLLIBDIR_REL@@=$(perllibdir_relative_SQ)=g' \
-	    -e 's=@@GITEXECDIR_REL@@=$(gitexecdir_relative_SQ)=g' \
-	    -e 's=@@LOCALEDIR_REL@@=$(localedir_relative_SQ)=g' \
+	    -e 's=@@PERLLIBDIR_REL@@=$(call sq,$(perllibdir_relative))=g' \
+	    -e 's=@@GITEXECDIR_REL@@=$(call sq,$(gitexecdir_relative))=g' \
+	    -e 's=@@LOCALEDIR_REL@@=$(call sq,$(localedir_relative))=g' \
 	    $< >$@+ && \
 	mv $@+ $@
 
 .PHONY: perllibdir
 perllibdir:
-	@echo '$(perllibdir_SQ)'
+	@echo '$(call sq,$(perllibdir))'
 
 .PHONY: gitweb
 gitweb:
@@ -2377,7 +2384,7 @@ git-instaweb: git-instaweb.sh MAKE/SCRIPT-DEFINES
 else # NO_PERL
 $(SCRIPT_PERL_GEN) git-instaweb: % : unimplemented.sh
 	$(QUIET_GEN)$(RM) $@ $@+ && \
-	sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
+	sed -e '1s|#!.*/sh|#!$(call sqi,$(SHELL_PATH))|' \
 	    -e 's|@@REASON@@|NO_PERL=$(NO_PERL)|g' \
 	    unimplemented.sh >$@+ && \
 	chmod +x $@+ && \
@@ -2392,14 +2399,14 @@ $(eval $(call make-var,PYTHON-VARS,Python interpreter location,$(PYTHON_PATH)))
 $(SCRIPT_PYTHON_GEN): MAKE/CFLAGS MAKE/PREFIX MAKE/PYTHON-VARS
 $(SCRIPT_PYTHON_GEN): % : %.py
 	$(QUIET_GEN)$(RM) $@ $@+ && \
-	sed -e '1s|#!.*python|#!$(PYTHON_PATH_SQ)|' \
+	sed -e '1s|#!.*python|#!$(call sqi,$(PYTHON_PATH))|' \
 	    $< >$@+ && \
 	chmod +x $@+ && \
 	mv $@+ $@
 else # NO_PYTHON
 $(SCRIPT_PYTHON_GEN): % : unimplemented.sh
 	$(QUIET_GEN)$(RM) $@ $@+ && \
-	sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
+	sed -e '1s|#!.*/sh|#!$(call sqi,$(SHELL_PATH))|' \
 	    -e 's|@@REASON@@|NO_PYTHON=$(NO_PYTHON)|g' \
 	    unimplemented.sh >$@+ && \
 	chmod +x $@+ && \
@@ -2718,9 +2725,9 @@ endif
 
 perl/build/lib/%.pm: perl/%.pm GIT-PERL-DEFINES
 	$(QUIET_GEN)mkdir -p $(dir $@) && \
-	sed -e 's|@@LOCALEDIR@@|$(perl_localedir_SQ)|g' \
-	    -e 's|@@NO_GETTEXT@@|$(NO_GETTEXT_SQ)|g' \
-	    -e 's|@@NO_PERL_CPAN_FALLBACKS@@|$(NO_PERL_CPAN_FALLBACKS_SQ)|g' \
+	sed -e 's|@@LOCALEDIR@@|$(call sq,$(perl_localedir))|g' \
+	    -e 's|@@NO_GETTEXT@@|$(call sq,$(NO_GETTEXT))|g' \
+	    -e 's|@@NO_PERL_CPAN_FALLBACKS@@|$(call sq,$(NO_PERL_CPAN_FALLBACKS_SQ))|g' \
 	< $< > $@
 
 perl/build/man/man3/Git.3pm: perl/Git.pm
@@ -2772,50 +2779,51 @@ $(eval $(call make-var,LDFLAGS,link flags,$(ALL_LDFLAGS)))
 # We need to apply sq twice, once to protect from the shell
 # that runs MAKE/BUILD-OPTIONS, and then again to protect it
 # and the first level quoting from the shell that runs "echo".
+ssq = $(call sq,$(call sq,$1))
 MAKE/BUILD-OPTIONS: FORCE
-	@echo SHELL_PATH=\''$(subst ','\'',$(SHELL_PATH_SQ))'\' >$@+
-	@echo TEST_SHELL_PATH=\''$(subst ','\'',$(TEST_SHELL_PATH_SQ))'\' >>$@+
-	@echo PERL_PATH=\''$(subst ','\'',$(PERL_PATH_SQ))'\' >>$@+
-	@echo DIFF=\''$(subst ','\'',$(subst ','\'',$(DIFF)))'\' >>$@+
-	@echo PYTHON_PATH=\''$(subst ','\'',$(PYTHON_PATH_SQ))'\' >>$@+
-	@echo TAR=\''$(subst ','\'',$(subst ','\'',$(TAR)))'\' >>$@+
-	@echo NO_CURL=\''$(subst ','\'',$(subst ','\'',$(NO_CURL)))'\' >>$@+
-	@echo NO_EXPAT=\''$(subst ','\'',$(subst ','\'',$(NO_EXPAT)))'\' >>$@+
-	@echo USE_LIBPCRE2=\''$(subst ','\'',$(subst ','\'',$(USE_LIBPCRE2)))'\' >>$@+
-	@echo NO_PERL=\''$(subst ','\'',$(subst ','\'',$(NO_PERL)))'\' >>$@+
-	@echo NO_PTHREADS=\''$(subst ','\'',$(subst ','\'',$(NO_PTHREADS)))'\' >>$@+
-	@echo NO_PYTHON=\''$(subst ','\'',$(subst ','\'',$(NO_PYTHON)))'\' >>$@+
-	@echo NO_UNIX_SOCKETS=\''$(subst ','\'',$(subst ','\'',$(NO_UNIX_SOCKETS)))'\' >>$@+
-	@echo PAGER_ENV=\''$(subst ','\'',$(subst ','\'',$(PAGER_ENV)))'\' >>$@+
-	@echo DC_SHA1=\''$(subst ','\'',$(subst ','\'',$(DC_SHA1)))'\' >>$@+
+	@echo SHELL_PATH=$(call ssq,$(SHELL_PATH)) >$@+
+	@echo TEST_SHELL_PATH=$(call ssq, $(TEST_SHELL_PATH)) >$@+
+	@echo PERL_PATH=$(call ssq,$(PERL_PATH)) >>$@+
+	@echo DIFF=$(call ssq,$(DIFF)) >>$@+
+	@echo PYTHON_PATH=$(call ssq,$(PYTHON_PATH)) >>$@+
+	@echo TAR=$(call ssq,$(TAR)) >>$@+
+	@echo NO_CURL=$(call ssq,$(NO_CURL)) >>$@+
+	@echo NO_EXPAT=$(call ssq,$(NO_EXPAT)) >>$@+
+	@echo USE_LIBPCRE2=$(call ssq,$(USE_LIBPCRE2)) >>$@+
+	@echo NO_PERL=$(call ssq,$(NO_PERL)) >>$@+
+	@echo NO_PTHREADS=$(call ssq,$(NO_PTHREADS)) >>$@+
+	@echo NO_PYTHON=$(call ssq,$(NO_PYTHON)) >>$@+
+	@echo NO_UNIX_SOCKETS=$(call ssq,$(NO_UNIX_SOCKETS)) >>$@+
+	@echo PAGER_ENV=$(call ssq,$(PAGER_ENV)) >>$@+
+	@echo DC_SHA1=$(call ssq,$(DC_SHA1)) >>$@+
 	@echo X=\'$(X)\' >>$@+
 ifdef TEST_OUTPUT_DIRECTORY
-	@echo TEST_OUTPUT_DIRECTORY=\''$(subst ','\'',$(subst ','\'',$(TEST_OUTPUT_DIRECTORY)))'\' >>$@+
+	@echo TEST_OUTPUT_DIRECTORY=$(call ssq,$(TEST_OUTPUT_DIRECTORY)) >>$@+
 endif
 ifdef GIT_TEST_OPTS
-	@echo GIT_TEST_OPTS=\''$(subst ','\'',$(subst ','\'',$(GIT_TEST_OPTS)))'\' >>$@+
+	@echo GIT_TEST_OPTS=$(call ssq,$(GIT_TEST_OPTS)) >>$@+
 endif
 ifdef GIT_TEST_CMP
-	@echo GIT_TEST_CMP=\''$(subst ','\'',$(subst ','\'',$(GIT_TEST_CMP)))'\' >>$@+
+	@echo GIT_TEST_CMP=$(call ssq,$(GIT_TEST_CMP)) >>$@+
 endif
 ifdef GIT_TEST_CMP_USE_COPIED_CONTEXT
 	@echo GIT_TEST_CMP_USE_COPIED_CONTEXT=YesPlease >>$@+
 endif
 ifdef GIT_TEST_UTF8_LOCALE
-	@echo GIT_TEST_UTF8_LOCALE=\''$(subst ','\'',$(subst ','\'',$(GIT_TEST_UTF8_LOCALE)))'\' >>$@+
+	@echo GIT_TEST_UTF8_LOCALE=$(call ssq,$(GIT_TEST_UTF8_LOCALE))
 endif
-	@echo NO_GETTEXT=\''$(subst ','\'',$(subst ','\'',$(NO_GETTEXT)))'\' >>$@+
+	@echo NO_GETTEXT=$(call ssq,$(NO_GETTEXT)) >>$@+
 ifdef GIT_PERF_REPEAT_COUNT
-	@echo GIT_PERF_REPEAT_COUNT=\''$(subst ','\'',$(subst ','\'',$(GIT_PERF_REPEAT_COUNT)))'\' >>$@+
+	@echo GIT_PERF_REPEAT_COUNT=$(call ssq,$(GIT_PERF_REPEAT_COUNT)) >>$@+
 endif
 ifdef GIT_PERF_REPO
-	@echo GIT_PERF_REPO=\''$(subst ','\'',$(subst ','\'',$(GIT_PERF_REPO)))'\' >>$@+
+	@echo GIT_PERF_REPO=$(call ssq,$(GIT_PERF_REPO)) >>$@+
 endif
 ifdef GIT_PERF_LARGE_REPO
-	@echo GIT_PERF_LARGE_REPO=\''$(subst ','\'',$(subst ','\'',$(GIT_PERF_LARGE_REPO)))'\' >>$@+
+	@echo GIT_PERF_LARGE_REPO=$(call ssq,$(GIT_PERF_LARGE_REPO)) >>$@+
 endif
 ifdef GIT_PERF_MAKE_OPTS
-	@echo GIT_PERF_MAKE_OPTS=\''$(subst ','\'',$(subst ','\'',$(GIT_PERF_MAKE_OPTS)))'\' >>$@+
+	@echo GIT_PERF_MAKE_OPTS=$(call ssq,$(GIT_PERF_MAKE_OPTS)) >>$@+
 endif
 ifdef GIT_PERF_MAKE_COMMAND
 	@echo GIT_PERF_MAKE_COMMAND=\''$(subst ','\'',$(subst ','\'',$(GIT_PERF_MAKE_COMMAND)))'\' >>$@+
@@ -2837,7 +2845,7 @@ all:: $(TEST_PROGRAMS) $(test_bindir_programs)
 
 bin-wrappers/%: wrap-for-bin.sh
 	@mkdir -p bin-wrappers
-	$(QUIET_GEN)sed -e '1s|#!.*/sh|#!$(SHELL_PATH_SQ)|' \
+	$(QUIET_GEN)sed -e '1s|#!.*/sh|#!$(call sqi,$(SHELL_PATH))|' \
 	     -e 's|@@BUILD_DIR@@|$(shell pwd)|' \
 	     -e 's|@@PROG@@|$(patsubst test-%,t/helper/test-%$(X),$(@F))$(patsubst git%,$(X),$(filter $(@F),$(BINDIR_PROGRAMS_NEED_X)))|' < $< > $@ && \
 	chmod +x $@
@@ -2973,11 +2981,11 @@ profile-fast-install: profile-fast
 	$(MAKE) install
 
 install: all
-	$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(bindir_SQ)'
-	$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(gitexec_instdir_SQ)'
-	$(INSTALL) $(ALL_PROGRAMS) '$(DESTDIR_SQ)$(gitexec_instdir_SQ)'
-	$(INSTALL) -m 644 $(SCRIPT_LIB) '$(DESTDIR_SQ)$(gitexec_instdir_SQ)'
-	$(INSTALL) $(install_bindir_programs) '$(DESTDIR_SQ)$(bindir_SQ)'
+	$(INSTALL) -d -m 755 $(call sq,$(DESTDIR)$(bindir))
+	$(INSTALL) -d -m 755 $(call sq,$(DESTDIR)$(gitexec_instdir))
+	$(INSTALL) $(ALL_PROGRAMS) $(call sq,$(DESTDIR)$(gitexec_instdir))
+	$(INSTALL) -m 644 $(SCRIPT_LIB) $(call sq,$(DESTDIR)$(gitexec_instdir))
+	$(INSTALL) $(install_bindir_programs) $(call sq,$(DESTDIR)$(bindir))
 ifdef MSVC
 	# We DO NOT install the individual foo.o.pdb files because they
 	# have already been rolled up into the exe's pdb file.
@@ -2993,36 +3001,36 @@ else
 	$(INSTALL) $(vcpkg_dbg_bin)/*.pdb '$(DESTDIR_SQ)$(bindir_SQ)'
 endif
 endif
-	$(MAKE) -C templates DESTDIR='$(DESTDIR_SQ)' install
-	$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(mergetools_instdir_SQ)'
-	$(INSTALL) -m 644 mergetools/* '$(DESTDIR_SQ)$(mergetools_instdir_SQ)'
+	$(MAKE) -C templates DESTDIR=$(call sq,$(DESTDIR)) install
+	$(INSTALL) -d -m 755 $(call sq,$(DESTDIR)$(mergetools_instdir))
+	$(INSTALL) -m 644 mergetools/* $(call sq,$(DESTDIR)$(mergetools_instdir))
 ifndef NO_GETTEXT
-	$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(localedir_SQ)'
+	$(INSTALL) -d -m 755 $(call sq,$(DESTDIR)$(localedir))
 	(cd po/build/locale && $(TAR) cf - .) | \
-	(cd '$(DESTDIR_SQ)$(localedir_SQ)' && umask 022 && $(TAR) xof -)
+	(cd $(call sq,$(DESTDIR)$(localedir)) && umask 022 && $(TAR) xof -)
 endif
 ifndef NO_PERL
-	$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(perllibdir_SQ)'
+	$(INSTALL) -d -m 755 $(call sq,$(DESTDIR)$(perllibdir))
 	(cd perl/build/lib && $(TAR) cf - .) | \
-	(cd '$(DESTDIR_SQ)$(perllibdir_SQ)' && umask 022 && $(TAR) xof -)
+	(cd $(call sq,$(DESTDIR)$(perllibdir)) && umask 022 && $(TAR) xof -)
 	$(MAKE) -C gitweb install
 endif
 ifndef NO_TCLTK
 	$(MAKE) -C gitk-git install
-	$(MAKE) -C git-gui gitexecdir='$(gitexec_instdir_SQ)' install
+	$(MAKE) -C git-gui gitexecdir=$(call sq,$(gitexec_instdir)) install
 endif
 ifneq (,$X)
-	$(foreach p,$(patsubst %$X,%,$(filter %$X,$(ALL_COMMANDS_TO_INSTALL) git$X)), test '$(DESTDIR_SQ)$(gitexec_instdir_SQ)/$p' -ef '$(DESTDIR_SQ)$(gitexec_instdir_SQ)/$p$X' || $(RM) '$(DESTDIR_SQ)$(gitexec_instdir_SQ)/$p';)
+	$(foreach p,$(patsubst %$X,%,$(filter %$X,$(ALL_COMMANDS_TO_INSTALL) git$X)), test $(call sq,$(DESTDIR)$(gitexec_instdir)/$p) -ef $(call sq,$(DESTDIR)$(gitexec_instdir)/$p$X) || $(RM) $(call sq,$(DESTDIR)$(gitexec_instdir)/$p);)
 endif
 
-	bindir=$$(cd '$(DESTDIR_SQ)$(bindir_SQ)' && pwd) && \
-	execdir=$$(cd '$(DESTDIR_SQ)$(gitexec_instdir_SQ)' && pwd) && \
-	destdir_from_execdir_SQ=$$(echo '$(gitexecdir_relative_SQ)' | sed -e 's|[^/][^/]*|..|g') && \
+	bindir=$$(cd $(call sq,$(DESTDIR)$(bindir)) && pwd) && \
+	execdir=$$(cd $(call sq,$(DESTDIR)$(gitexec_instdir)) && pwd) && \
+	destdir_from_execdir_SQ=$$(echo '$(call sq,$(gitexecdir_relative))' | sed -e 's|[^/][^/]*|..|g') && \
 	{ test "$$bindir/" = "$$execdir/" || \
 	  for p in git$X $(filter $(install_bindir_programs),$(ALL_PROGRAMS)); do \
 		$(RM) "$$execdir/$$p" && \
 		test -n "$(INSTALL_SYMLINKS)" && \
-		ln -s "$$destdir_from_execdir_SQ/$(bindir_relative_SQ)/$$p" "$$execdir/$$p" || \
+		ln -s "$$destdir_from_execdir_SQ/$(call sq,$(bindir_relative))/$$p" "$$execdir/$$p" || \
 		{ test -z "$(NO_INSTALL_HARDLINKS)$(NO_CROSS_DIRECTORY_HARDLINKS)" && \
 		  ln "$$bindir/$$p" "$$execdir/$$p" 2>/dev/null || \
 		  cp "$$bindir/$$p" "$$execdir/$$p" || exit; } \
@@ -3042,7 +3050,7 @@ endif
 		if test -z "$(SKIP_DASHED_BUILT_INS)"; \
 		then \
 			test -n "$(INSTALL_SYMLINKS)" && \
-			ln -s "$$destdir_from_execdir_SQ/$(bindir_relative_SQ)/git$X" "$$execdir/$$p" || \
+			ln -s "$$destdir_from_execdir_SQ/$(call sq,$(bindir_relative))/git$X" "$$execdir/$$p" || \
 			{ test -z "$(NO_INSTALL_HARDLINKS)" && \
 			  ln "$$execdir/git$X" "$$execdir/$$p" 2>/dev/null || \
 			  ln -s "git$X" "$$execdir/$$p" 2>/dev/null || \
@@ -3073,9 +3081,9 @@ install-man: install-man-perl
 	$(MAKE) -C Documentation install-man
 
 install-man-perl: man-perl
-	$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(mandir_SQ)/man3'
+	$(INSTALL) -d -m 755 '$(call sq,$(DESTDIR))$(call sq,$(mandir))/man3'
 	(cd perl/build/man/man3 && $(TAR) cf - .) | \
-	(cd '$(DESTDIR_SQ)$(mandir_SQ)/man3' && umask 022 && $(TAR) xof -)
+	(cd '$(call sq,$(DESTDIR))$(call sq,$(mandir))/man3' && umask 022 && $(TAR) xof -)
 
 install-html:
 	$(MAKE) -C Documentation install-html
