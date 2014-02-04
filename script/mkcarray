@@ -1,0 +1,25 @@
+#!/bin/sh
+
+name=$1; shift
+
+quote() {
+	echo "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+cat <<-EOF
+#ifndef ${name}_H
+#define ${name}_H
+
+static const char *MAKE_${name}[] = {
+EOF
+
+for i in $(cat); do
+	printf '\t"%s",\n' "$(quote "$i")"
+done
+
+cat <<EOF
+	NULL
+};
+
+#endif /* ${name}_H */
+EOF

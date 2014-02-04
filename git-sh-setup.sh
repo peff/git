@@ -164,7 +164,7 @@ git_pager() {
 	else
 		GIT_PAGER=cat
 	fi
-	for vardef in @@PAGER_ENV@@
+	for vardef in $MAKE_PAGER_ENV
 	do
 		var=${vardef%%=*}
 		eval ": \"\${$vardef}\" && export $var"
