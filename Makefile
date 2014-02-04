@@ -2011,7 +2011,7 @@ endif
 define make-var
 MAKE/$1: FORCE
 	@VALUE='$$(subst ','\'',$3)'; \
-	if test x"$$$$VALUE" != x"`cat $$@ 2>/dev/null`"; then \
+	if ! test -e $$@ || test x"$$$$VALUE" != x"`cat $$@`"; then \
 		echo >&2 "    * new $2"; \
 		printf '%s\n' "$$$$VALUE" >$$@+ && \
 		mv $$@+ $$@; \
