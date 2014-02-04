@@ -1,0 +1,4 @@
+#!/bin/sh
+
+name=$1; shift
+printf "MAKE_%s='%s'\n" "$name" "$(sed "s/'/'\\''/g")"
