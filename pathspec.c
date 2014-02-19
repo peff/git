@@ -679,6 +679,8 @@ void parse_pathspec(struct pathspec *pathspec,
 			BUG("PATHSPEC_MAXDEPTH_VALID and PATHSPEC_KEEP_ORDER are incompatible");
 		QSORT(pathspec->items, pathspec->nr, pathspec_item_cmp);
 	}
+
+	pathspec->trie = build_pathspec_trie(pathspec);
 }
 
 void parse_pathspec_file(struct pathspec *pathspec, unsigned magic_mask,
