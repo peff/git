@@ -74,6 +74,50 @@ static void setup_pathspec(struct pathspec *ps,
 		       argv.argv);
 }
 
+static void drop_pathspec_from_trie(struct pathspec *ps,
+				    const char *path)
+{
+	struct pathspec_trie *prev, *cur = ps->trie;
+	int pos = -1;
+
+	if (!cur)
+		return;
+
+	while (*path) {
+		const char *end = strchrnul(path, '/');
+		size_t len = end - path;
+		pos = pathspec_trie_lookup(cur, path, len);
+
+		if (pos < 0)
+			die("BUG: didn't find the pathspec trie we matched");
+
+		prev = cur;
+		cur = cur->entries[pos];
+		path = end;
+		while (*path == '/')
+			path++;
+	}
+
+	if (!cur->terminal)
+		die("BUG: pathspec trie we found isn't terminal?");
+
+	if (cur->nr) {
+		cur->terminal = 0;
+		cur->must_be_dir = 0;
+		return;
+	}
+
+	free(cur);
+	if (pos < 0)
+		ps->trie = NULL;
+	else {
+		prev->nr--;
+		memmove(prev->entries + pos,
+			prev->entries + pos + 1,
+			sizeof(*prev->entries) * (prev->nr - pos));
+	}
+}
+
 static void drop_pathspec(struct pathspec *ps, const char *path)
 {
 	int i;
@@ -89,6 +133,8 @@ static void drop_pathspec(struct pathspec *ps, const char *path)
 	memmove(ps->items + i, ps->items + i + 1,
 		sizeof(*ps->items) * (ps->nr - i - 1));
 	ps->nr--;
+
+	drop_pathspec_from_trie(ps, path);
 }
 
 void blame_tree_init(struct blame_tree *bt, int argc, const char **argv,
