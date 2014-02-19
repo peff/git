@@ -1452,7 +1452,8 @@ static struct combine_diff_path *find_paths_multitree(
 	paths_head.next = NULL;
 
 	strbuf_init(&base, PATH_MAX);
-	diff_tree_paths(&paths_head, oid, parents_oid, nparent, &base, opt);
+	diff_tree_paths(&paths_head, oid, parents_oid, nparent, &base, opt,
+			opt->pathspec.trie);
 
 	strbuf_release(&base);
 	free(parents_oid);
