@@ -887,3 +887,128 @@ int pathspec_needs_expanded_index(struct index_state *istate,
 	free(skip_worktree_seen);
 	return res;
 }
+
+/*
+ * This is basically a strcmp, but we do not want the caller
+ * to have to terminate "a", so we pretend as if it had a NUL.
+ */
+static int pathspec_trie_cmp(const char *a, size_t a_len,
+			     const char *b)
+{
+	int ret = strncmp(a, b, a_len);
+	return ret ?
+		ret :
+		(unsigned char)0 - (unsigned char )b[a_len];
+}
+
+/*
+ * Do a binary search on one level of the pathspec_trie. If found,
+ * returns the offset of the item in the entry list. If not found,
+ * return a negative value encoding the offset where it would be inserted
+ * (you can recover the true offset with "-pos - 1").
+ */
+int pathspec_trie_lookup(const struct pathspec_trie *parent,
+			 const char *path, size_t len)
+{
+	int lo = 0, hi = parent->nr;
+	while (lo < hi) {
+		int mi = lo + ((hi - lo) / 2);
+		int cmp;
+
+		cmp = pathspec_trie_cmp(path, len, parent->entries[mi]->path);
+		if (!cmp)
+			return mi;
+		if (cmp < 0)
+			hi = mi;
+		else
+			lo = mi + 1;
+	}
+	return -lo - 1;
+}
+
+static struct pathspec_trie *alloc_pathspec_trie(const char *path, size_t len)
+{
+	struct pathspec_trie *ret = xcalloc(1, sizeof(*ret) + len);
+	memcpy(ret->path, path, len);
+	return ret;
+}
+
+/*
+ * Add "path" to the trie rooted at "t".
+ */
+static void add_pathspec_trie(struct pathspec_trie *t, const char *path)
+{
+	/*
+	 * Special case the empty path (i.e., "."), as our splitting algorithm
+	 * below assumes at least one component.
+	 */
+	if (!*path) {
+		t->terminal = 1;
+		return;
+	}
+
+	while (1) {
+		const char *slash = strchrnul(path, '/');
+		size_t len = slash - path;
+		int pos;
+
+		pos = pathspec_trie_lookup(t, path, len);
+		if (pos < 0) {
+			ALLOC_GROW(t->entries, t->nr + 1, t->alloc);
+
+			pos = -pos - 1;
+			if (pos < t->nr)
+				memmove(t->entries + pos + 1,
+					t->entries + pos,
+					sizeof(*t->entries) * (t->nr - pos));
+			t->entries[pos] = alloc_pathspec_trie(path, len);
+			t->nr++;
+		}
+
+		t = t->entries[pos];
+		path += len;
+
+		if (!*path) {
+			t->must_be_dir = 0;
+			t->terminal = 1;
+			return;
+		}
+
+		while (*path == '/')
+			path++;
+		if (!*path) {
+			/*
+			 * if we were already a terminal, then do not set
+			 * must_be_dir; we are "foo/", but we already had a
+			 * pathspec "foo", which is a superset of us.
+			 */
+			if (!t->terminal)
+				t->must_be_dir = 1;
+			t->terminal = 1;
+			return;
+		}
+	}
+}
+
+struct pathspec_trie *build_pathspec_trie(const struct pathspec *pathspec)
+{
+	struct pathspec_trie *ret;
+	int i;
+
+	/* we only make a trie for plain-vanilla pathspecs */
+	if (pathspec->has_wildcard || (pathspec->magic & ~PATHSPEC_LITERAL))
+		return NULL;
+
+	ret = alloc_pathspec_trie("", 0);
+
+	/*
+	 * XXX we could construct the trie more efficiently by creating each
+	 * node with all of its entries in sorted order. But this is much
+	 * simpler, and since we only do this once at the start of a traversal,
+	 * it's probably fast enough.
+	 */
+	for (i = 0; i < pathspec->nr; i++)
+		add_pathspec_trie(ret, pathspec->items[i].match);
+
+	return ret;
+}
