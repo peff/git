@@ -22,6 +22,14 @@ struct index_state;
 
 #define PATHSPEC_ONESTAR 1	/* the pathspec pattern satisfies GFNM_ONESTAR */
 
+struct pathspec_trie {
+	struct pathspec_trie **entries;
+	int nr, alloc;
+	unsigned terminal:1,
+		 must_be_dir:1;
+	char path[FLEX_ARRAY];
+};
+
 /**
  * See glossary-context.txt for the syntax of pathspec.
  * In memory, a pathspec set is represented by "struct pathspec" and is
@@ -171,5 +179,9 @@ static inline int matches_skip_worktree(const struct pathspec *pathspec,
 int match_pathspec_attrs(struct index_state *istate,
 			 const char *name, int namelen,
 			 const struct pathspec_item *item);
+
+struct pathspec_trie *build_pathspec_trie(const struct pathspec *);
+int pathspec_trie_lookup(const struct pathspec_trie *pst,
+			 const char *path, size_t len);
 
 #endif /* PATHSPEC_H */

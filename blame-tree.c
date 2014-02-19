@@ -50,7 +50,7 @@ static int add_from_revs(struct blame_tree *bt)
 		if (count++)
 			return error("can only blame one tree at a time");
 
-		diff_tree_sha1(EMPTY_TREE_SHA1_BIN, obj->item->oid.hash, "", &diffopt);
+		diff_tree_oid(&empty_tree_oid, &obj->item->oid, "", &diffopt);
 		diff_flush(&diffopt);
 	}
 
@@ -182,9 +182,9 @@ int blame_tree_run(struct blame_tree *bt, blame_tree_callback cb, void *cbdata)
 			break;
 
 		if (data.commit->object.flags & BOUNDARY) {
-			diff_tree_sha1(EMPTY_TREE_SHA1_BIN,
-				       data.commit->object.oid.hash,
-				       "", &bt->rev.diffopt);
+			diff_tree_oid(&empty_tree_oid,
+				      &data.commit->object.oid,
+				      "", &bt->rev.diffopt);
 			diff_flush(&bt->rev.diffopt);
 		}
 		else
