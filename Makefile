@@ -607,6 +607,9 @@ include shared.mak
 #    no-pedantic:
 #
 #        Disable -pedantic compilation.
+#
+# Define HAVE_LIBICU if you want to link against libicu to do
+# charset detection and conversion during text diffs.
 
 # Set our default configuration.
 #
@@ -2288,6 +2291,12 @@ endif
 
 ifndef NO_MSGFMT_EXTENDED_OPTIONS
 	MSGFMT += --check
+endif
+
+ifndef HAVE_LIBICU
+	LIB_OBJS += icu.o
+	BASIC_CFLAGS += -DHAVE_LIBICU `pkg-config --cflags icu-i18n`
+	EXTLIBS += `pkg-config --libs icu-i18n`
 endif
 
 ifdef HAVE_CLOCK_GETTIME
