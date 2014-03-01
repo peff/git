@@ -499,6 +499,9 @@ all::
 #
 #        Enable -pedantic compilation. This also disables
 #        USE_PARENS_AROUND_GETTEXT_N to produce only relevant warnings.
+#
+# Define HAVE_LIBICU if you want to link against libicu to do
+# charset detection and conversion during text diffs.
 
 GIT-VERSION-FILE: FORCE
 	@$(SHELL_PATH) ./GIT-VERSION-GEN
@@ -1881,6 +1884,12 @@ endif
 
 ifndef NO_MSGFMT_EXTENDED_OPTIONS
 	MSGFMT += --check --statistics
+endif
+
+ifndef HAVE_LIBICU
+	LIB_OBJS += icu.o
+	BASIC_CFLAGS += -DHAVE_LIBICU `pkg-config --cflags icu-i18n`
+	EXTLIBS += `pkg-config --libs icu-i18n`
 endif
 
 ifdef HAVE_CLOCK_GETTIME
