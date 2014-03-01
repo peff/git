@@ -45,6 +45,7 @@
 #include "setup.h"
 #include "strmap.h"
 #include "ws.h"
+#include "icu.h"
 
 #ifdef NO_FAST_WORKING_DIRECTORY
 #define FAST_WORKING_DIRECTORY 0
@@ -76,6 +77,7 @@ static int diff_dirstat_permille_default = 30;
 static struct diff_options default_diff_options;
 static long diff_algorithm;
 static unsigned ws_error_highlight_default = WSEH_NEW;
+static int diff_convert_text;
 
 static char diff_colors[][COLOR_MAXLEN] = {
 	GIT_COLOR_RESET,
@@ -475,6 +477,16 @@ int git_diff_ui_config(const char *var, const char *value,
 
 	if (git_color_config(var, value, cb) < 0)
 		return -1;
+
+	if (!strcmp(var, "diff.converttext")) {
+		int is_bool;
+
+		diff_convert_text = git_config_bool_or_int(var, value, &is_bool);
+		if (is_bool)
+			diff_convert_text = 90;
+
+		return 0;
+	}
 
 	return git_diff_basic_config(var, value, ctx, cb);
 }
@@ -3454,11 +3466,16 @@ void diff_set_default_prefix(struct diff_options *options)
 struct userdiff_driver *get_textconv(struct repository *r,
 				     struct diff_filespec *one)
 {
+	struct userdiff_driver *driver;
+
 	if (!DIFF_FILE_VALID(one))
 		return NULL;
 
 	diff_filespec_load_driver(one, r->index);
-	return userdiff_get_textconv(r, one->driver);
+	driver = userdiff_get_textconv(one->driver);
+	if (!driver && diff_convert_text)
+		diff_filespec_convert_text(one, diff_convert_text);
+	return driver;
 }
 
 static struct string_list *additional_headers(struct diff_options *o,
