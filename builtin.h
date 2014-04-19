@@ -112,6 +112,7 @@ void setup_auto_pager(const char *cmd, int def);
 int is_builtin(const char *s);
 
 int cmd_add(int argc, const char **argv, const char *prefix);
+int cmd_ahead_behind(int argc, const char **argv, const char *prefix);
 int cmd_am(int argc, const char **argv, const char *prefix);
 int cmd_annotate(int argc, const char **argv, const char *prefix);
 int cmd_apply(int argc, const char **argv, const char *prefix);
