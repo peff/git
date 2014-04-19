@@ -2001,8 +2001,6 @@ static int stat_branch_pair(const char *branch_name, const char *base,
 {
 	struct object_id oid;
 	struct commit *ours, *theirs;
-	struct rev_info revs;
-	struct strvec argv = STRVEC_INIT;
 
 	/* Cannot stat if what we used to build on no longer exists */
 	if (read_ref(base, &oid))
@@ -2016,6 +2014,16 @@ static int stat_branch_pair(const char *branch_name, const char *base,
 	ours = lookup_commit_reference(the_repository, &oid);
 	if (!ours)
 		return -1;
+
+	return revision_ahead_behind(ours, theirs, num_ours, num_theirs, abf);
+}
+
+int revision_ahead_behind(struct commit *ours, struct commit *theirs,
+			  int *num_ours, int *num_theirs,
+			  enum ahead_behind_flags abf)
+{
+	struct rev_info revs;
+	struct strvec argv = STRVEC_INIT;
 
 	*num_theirs = *num_ours = 0;
 
