@@ -343,8 +343,6 @@ static int open_pack_bitmap(struct repository *r,
 	struct packed_git *p;
 	int ret = -1;
 
-	assert(!bitmap_git->map);
-
 	for (p = get_all_packs(r); p; p = p->next) {
 		if (open_pack_bitmap_1(bitmap_git, p) == 0)
 			ret = 0;
@@ -353,11 +351,22 @@ static int open_pack_bitmap(struct repository *r,
 	return ret;
 }
 
-struct bitmap_index *prepare_bitmap_git(struct repository *r)
+static struct bitmap_index *check_bitmap_git(struct repository *r)
 {
 	struct bitmap_index *bitmap_git = xcalloc(1, sizeof(*bitmap_git));
 
-	if (!open_pack_bitmap(r, bitmap_git) && !load_pack_bitmap(bitmap_git))
+	if (!open_pack_bitmap(r, bitmap_git))
+		return bitmap_git;
+
+	free_bitmap_index(bitmap_git);
+	return NULL;
+}
+
+struct bitmap_index *prepare_bitmap_git(struct repository *r)
+{
+	struct bitmap_index *bitmap_git = check_bitmap_git(r);
+
+	if (bitmap_git && !load_pack_bitmap(bitmap_git))
 		return bitmap_git;
 
 	free_bitmap_index(bitmap_git);
@@ -958,8 +967,10 @@ struct bitmap_index *prepare_bitmap_walk(struct rev_info *revs,
 	if (!can_filter_bitmap(filter))
 		return NULL;
 
-	/* try to open a bitmapped pack, but don't parse it yet
-	 * because we may not need to use it */
+	/*
+	 * try to open a bitmapped pack, but don't parse it yet
+	 * because we may not need to use it
+	 */
 	bitmap_git = xcalloc(1, sizeof(*bitmap_git));
 	if (open_pack_bitmap(revs->repo, bitmap_git) < 0)
 		goto cleanup;
