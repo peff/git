@@ -1464,3 +1464,126 @@ int bitmap_has_oid_in_uninteresting(struct bitmap_index *bitmap_git,
 	return bitmap_git &&
 		bitmap_walk_contains(bitmap_git, bitmap_git->haves, oid);
 }
+
+static struct bitmap *find_commit_bitmap(struct bitmap_index *bitmap_git,
+					 struct rev_info *revs, struct commit *commit)
+{
+	struct bitmap *result = NULL;
+
+	if (!add_commit_to_bitmap(bitmap_git, &result, commit)) {
+		struct include_data incdata;
+
+		incdata.base = result = bitmap_new();
+		incdata.seen = NULL;
+
+		add_pending_object(revs, (struct object *)commit, "");
+
+		revs->include_check = should_include;
+		revs->include_check_data = &incdata;
+
+		if (prepare_revision_walk(revs))
+			die("revision walk setup failed");
+
+		while (get_revision(revs) != NULL) {
+			/* do nothing */
+		}
+
+		reset_revision_walk();
+	}
+
+	return result;
+}
+
+static struct bitmap *find_cached_commit_bitmap(struct bitmap_index *bitmap_git,
+						struct rev_info *revs, struct commit *commit)
+{
+	static struct decoration cache;
+	struct bitmap *b;
+
+	b = lookup_decoration(&cache, &commit->object);
+	if (!b) {
+		b = find_commit_bitmap(bitmap_git, revs, commit);
+		add_decoration(&cache, &commit->object, b);
+	}
+	return b;
+}
+
+static struct bitmap *get_commit_filter(struct bitmap_index *bitmap_git)
+{
+	static struct bitmap *commit_filter = NULL;
+	static uint32_t i = 0;
+
+	struct object **objects = bitmap_git->ext_index.objects;
+	uint32_t count = bitmap_git->ext_index.count;
+
+	if (!commit_filter)
+		commit_filter = ewah_to_bitmap(bitmap_git->commits);
+
+	for (; i < count; i++) {
+		if (objects[i]->type == OBJ_COMMIT)
+			bitmap_set(commit_filter, bitmap_git->pack->num_objects + i);
+	}
+
+	return commit_filter;
+}
+
+static int find_difference(struct bitmap *a, struct bitmap *b, struct bitmap *filter)
+{
+	size_t i, common_len;
+	size_t a_len = a->word_alloc;
+	size_t b_len = b->word_alloc;
+
+	int bits_set = 0;
+
+	if (a_len > filter->word_alloc)
+		a_len = filter->word_alloc;
+
+	if (b_len > filter->word_alloc)
+		b_len = filter->word_alloc;
+
+	common_len = (a_len < b_len) ? a_len : b_len;
+
+	for (i = 0; i < common_len; ++i) {
+		eword_t w = a->words[i] & ~b->words[i] & filter->words[i];
+		if (w) bits_set += ewah_bit_popcount64(w);
+	}
+
+	for (; i < a_len; ++i) {
+		eword_t w = a->words[i] & filter->words[i];
+		if (w) bits_set += ewah_bit_popcount64(w);
+	}
+
+	return bits_set;
+}
+
+int bitmap_ahead_behind(struct commit *tip, struct commit *base, int *ahead, int *behind)
+{
+	struct rev_info revs;
+	struct bitmap *base_bitmap, *tip_bitmap, *commit_filter;
+
+	/*
+	 * NEEDSWORK We probably should take a bitmap_index pointer in this
+	 * function, but the whole point is to transparently amortize the cost
+	 * of loading the bitmaps.
+	 */
+	static struct bitmap_index *bitmap_git;
+	static int tried_loading;
+
+	if (!tried_loading) {
+		bitmap_git = prepare_bitmap_git(the_repository);
+		tried_loading = 1;
+	}
+
+	if (!bitmap_git)
+		return -1;
+
+	init_revisions(&revs, NULL);
+	base_bitmap = find_cached_commit_bitmap(bitmap_git, &revs, base);
+	tip_bitmap = find_cached_commit_bitmap(bitmap_git, &revs, tip);
+	commit_filter = get_commit_filter(bitmap_git);
+
+	*ahead = find_difference(tip_bitmap, base_bitmap, commit_filter);
+	*behind = find_difference(base_bitmap, tip_bitmap, commit_filter);
+
+	return 0;
+}
