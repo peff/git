@@ -14,6 +14,7 @@
 #include "strvec.h"
 #include "commit-reach.h"
 #include "advice.h"
+#include "pack-bitmap.h"
 
 enum map_direction { FROM_SRC, FROM_DST };
 
@@ -1917,6 +1918,11 @@ int revision_ahead_behind(struct commit *ours, struct commit *theirs,
 		return 1;
 	if (abf != AHEAD_BEHIND_FULL)
 		BUG("stat_branch_pair: invalid abf '%d'", abf);
+
+	/* fast path: if bitmaps are available, we can greatly speed up
+	 * the ahead-behind calculation by generating traversal bitmaps */
+	if (!bitmap_ahead_behind(ours, theirs, num_ours, num_theirs))
+		return 0;
 
 	/* Run "rev-list --left-right ours...theirs" internally... */
 	strvec_push(&argv, ""); /* ignored */
