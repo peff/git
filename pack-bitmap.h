@@ -71,6 +71,8 @@ int bitmap_walk_contains(struct bitmap_index *,
  */
 int bitmap_has_oid_in_uninteresting(struct bitmap_index *, const struct object_id *oid);
 
+int bitmap_ahead_behind(struct commit *tip, struct commit *base, int *ahead, int *behind);
+
 off_t get_disk_usage_from_bitmap(struct bitmap_index *, struct rev_info *);
 
 void bitmap_writer_show_progress(int show);
