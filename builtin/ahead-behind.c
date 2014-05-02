@@ -49,7 +49,7 @@ static void handle_arg(struct rev_info *revs, const char *revarg)
 
 	tip_ent = find_pending(&revs->pending, 0, UNINTERESTING);
 	if (!tip_ent)
-		die("not an interesting ref: %s", revarg);
+		tip_ent = base_ent;
 	tip = lookup_commit_reference(the_repository, &tip_ent->item->oid);
 	if (!tip)
 		die("failed to lookup commit ref %s", oid_to_hex(&tip_ent->item->oid));
