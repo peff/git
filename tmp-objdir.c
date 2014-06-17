@@ -290,3 +290,26 @@ void tmp_objdir_add_as_alternate(const struct tmp_objdir *t)
 {
 	add_to_alternates_memory(t->path.buf);
 }
+
+FILE *fopen_quarantine(const char *filename, const char *mode)
+{
+	const char *root;
+	char *path;
+	FILE *ret;
+
+	root = getenv(GIT_QUARANTINE_ENVIRONMENT);
+	if (!root)
+		die("BUG: fopen_quarantine called without %s set",
+		    GIT_QUARANTINE_ENVIRONMENT);
+
+	path = xstrfmt("%s/%s", root, filename);
+	ret = xfopen(path, mode);
+
+	free(path);
+	return ret;
+}
+
+int git_is_quarantined(void)
+{
+	return !!getenv(GIT_QUARANTINE_ENVIRONMENT);
+}
