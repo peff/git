@@ -70,4 +70,7 @@ void tmp_objdir_add_as_alternate(const struct tmp_objdir *);
 struct odb_source *tmp_objdir_replace_primary_odb(struct tmp_objdir *,
 						  int will_destroy);
 
+FILE *fopen_quarantine(const char *filename, const char *mode);
+int git_is_quarantined(void);
+
 #endif /* TMP_OBJDIR_H */
