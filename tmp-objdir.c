@@ -360,3 +360,26 @@ const char **tmp_objdir_env(const struct tmp_objdir *t)
 		return NULL;
 	return t->env.v;
 }
+
+FILE *fopen_quarantine(const char *filename, const char *mode)
+{
+	const char *root;
+	char *path;
+	FILE *ret;
+
+	root = getenv(GIT_QUARANTINE_ENVIRONMENT);
+	if (!root)
+		die("BUG: fopen_quarantine called without %s set",
+		    GIT_QUARANTINE_ENVIRONMENT);
+
+	path = xstrfmt("%s/%s", root, filename);
+	ret = xfopen(path, mode);
+
+	free(path);
+	return ret;
+}
+
+int git_is_quarantined(void)
+{
+	return !!getenv(GIT_QUARANTINE_ENVIRONMENT);
+}
