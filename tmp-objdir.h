@@ -82,4 +82,7 @@ void tmp_objdir_reapply_primary_odb(struct tmp_objdir *, const char *old_cwd,
 		const char *new_cwd);
 
 
+FILE *fopen_quarantine(const char *filename, const char *mode);
+int git_is_quarantined(void);
+
 #endif /* TMP_OBJDIR_H */
