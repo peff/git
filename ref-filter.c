@@ -2889,14 +2889,6 @@ static struct ref_array_item *apply_ref_filter(const char *refname, const char *
 		commit = lookup_commit_reference_gently(the_repository, oid, 1);
 		if (!commit)
 			return NULL;
-		/* We perform the filtering for the '--contains' option... */
-		if (filter->with_commit &&
-		    !commit_contains(filter, commit, filter->with_commit, &filter->internal.contains_cache))
-			return NULL;
-		/* ...or for the `--no-contains' option */
-		if (filter->no_commit &&
-		    commit_contains(filter, commit, filter->no_commit, &filter->internal.no_contains_cache))
-			return NULL;
 	}
 
 	/*
@@ -3172,9 +3164,6 @@ static int do_filter_refs(struct ref_filter *filter, unsigned int type, each_ref
 
 	filter->kind = type & FILTER_REFS_KIND_MASK;
 
-	init_contains_cache(&filter->internal.contains_cache);
-	init_contains_cache(&filter->internal.no_contains_cache);
-
 	/*  Simple per-ref filtering */
 	if (!filter->kind)
 		die("filter_refs: invalid type");
@@ -3210,10 +3199,38 @@ static int do_filter_refs(struct ref_filter *filter, unsigned int type, each_ref
 				      cb_data);
 	}
 
-	clear_contains_cache(&filter->internal.contains_cache);
-	clear_contains_cache(&filter->internal.no_contains_cache);
-
 	return ret;
+}
+
+static void do_contains_filter(struct ref_filter_cbdata *ref_cbdata,
+			       struct commit_list *needles,
+			       int invert)
+{
+	int i, old_nr;
+	struct ref_array *array = ref_cbdata->array;
+	struct commit_list *tag_commits = NULL, **tail = &tag_commits;
+	unsigned char *result = xmalloc(array->nr);
+
+	for (i = 0; i < array->nr; i++) {
+		struct ref_array_item *item = array->items[i];
+		tail = commit_list_append(item->commit, tail);
+	}
+
+	commit_contains_multitip(needles, tag_commits, result);
+
+	old_nr = array->nr;
+	array->nr = 0;
+
+	for (i = 0; i < old_nr; i++) {
+		struct ref_array_item *item = array->items[i];
+		if (result[i] == !invert)
+			array->items[array->nr++] = item;
+		else
+			free_array_item(item);
+	}
+
+	free(result);
+	free_commit_list(tag_commits);
 }
 
 /*
@@ -3239,6 +3256,10 @@ int filter_refs(struct ref_array *array, struct ref_filter *filter, unsigned int
 	/*  Filters that need revision walking */
 	reach_filter(array, &filter->reachable_from, INCLUDE_REACHED);
 	reach_filter(array, &filter->unreachable_from, EXCLUDE_REACHED);
+	if (filter->with_commit)
+		do_contains_filter(&ref_cbdata, filter->with_commit, 0);
+	if (filter->no_commit)
+		do_contains_filter(&ref_cbdata, filter->no_commit, 1);
 
 	save_commit_buffer = save_commit_buffer_orig;
 	return ret;
