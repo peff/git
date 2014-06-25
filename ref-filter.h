@@ -62,7 +62,7 @@ struct ref_filter {
 	} merge;
 	struct commit *merge_commit;
 
-	unsigned int with_commit_tag_algo : 1,
+	unsigned int
 		match_as_path : 1,
 		ignore_case : 1,
 		detached : 1;
