@@ -363,4 +363,19 @@ int compare_commits_by_gen_then_commit_date(const void *a_, const void *b_, void
 LAST_ARG_MUST_BE_NULL
 extern int run_commit_hook(int editor_is_used, const char *index_file, const char *name, ...);
 
+/*
+ * Calculate which commits in haystack contain (are descendants of) commits in
+ * needle.
+ *
+ * The result array must point to an array of unsigned char with as many
+ * elements as there are items in the "haystack" commit_list.  When the
+ * function completes, the nth char in the result be non-zero iff the
+ * nth commit in the haystack list contains at least one commit from the
+ * needle list.
+ */
+
+void commit_contains(const struct commit_list *needle,
+		     const struct commit_list *haystack,
+		     unsigned char *result);
+
 #endif /* COMMIT_H */
