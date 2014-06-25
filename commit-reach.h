@@ -72,6 +72,20 @@ int commit_contains(struct ref_filter *filter, struct commit *commit,
 		    struct commit_list *list, struct contains_cache *cache);
 
 /*
+ * Calculate which commits in haystack contain (are descendants of) commits in
+ * needle.
+ *
+ * The result array must point to an array of unsigned char with as many
+ * elements as there are items in the "haystack" commit_list.  When the
+ * function completes, the nth char in the result be non-zero iff the
+ * nth commit in the haystack list contains at least one commit from the
+ * needle list.
+ */
+void commit_contains_multitip(const struct commit_list *needle,
+			      const struct commit_list *haystack,
+			      unsigned char *result);
+
+/*
  * Determine if every commit in 'from' can reach at least one commit
  * that is marked with 'with_flag'. As we traverse, use 'assign_flag'
  * as a marker for commits that are already visited. Do not walk

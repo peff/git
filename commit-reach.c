@@ -11,6 +11,7 @@
 #include "tag.h"
 #include "commit-reach.h"
 #include "ewah/ewok.h"
+#include "bitset.h"
 
 /* Remember to update object flag allocation in object.h */
 #define PARENT1		(1u<<16)
@@ -612,6 +613,101 @@ struct commit_list *reduce_heads(struct commit_list *heads)
 		tail = &commit_list_insert(array[i], tail)->next;
 	free(array);
 	return result;
+}
+
+define_commit_slab(bit_slab, unsigned char);
+
+static int init_contains_bits(const struct commit_list *commits,
+			      struct bit_slab *bits,
+			      struct prio_queue *queue)
+{
+	int i, nr = commit_list_count(commits);
+
+	init_bit_slab_with_stride(bits, bitset_sizeof(nr));
+	for (i = 0; i < nr; i++, commits = commits->next) {
+		struct commit *c = commits->item;
+
+		prio_queue_put(queue, c);
+		bitset_set(bit_slab_at(bits, c), i);
+	}
+
+	return nr;
+}
+
+static int contains_queue_interesting(struct prio_queue *queue,
+				      struct bit_slab *needle,
+				      int needle_nr,
+				      struct bit_slab *haystack,
+				      int haystack_nr)
+{
+	int i;
+	for (i = 0; i < queue->nr; i++) {
+		struct commit *commit = queue->array[i].data;
+		if (!bitset_empty(bit_slab_at(haystack, commit), haystack_nr) &&
+		    bitset_empty(bit_slab_at(needle, commit), needle_nr))
+			return 1;
+	}
+	return 0;
+}
+
+static void fill_contains_result(unsigned char *result, int haystack_nr,
+				 struct bit_slab *haystack_bits,
+				 const struct commit_list *needle)
+{
+	const struct commit_list *c;
+
+	memset(result, 0, haystack_nr);
+	for (c = needle; c; c = c->next) {
+		unsigned char *c_bits = bit_slab_at(haystack_bits, c->item);
+		int i;
+
+		for (i = 0; i < haystack_nr; i++)
+			result[i] |= bitset_get(c_bits, i);
+	}
+}
+
+void commit_contains_multitip(const struct commit_list *needle,
+			      const struct commit_list *haystack,
+			      unsigned char *result)
+{
+	struct prio_queue queue = { compare_commits_by_commit_date };
+	struct bit_slab needle_bits, haystack_bits;
+	int needle_nr, haystack_nr;
+
+	needle_nr = init_contains_bits(needle, &needle_bits, &queue);
+	haystack_nr = init_contains_bits(haystack, &haystack_bits, &queue);
+
+	while (contains_queue_interesting(&queue,
+					  &needle_bits, needle_nr,
+					  &haystack_bits, haystack_nr)) {
+		struct commit *commit = prio_queue_get(&queue);
+		struct commit_list *parents;
+		unsigned char *c_needle, *c_haystack;
+
+		c_needle = bit_slab_at(&needle_bits, commit);
+		c_haystack = bit_slab_at(&haystack_bits, commit);
+
+		for (parents = commit->parents; parents; parents = parents->next) {
+			struct commit *p = parents->item;
+			unsigned char *p_needle = bit_slab_at(&needle_bits, p),
+				      *p_haystack = bit_slab_at(&haystack_bits, p);
+
+			if (bitset_equal(c_needle, p_needle, needle_nr) &&
+			    bitset_equal(c_haystack, p_haystack, haystack_nr))
+				continue;
+			if (parse_commit(p))
+				die("unable to parse commit");
+			bitset_or(p_needle, c_needle, needle_nr);
+			bitset_or(p_haystack, c_haystack, haystack_nr);
+			prio_queue_put(&queue, p);
+		}
+	}
+
+	fill_contains_result(result, haystack_nr, &haystack_bits, needle);
+
+	clear_prio_queue(&queue);
+	clear_bit_slab(&needle_bits);
+	clear_bit_slab(&haystack_bits);
 }
 
 void reduce_heads_replace(struct commit_list **heads)
