@@ -64,6 +64,7 @@ static int advertise_atomic_push = 1;
 static int advertise_push_options;
 static int advertise_sid;
 static off_t max_input_size;
+static off_t warn_object_size;
 static int report_status;
 static int report_status_v2;
 static int use_sideband;
@@ -252,6 +253,11 @@ static int receive_pack_config(const char *var, const char *value,
 
 	if (strcmp(var, "transfer.advertisesid") == 0) {
 		advertise_sid = git_config_bool(var, value);
+		return 0;
+	}
+
+	if (strcmp(var, "receive.warnobjectsize") == 0) {
+		warn_object_size = git_config_ulong(var, value, ctx->kvi);
 		return 0;
 	}
 
