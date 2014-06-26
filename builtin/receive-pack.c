@@ -70,6 +70,7 @@ static int advertise_atomic_push = 1;
 static int advertise_push_options;
 static int advertise_sid;
 static off_t max_input_size;
+static off_t warn_object_size;
 static int use_sideband;
 static int use_atomic;
 static int use_push_options;
@@ -256,6 +257,11 @@ static int receive_pack_config(const char *var, const char *value,
 
 	if (strcmp(var, "transfer.advertisesid") == 0) {
 		advertise_sid = git_config_bool(var, value);
+		return 0;
+	}
+
+	if (strcmp(var, "receive.warnobjectsize") == 0) {
+		warn_object_size = git_config_ulong(var, value, ctx->kvi);
 		return 0;
 	}
 
@@ -2346,6 +2352,7 @@ static int unpack_with_sideband(struct odb_transaction *transaction,
 				 : 0),
 		.fsck_msg_types = fsck_msg_types.buf,
 		.max_input_size = max_input_size,
+		.warn_object_size = warn_object_size,
 		.shallow_file = shallow_file,
 		.reject_thin = reject_thin,
 		.quiet = quiet,
