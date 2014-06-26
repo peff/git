@@ -56,6 +56,7 @@ static int advertise_atomic_push = 1;
 static int advertise_push_options;
 static int unpack_limit = 100;
 static off_t max_input_size;
+static off_t warn_object_size;
 static int report_status;
 static int use_sideband;
 static int use_atomic;
@@ -226,6 +227,11 @@ static int receive_pack_config(const char *var, const char *value, void *cb)
 
 	if (strcmp(var, "receive.maxinputsize") == 0) {
 		max_input_size = git_config_int64(var, value);
+		return 0;
+	}
+
+	if (strcmp(var, "receive.warnobjectsize") == 0) {
+		warn_object_size = git_config_ulong(var, value);
 		return 0;
 	}
 
@@ -1803,6 +1809,9 @@ static const char *unpack(int err_fd, struct shallow_info *si)
 		if (max_input_size)
 			strvec_pushf(&child.args, "--max-input-size=%"PRIuMAX,
 				     (uintmax_t)max_input_size);
+		if (warn_object_size)
+			strvec_pushf(&child.args, "--warn-object-size=%"PRIuMAX,
+				     (uintmax_t)warn_object_size);
 		child.out = -1;
 		child.err = err_fd;
 		child.git_cmd = 1;
