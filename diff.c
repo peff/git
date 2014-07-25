@@ -45,6 +45,7 @@
 #include "setup.h"
 #include "strmap.h"
 #include "ws.h"
+#include "streaming.h"
 
 #ifdef NO_FAST_WORKING_DIRECTORY
 #define FAST_WORKING_DIRECTORY 0
@@ -4135,8 +4136,11 @@ int diff_populate_filespec(struct repository *r,
 	if (S_ISDIR(s->mode))
 		return -1;
 
-	if (s->data)
-		return 0;
+	if (s->data) {
+		if (!s->peeked_only || (flags & CHECK_BINARY))
+			return 0;
+		diff_free_filespec_blob(s);
+	}
 
 	if (size_only && 0 < s->size)
 		return 0;
@@ -4245,6 +4249,33 @@ object_read:
 				s->is_binary = 1;
 				return 0;
 			}
+
+			/*
+			 * Anything small we'll just load in one go, as
+			 * the cost of accessing the object a second time is
+			 * close to the cost of just loading the extra bytes.
+			 *
+			 * Otherwise, we'll grab 8K, which is enough for things
+			 * like checking binary-ness.
+			 */
+			if (s->size > 10 * 1024 * 1024 && s->is_binary == -1 &&
+			    (flags & CHECK_BINARY)) {
+				struct git_istream *st;
+
+				s->size = 8 * 1024;
+				s->peeked_only = 1;
+
+				st = open_istream(s->sha1, &type, &s->size, NULL);
+				if (!st)
+					die("unable to open stream for %s", sha1_to_hex(s->sha1));
+
+				s->data = xmallocz(s->size);
+				s->should_free = 1;
+				if (read_istream(st, s->data, s->size) != s->size)
+					die("unable to read %s", sha1_to_hex(s->sha1));
+				close_istream(st);
+				return 0;
+			}
 		}
 		if (!info.contentp) {
 			info.contentp = &s->data;
@@ -4267,6 +4298,11 @@ void diff_free_filespec_blob(struct diff_filespec *s)
 	if (s->should_free || s->should_munmap) {
 		s->should_free = s->should_munmap = 0;
 		s->data = NULL;
+	}
+
+	if (s->peeked_only) {
+		s->peeked_only = 0;
+		s->size = 0;
 	}
 }
 
