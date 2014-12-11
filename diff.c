@@ -52,6 +52,8 @@
 #define FAST_WORKING_DIRECTORY 1
 #endif
 
+static struct diff_tempfile *prepare_temp_file(const char *name, struct diff_filespec *one);
+
 static int diff_detect_rename_default;
 static int diff_indent_heuristic = 1;
 static int diff_rename_limit_default = 1000;
@@ -2222,6 +2224,97 @@ static void diff_words_flush(struct emit_callback *ecbdata)
 	}
 }
 
+static int sha1_file(const char *path, unsigned char *sha1)
+{
+	struct stat st;
+	if (stat(path, &st) < 0)
+		return -1;
+	return index_path(sha1, path, &st, 0);
+}
+
+static int collect_stdout(struct child_process *child, struct strbuf *buf)
+{
+	int ret = -1;
+
+	if (!start_command(child)) {
+		if (strbuf_read(buf, child->out, 0) >= 0 &&
+		    !finish_command(child))
+			ret = 0;
+		close(child->out);
+	}
+	return ret;
+}
+
+static char *run_diff_attr(const char *hook, struct diff_filespec *one, size_t *len)
+{
+	struct diff_tempfile *temp;
+	struct child_process child = CHILD_PROCESS_INIT;
+	struct strbuf buf = STRBUF_INIT;
+	int err;
+
+	temp = prepare_temp_file(one->path, one);
+	argv_array_push(&child.args, hook);
+	argv_array_push(&child.args, temp->name);
+	child.out = -1;
+
+	err = collect_stdout(&child, &buf);
+	remove_tempfile();
+	if (err) {
+		strbuf_release(&buf);
+		return NULL;
+	}
+	strbuf_trim(&buf);
+	return strbuf_detach(&buf, len);
+}
+
+static struct userdiff_driver *content_driver(struct diff_filespec *one)
+{
+	static int initialized;
+	static struct notes_cache cache;
+	static char *hook;
+
+	struct userdiff_driver *ret;
+	char *attr;
+	size_t len;
+
+	if (!initialized) {
+		unsigned char sha1[20];
+		const char *x = find_hook("diff-attr");
+		if (x && !sha1_file(x, sha1)) {
+			hook = xstrdup(x);
+			notes_cache_init(&cache, "diff-attr",
+					 sha1_to_hex(sha1));
+		}
+		initialized = 1;
+	}
+
+	if (!hook)
+		return NULL;
+
+	if (one->oid_valid) {
+		attr = notes_cache_get(&cache, one->oid.hash, &len);
+		if (attr) {
+			ret = userdiff_find_by_name(attr);
+			free(attr);
+			return ret;
+		}
+	}
+
+	attr = run_diff_attr(hook, one, &len);
+	if (!attr)
+		return NULL;
+
+	if (one->oid_valid) {
+		notes_cache_put(&cache, one->oid.hash, attr, len);
+		/* XXX should probably do this once at exit */
+		notes_cache_write(&cache);
+	}
+
+	ret = userdiff_find_by_name(attr);
+	free(attr);
+	return ret;
+}
+
 static void diff_filespec_load_driver(struct diff_filespec *one,
 				      struct index_state *istate)
 {
@@ -2231,6 +2324,9 @@ static void diff_filespec_load_driver(struct diff_filespec *one,
 
 	if (S_ISREG(one->mode))
 		one->driver = userdiff_find_by_path(istate, one->path);
+
+	if (!one->driver && DIFF_FILE_VALID(one))
+		one->driver = content_driver(one);
 
 	/* Fallback to default settings */
 	if (!one->driver)
