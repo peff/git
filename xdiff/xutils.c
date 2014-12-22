@@ -21,6 +21,7 @@
  */
 
 #include "xinclude.h"
+#include "git-compat-util.h"
 
 
 long xdl_bogosqrt(long n) {
@@ -294,20 +295,144 @@ static unsigned long xdl_hash_record_with_whitespace(char const **data,
 	return ha;
 }
 
-unsigned long xdl_hash_record(char const **data, char const *top, long flags) {
-	unsigned long ha = 5381;
+#define REPEAT_BYTE(x)  ((~0ul / 0xff) * (x))
+
+#define ONEBYTES	REPEAT_BYTE(0x01)
+#define NEWLINEBYTES	REPEAT_BYTE(0x0a)
+#define HIGHBITS	REPEAT_BYTE(0x80)
+
+/* Return the high bit set in the first byte that is a zero */
+static inline unsigned long has_zero(unsigned long a)
+{
+	return ((a - ONEBYTES) & ~a) & HIGHBITS;
+}
+
+static inline long count_masked_bytes(unsigned long mask)
+{
+	if (sizeof(long) == 8) {
+		/*
+		 * Jan Achrenius on G+: microoptimized version of
+		 * the simpler "(mask & ONEBYTES) * ONEBYTES >> 56"
+		 * that works for the bytemasks without having to
+		 * mask them first.
+		 */
+		/*
+		 * return mask * 0x0001020304050608 >> 56;
+		 *
+		 * Doing it like this avoids warnings on 32-bit machines.
+		 */
+		long a = (REPEAT_BYTE(0x01) / 0xff + 1);
+		return mask * a >> (sizeof(long) * 7);
+	} else {
+		/* Carl Chatfield / Jan Achrenius G+ version for 32-bit */
+		/* (000000 0000ff 00ffff ffffff) -> ( 1 1 2 3 ) */
+		long a = (0x0ff0001 + mask) >> 23;
+		/* Fix the 1 for 00 case */
+		return a & mask;
+	}
+}
+
+static inline uint32_t rotl32(uint32_t x, int8_t r)
+{
+	return (x << r) | (x >> (32 - r));
+}
+
+static inline uint32_t murmur3_32(uint32_t hash, uint32_t data)
+{
+	static const uint32_t c1 = 0xcc9e2d51;
+	static const uint32_t c2 = 0x1b873593;
+
+	data *= c1;
+	data = rotl32(data, 15);
+	data *= c2;
+
+	hash ^= data;
+	hash = rotl32(hash, 13);
+	hash = hash * 5 + 0xe6546b64;
+	return hash;
+}
+
+static inline unsigned long murmur3(uint32_t hash, unsigned long data)
+{
+	if (sizeof(unsigned long) == 4)
+		return murmur3_32(hash, data);
+	else if (sizeof(unsigned long) == 8) {
+		hash = murmur3_32(hash, data & 0xffffffff);
+		data >>= 32;
+		return murmur3_32(hash, data & 0xffffffff);
+	}
+
+	die("BUG: funny integer size (%lu)", sizeof(unsigned long));
+}
+
+unsigned long xdl_hash_record(char const **data, char const *top, long flags)
+{
+	unsigned long hash = 0;
+	unsigned long a = 0, mask = 0;
 	char const *ptr = *data;
+	char const *end = top - sizeof(unsigned long) + 1;
 
 	if (flags & XDF_WHITESPACE_FLAGS)
 		return xdl_hash_record_with_whitespace(data, top, flags);
 
-	for (; ptr < top && *ptr != '\n'; ptr++) {
-		ha += (ha << 5);
-		ha ^= (unsigned long) *ptr;
-	}
-	*data = ptr < top ? ptr + 1: ptr;
+	ptr -= sizeof(unsigned long);
+	do {
+		hash = murmur3(hash, a);
 
-	return ha;
+		ptr += sizeof(unsigned long);
+		if (ptr >= end)
+			break;
+
+		a = *(unsigned long *)ptr;
+		/* Do we have any '\n' bytes in this word? */
+		mask = has_zero(a ^ NEWLINEBYTES);
+	} while (!mask);
+
+	if (ptr >= end) {
+		/*
+		 * There is only a partial word left at the end of the
+		 * buffer. Because we may work with a memory mapping,
+		 * we have to grab the rest byte by byte instead of
+		 * blindly reading it.
+		 *
+		 * To avoid problems with masking in a signed value,
+		 * we use an unsigned char here.
+		 */
+		const char *p;
+		for (p = top - 1; p >= ptr; p--)
+			a = (a << 8) + *((const unsigned char *)p);
+		mask = has_zero(a ^ NEWLINEBYTES);
+		if (!mask)
+			/*
+			 * No '\n' found in the partial word.  Make a
+			 * mask that matches what we read.
+			 */
+			mask = 1UL << (8 * (top - ptr) + 7);
+	}
+
+	/* The mask *below* the first high bit set */
+	mask = (mask - 1) & ~mask;
+	mask >>= 7;
+	hash = murmur3(hash, a & mask);
+
+	/* Advance past the last (possibly partial) word */
+	ptr += count_masked_bytes(mask);
+
+	if (ptr < top) {
+		assert(*ptr == '\n');
+		ptr++;
+	}
+
+	hash ^= ptr - *data;
+	hash ^= hash >> 16;
+	hash *= 0x85ebca6b;
+	hash ^= hash >> 13;
+	hash *= 0xc2b2ae35;
+	hash ^= hash >> 16;
+
+	*data = ptr;
+
+	return hash;
 }
 
 unsigned int xdl_hashbits(unsigned int size) {
