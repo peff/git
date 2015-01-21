@@ -36,6 +36,7 @@
 /git-checkout-index
 /git-cherry
 /git-cherry-pick
+/git-clang-format-diff
 /git-clean
 /git-clone
 /git-column

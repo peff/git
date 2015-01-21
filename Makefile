@@ -592,6 +592,7 @@ THIRD_PARTY_SOURCES =
 unexport CDPATH
 
 SCRIPT_SH += git-bisect.sh
+SCRIPT_SH += git-clang-format-diff.sh
 SCRIPT_SH += git-difftool--helper.sh
 SCRIPT_SH += git-filter-branch.sh
 SCRIPT_SH += git-merge-octopus.sh

@@ -163,6 +163,16 @@ my %patch_modes = (
 		FILTER => undef,
 		IS_REVERSE => 0,
 	},
+	'format' => {
+		DIFF => 'clang-format-diff',
+		APPLY => sub { apply_patch_for_checkout_commit '', @_ },
+		APPLY_CHECK => 'apply',
+		VERB => 'Apply',
+		TARGET => 'to index and worktree',
+		PARTICIPLE => 'applying',
+		FILTER => undef,
+		IS_REVERSE => 0
+	},
 );
 
 $patch_mode = 'stage';
@@ -1830,6 +1840,15 @@ sub process_args {
 					$patch_mode = ($arg eq 'HEAD' ?
 						       'worktree_head' : 'worktree_nothead');
 					$arg = shift @ARGV or die __("missing --");
+				}
+			} elsif ($1 eq 'format') {
+				$patch_mode = $1;
+				$arg = shift @ARGV or die "missing --";
+				if ($arg eq '--') {
+					$patch_mode_revision = 'HEAD^';
+				} else {
+					$patch_mode_revision = $arg;
+					$arg = shift @ARGV or die "missing --";
 				}
 			} elsif ($1 eq 'stage' or $1 eq 'stash') {
 				$patch_mode = $1;
