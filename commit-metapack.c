@@ -16,10 +16,8 @@ struct commit_entry {
 struct commit_metapack {
 	struct metapack mp;
 	uint32_t nr;
-	uint32_t abbrev_len;
 	struct packed_git *pack;
 	unsigned char *index;
-	struct commit_entry *data;
 	struct commit_metapack *next;
 };
 static struct commit_metapack *commit_metapacks;
@@ -50,25 +48,20 @@ static struct commit_metapack *alloc_commit_metapack(struct packed_git *pack)
 		free(it);
 		return NULL;
 	}
-	memcpy(&it->nr, it->mp.data, 4);
-	it->nr = ntohl(it->nr);
-	memcpy(&it->abbrev_len, it->mp.data + 4, 4);
-	it->abbrev_len = ntohl(it->abbrev_len);
+	it->nr = get_be32(it->mp.data);
+	it->index = it->mp.data + 4;
 	it->pack = pack;
 
 	/*
-	 * We need 20+abbrev_len bytes for each entry: abbrev sha-1,
-	 * date(4), tree index(4), parent indexes(8).
+	 * We need 20 bytes for each entry: commit index(4), date(4), tree
+	 * index(4), parent indexes(8). Plus 4 bytes for the header.
 	 */
-	if (it->mp.len < ((sizeof(*it->data) + it->abbrev_len) * it->nr + 8)) {
+	if (it->mp.len < 4 + it->nr * 20) {
 		warning("commit metapack for '%s' is truncated", pack->pack_name);
 		metapack_close(&it->mp);
 		free(it);
 		return NULL;
 	}
-
-	it->index = it->mp.data + 8;
-	it->data = (struct commit_entry*)(it->index + it->abbrev_len * it->nr);
 
 	return it;
 }
@@ -95,6 +88,38 @@ static void prepare_commit_metapacks(void)
 	initialized = 1;
 }
 
+static int lookup_commit_metapack_one(struct commit_metapack *p,
+				      const unsigned char *sha1,
+				      struct commit_entry *out)
+{
+	uint32_t lo, hi;
+
+	lo = 0;
+	hi = p->nr;
+	while (lo < hi) {
+		uint32_t mi = lo + (hi - lo) / 2;
+		const unsigned char *base = p->index + (size_t)mi * 20;
+		uint32_t commit = get_be32(base);
+		int cmp = hashcmp(sha1, nth_packed_object_sha1(p->pack, commit));
+
+		if (!cmp) {
+			out->commit = commit;
+			out->timestamp = get_be32(base + 4);
+			out->tree = get_be32(base + 8);
+			out->parent1 = get_be32(base + 12);
+			out->parent2 = get_be32(base + 16);
+			return 0;
+		}
+
+		if (cmp < 0)
+			hi = mi;
+		else
+			lo = mi + 1;
+	}
+
+	return -1;
+}
+
 int commit_metapack(const unsigned char *sha1,
 		    uint32_t *timestamp,
 		    const unsigned char **tree,
@@ -105,68 +130,45 @@ int commit_metapack(const unsigned char *sha1,
 
 	prepare_commit_metapacks();
 	for (p = commit_metapacks; p; p = p->next) {
-		struct commit_entry *data;
-		uint32_t p1, p2;
-		unsigned lo, hi;
-		int pos;
-
-		if (!p->nr)
-			continue;
-
-		/* sha1_entry_pos does not work with abbreviated sha-1 */
-		lo = 0;
-		hi = p->nr;
-		pos = -1;
-		do {
-			unsigned mi = (lo + hi) / 2;
-			int cmp = memcmp(p->index + mi * p->abbrev_len, sha1, p->abbrev_len);
-
-			if (!cmp) {
-				pos = mi;
-				break;
-			}
-			if (cmp > 0)
-				hi = mi;
+		struct commit_entry ent;
+		if (!lookup_commit_metapack_one(p, sha1, &ent)) {
+			*timestamp = ent.timestamp;
+			*tree = nth_packed_object_sha1(p->pack, ent.tree);
+			*parent1 = nth_packed_object_sha1(p->pack, ent.parent1);
+			if (ent.parent1 != ent.parent2)
+				*parent2 = nth_packed_object_sha1(p->pack, ent.parent2);
 			else
-				lo = mi+1;
-		} while (lo < hi);
-		if (pos < 0)
-			continue;
-
-		data = p->data + pos;
-
-		/* full sha-1 check again */
-		if (hashcmp(nth_packed_object_sha1(p->pack,
-						   ntohl(data->commit)), sha1))
-			continue;
-
-		*timestamp = ntohl(data->timestamp);
-		*tree = nth_packed_object_sha1(p->pack, ntohl(data->tree));
-		p1 = ntohl(data->parent1);
-		*parent1 = nth_packed_object_sha1(p->pack, p1);
-		p2 = ntohl(data->parent2);
-		*parent2 = p1 == p2 ? null_sha1 : nth_packed_object_sha1(p->pack, p2);
-
-		return 0;
+				*parent2 = null_sha1;
+			return 0;
+		}
 	}
-
 	return -1;
 }
 
 struct write_cb {
-	struct commit_list **tail;
-	int abbrev_len;
-	const unsigned char *last_sha1;
+	struct commit_entry *entries;
+	uint32_t nr, alloc;
 };
+
+/* XXX find_object_entry_pos uses ints to return 32-bit offsets! */
+static int find_obj(const struct object *obj, struct packed_git *p,
+		    uint32_t *pos)
+{
+	int r = find_pack_entry_pos(obj->oid.hash, p);
+	if (r == -1)
+		return -1;
+	*pos = r;
+	return 0;
+}
 
 static void get_commits(struct metapack_writer *mw,
 			const struct object_id *oid,
-			void *data)
+			void *vdata)
 {
-	struct write_cb *write_cb = (struct write_cb *)data;
-	enum object_type type = sha1_object_info(oid->hash, NULL);
+	struct write_cb *data = vdata;
+	struct commit_entry *ent;
 	struct commit *c;
-	int p1 = -1, p2 = -1;
+	enum object_type type = sha1_object_info(oid->hash, NULL);
 
 	if (type != OBJ_COMMIT)
 		return;
@@ -180,86 +182,53 @@ static void get_commits(struct metapack_writer *mw,
 	 * octopus merges. Just skip those commits, as we can fallback
 	 * in those rare cases to reading the actual commit object.
 	 */
-	if (!c->parents ||
-	    (c->parents && c->parents->next && c->parents->next->next) ||
-	    /* edge commits are out too */
-	    find_pack_entry_pos(c->tree->object.oid.hash, mw->pack) == -1 ||
-	    (p1 = find_pack_entry_pos(c->parents->item->object.oid.hash, mw->pack)) == -1 ||
-	    (c->parents->next &&
-	     (p2 = find_pack_entry_pos(c->parents->next->item->object.oid.hash, mw->pack)) == -1) ||
-	    /*
-	     * we set the 2nd parent the same as 1st parent as an
-	     * indication that 2nd parent does not exist. Normal
-	     * commits should never have two same parents, but just in
-	     * case..
-	     */
-	    p1 == p2)
+	if (!c->parents || (c->parents->next && c->parents->next->next))
 		return;
 
-	/*
-	 * Make sure we store the abbr sha-1 long enough to
-	 * unambiguously identify any cached commits in the pack.
-	 */
-	while (write_cb->abbrev_len < 20 &&
-	       write_cb->last_sha1 &&
-	       !memcmp(write_cb->last_sha1, sha1, write_cb->abbrev_len))
-		write_cb->abbrev_len++;
-	/*
-	 * A bit sensitive to metapack_writer_foreach. "sha1" must not
-	 * be changed even after this function exits.
-	 */
-	write_cb->last_sha1 = sha1;
+	ALLOC_GROW(data->entries, data->nr + 1, data->alloc);
+	ent = &data->entries[data->nr];
 
-	write_cb->tail = &commit_list_insert(c, write_cb->tail)->next;
+	find_obj(&c->object, mw->pack, &ent->commit);
+	ent->timestamp = c->date;
+
+	if (find_obj(&c->tree->object, mw->pack, &ent->tree))
+		return;
+	if (find_obj(&c->parents->item->object, mw->pack, &ent->parent1))
+		return;
+	if (!c->parents->next)
+		ent->parent2 = ent->parent1;
+	else {
+		if (find_obj(&c->parents->next->item->object, mw->pack,
+			     &ent->parent2))
+			return;
+	}
+
+	data->nr++;
 }
 
 void commit_metapack_write(const char *idx)
 {
 	struct metapack_writer mw;
-	struct commit_list *commits = NULL, *p;
-	struct write_cb write_cb;
-	uint32_t nr = 0;
+	struct write_cb data;
+	uint32_t i;
 
 	metapack_writer_init(&mw, idx, "commits", 1);
 
-	write_cb.tail = &commits;
-	write_cb.abbrev_len = 1;
-	write_cb.last_sha1 = NULL;
-
 	/* Figure out how many eligible commits we've got in this pack. */
-	metapack_writer_foreach(&mw, get_commits, &write_cb);
-	for (p = commits; p; p = p->next)
-		nr++;
-
-	metapack_writer_add_uint32(&mw, nr);
-	metapack_writer_add_uint32(&mw, write_cb.abbrev_len);
+	memset(&data, 0, sizeof(data));
+	metapack_writer_foreach(&mw, get_commits, &data);
+	metapack_writer_add_uint32(&mw, data.nr);
 
 	/* Then write an index of commit sha1s */
-	for (p = commits; p; p = p->next)
-		metapack_writer_add(&mw, p->item->object.oid.hash, write_cb.abbrev_len);
-
-	/* Followed by the actual date/tree/parents data */
-	for (p = commits; p; p = p->next) {
-		struct commit *c = p->item;
-		int pos;
-
-		pos = find_pack_entry_pos(c->object.oid.hash, mw.pack);
-		metapack_writer_add_uint32(&mw, pos);
-
-		metapack_writer_add_uint32(&mw, c->date);
-
-		pos = find_pack_entry_pos(c->tree->object.oid.hash, mw.pack);
-		metapack_writer_add_uint32(&mw, pos);
-
-		pos = find_pack_entry_pos(c->parents->item->object.oid.hash, mw.pack);
-		metapack_writer_add_uint32(&mw, pos);
-
-		if (c->parents->next) {
-			struct object *o = &c->parents->next->item->object;
-			pos = find_pack_entry_pos(o->oid.hash, mw.pack);
-		}
-		metapack_writer_add_uint32(&mw, pos);
+	for (i = 0; i < data.nr; i++) {
+		struct commit_entry *ent = &data.entries[i];
+		metapack_writer_add_uint32(&mw, ent->commit);
+		metapack_writer_add_uint32(&mw, ent->timestamp);
+		metapack_writer_add_uint32(&mw, ent->tree);
+		metapack_writer_add_uint32(&mw, ent->parent1);
+		metapack_writer_add_uint32(&mw, ent->parent2);
 	}
 
 	metapack_writer_finish(&mw);
+	free(data.entries);
 }
