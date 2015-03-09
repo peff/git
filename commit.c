@@ -1711,3 +1711,52 @@ int ignore_non_trailer(const char *buf, size_t len)
 	}
 	return boc ? len - boc : len - cutoff;
 }
+
+static void compute_generation(struct commit *tip)
+{
+	struct commit **stack = NULL;
+	int nr = 0, alloc = 0;
+
+	ALLOC_GROW(stack, nr + 1, alloc);
+	stack[nr++] = tip;
+
+	while (nr) {
+		struct commit *c = stack[nr - 1];
+		struct commit_list *p;
+		int need_recurse = 0;
+
+		if (c->generation) {
+			nr--;
+			continue;
+		}
+
+		for (p = c->parents; p; p = p->next) {
+			parse_commit_or_die(p->item);
+			if (!p->item->generation) {
+				ALLOC_GROW(stack, nr + 1, alloc);
+				stack[nr++] = p->item;
+				need_recurse = 1;
+			}
+		}
+
+		if (!need_recurse) {
+			int g = 0;
+			for (p = c->parents; p; p = p->next) {
+				if (p->item->generation > g)
+					g = p->item->generation;
+			}
+			c->generation = g + 1;
+			nr--;
+		}
+	}
+
+	free(stack);
+}
+
+unsigned commit_generation(struct commit *c)
+{
+	parse_commit_or_die(c);
+	if (!c->generation)
+		compute_generation(c);
+	return c->generation;
+}
