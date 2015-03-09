@@ -1194,6 +1194,7 @@ static size_t format_commit_one(struct strbuf *sb, /* in UTF-8 */
 		format_decorations_extended(sb, commit, c->auto_color, "", ", ", "");
 		return 1;
 	case 'G': /* generation number */
+		use_fake_commit_generations = 0;
 		strbuf_addf(sb, "%u", commit_generation((struct commit *)commit));
 		return 1;
 	case 'g':		/* reflog info */
