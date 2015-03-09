@@ -91,6 +91,12 @@ static void prepare_commit_metapacks(void)
 	initialized = 1;
 }
 
+int have_commit_metapacks(void)
+{
+	prepare_commit_metapacks();
+	return !!commit_metapacks;
+}
+
 static int lookup_commit_metapack_one(struct commit_metapack *p,
 				      const unsigned char *sha1,
 				      struct commit_entry *out)

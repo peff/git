@@ -10,4 +10,6 @@ int commit_metapack(const unsigned char *sha1,
 
 void commit_metapack_write(const char *idx_file);
 
+int have_commit_metapacks(void);
+
 #endif

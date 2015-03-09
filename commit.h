@@ -330,6 +330,7 @@ int compare_commits_by_commit_date(const void *a_, const void *b_, void *unused)
 LAST_ARG_MUST_BE_NULL
 extern int run_commit_hook(int editor_is_used, const char *index_file, const char *name, ...);
 
+extern int use_fake_commit_generations;
 unsigned commit_generation(struct commit *c);
 
 #endif /* COMMIT_H */

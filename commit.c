@@ -1754,8 +1754,15 @@ static void compute_generation(struct commit *tip)
 	free(stack);
 }
 
+int use_fake_commit_generations = -1;
+
 unsigned commit_generation(struct commit *c)
 {
+	if (use_fake_commit_generations < 0)
+		use_fake_commit_generations = !have_commit_metapacks();
+	if (use_fake_commit_generations)
+		return c->date;
+
 	parse_commit_or_die(c);
 	if (!c->generation)
 		compute_generation(c);
