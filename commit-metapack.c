@@ -11,6 +11,7 @@ struct commit_entry {
 	uint32_t tree;		/* nth_packed_object_sha1 to get tree SHA-1 */
 	uint32_t parent1; /* nth_packed_object_sha1 to get 1st parent SHA-1 */
 	uint32_t parent2; /* nth_packed_object_sha1 to get 2nd parent SHA-1 */
+	uint32_t generation;
 };
 
 struct commit_metapack {
@@ -58,7 +59,7 @@ static struct commit_metapack *alloc_commit_metapack(struct packed_git *pack)
 	 * We need 20 bytes for each entry: commit index(4), date(4), tree
 	 * index(4), parent indexes(8). Plus 4 bytes for the header.
 	 */
-	if (it->mp.len < 4 + it->nr * 20) {
+	if (it->mp.len < 4 + it->nr * 24) {
 		warning("commit metapack for '%s' is truncated", pack->pack_name);
 		metapack_close(&it->mp);
 		free(it);
@@ -105,11 +106,12 @@ static int lookup_commit_metapack_one(struct commit_metapack *p,
 		int cmp = hashcmp(sha1, nth_packed_object_sha1(p->pack, commit));
 
 		if (!cmp) {
-			base = p->data + (size_t)mi * 16;
+			base = p->data + (size_t)mi * 20;
 			out->timestamp = get_be32(base);
 			out->tree = get_be32(base+ 4);
 			out->parent1 = get_be32(base + 8);
 			out->parent2 = get_be32(base + 12);
+			out->generation = get_be32(base + 16);
 			return 0;
 		}
 
@@ -124,6 +126,7 @@ static int lookup_commit_metapack_one(struct commit_metapack *p,
 
 int commit_metapack(const unsigned char *sha1,
 		    uint32_t *timestamp,
+		    uint32_t *generation,
 		    const unsigned char **tree,
 		    const unsigned char **parent1,
 		    const unsigned char **parent2)
@@ -135,6 +138,7 @@ int commit_metapack(const unsigned char *sha1,
 		struct commit_entry ent;
 		if (!lookup_commit_metapack_one(p, sha1, &ent)) {
 			*timestamp = ent.timestamp;
+			*generation = ent.generation;
 			*tree = nth_packed_object_sha1(p->pack, ent.tree);
 			*parent1 = nth_packed_object_sha1(p->pack, ent.parent1);
 			if (ent.parent1 != ent.parent2)
@@ -204,6 +208,7 @@ static void get_commits(struct metapack_writer *mw,
 			     &ent->parent2))
 			return;
 	}
+	ent->generation = commit_generation(c);
 
 	data->nr++;
 }
@@ -231,6 +236,7 @@ void commit_metapack_write(const char *idx)
 		metapack_writer_add_uint32(&mw, ent->tree);
 		metapack_writer_add_uint32(&mw, ent->parent1);
 		metapack_writer_add_uint32(&mw, ent->parent2);
+		metapack_writer_add_uint32(&mw, ent->generation);
 	}
 
 	metapack_writer_finish(&mw);

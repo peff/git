@@ -3,6 +3,7 @@
 
 int commit_metapack(const unsigned char *sha1,
 		    uint32_t *timestamp,
+		    uint32_t *generation,
 		    const unsigned char **tree,
 		    const unsigned char **parent1,
 		    const unsigned char **parent2);
