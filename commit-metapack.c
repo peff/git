@@ -18,6 +18,7 @@ struct commit_metapack {
 	uint32_t nr;
 	struct packed_git *pack;
 	unsigned char *index;
+	unsigned char *data;
 	struct commit_metapack *next;
 };
 static struct commit_metapack *commit_metapacks;
@@ -50,6 +51,7 @@ static struct commit_metapack *alloc_commit_metapack(struct packed_git *pack)
 	}
 	it->nr = get_be32(it->mp.data);
 	it->index = it->mp.data + 4;
+	it->data = it->index + 4 * it->nr;
 	it->pack = pack;
 
 	/*
@@ -98,16 +100,16 @@ static int lookup_commit_metapack_one(struct commit_metapack *p,
 	hi = p->nr;
 	while (lo < hi) {
 		uint32_t mi = lo + (hi - lo) / 2;
-		const unsigned char *base = p->index + (size_t)mi * 20;
+		const unsigned char *base = p->index + (size_t)mi * 4;
 		uint32_t commit = get_be32(base);
 		int cmp = hashcmp(sha1, nth_packed_object_sha1(p->pack, commit));
 
 		if (!cmp) {
-			out->commit = commit;
-			out->timestamp = get_be32(base + 4);
-			out->tree = get_be32(base + 8);
-			out->parent1 = get_be32(base + 12);
-			out->parent2 = get_be32(base + 16);
+			base = p->data + (size_t)mi * 16;
+			out->timestamp = get_be32(base);
+			out->tree = get_be32(base+ 4);
+			out->parent1 = get_be32(base + 8);
+			out->parent2 = get_be32(base + 12);
 			return 0;
 		}
 
@@ -220,9 +222,11 @@ void commit_metapack_write(const char *idx)
 	metapack_writer_add_uint32(&mw, data.nr);
 
 	/* Then write an index of commit sha1s */
+	for (i = 0; i < data.nr; i++)
+		metapack_writer_add_uint32(&mw, data.entries[i].commit);
+
 	for (i = 0; i < data.nr; i++) {
 		struct commit_entry *ent = &data.entries[i];
-		metapack_writer_add_uint32(&mw, ent->commit);
 		metapack_writer_add_uint32(&mw, ent->timestamp);
 		metapack_writer_add_uint32(&mw, ent->tree);
 		metapack_writer_add_uint32(&mw, ent->parent1);
