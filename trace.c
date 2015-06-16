@@ -129,8 +129,9 @@ static int prepare_trace_line(const char *file, int line,
 	localtime_r(&secs, &tm);
 	strbuf_addf(buf, "%02d:%02d:%02d.%06ld %s:%d", tm.tm_hour, tm.tm_min,
 		    tm.tm_sec, (long) tv.tv_usec, file, line);
-	/* align trace output (column 40 catches most files names in git) */
-	while (buf->len < 40)
+	strbuf_addf(buf, "[pid=%lu] ", (unsigned long)getpid());
+	/* align trace output (column 50 catches most files names in git) */
+	while (buf->len < 50)
 		strbuf_addch(buf, ' ');
 
 	return 1;
