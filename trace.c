@@ -28,6 +28,16 @@ struct trace_key trace_default_key = { "GIT_TRACE", 0, 0, 0 };
 struct trace_key trace_perf_key = TRACE_KEY_INIT(PERFORMANCE);
 struct trace_key trace_setup_key = TRACE_KEY_INIT(SETUP);
 
+static size_t expand_trace_name(struct strbuf *out, const char *fmt,
+				void *data)
+{
+	if (*fmt == 'p') {
+		strbuf_addf(out, "%lu", (unsigned long)getpid());
+		return 1;
+	}
+	return 0;
+}
+
 /* Get a trace file descriptor from "key" env variable. */
 static int get_trace_fd(struct trace_key *key, const char *override_envvar)
 {
@@ -47,15 +57,20 @@ static int get_trace_fd(struct trace_key *key, const char *override_envvar)
 	else if (strlen(trace) == 1 && isdigit(*trace))
 		key->fd = atoi(trace);
 	else if (is_absolute_path(trace)) {
-		int fd = open(trace, O_WRONLY | O_APPEND | O_CREAT, 0666);
+		struct strbuf name = STRBUF_INIT;
+		int fd;
+
+		strbuf_expand(&name, trace, expand_trace_name, NULL);
+		fd = open(name.buf, O_WRONLY | O_APPEND | O_CREAT, 0666);
 		if (fd == -1) {
 			warning("could not open '%s' for tracing: %s",
-				trace, strerror(errno));
+				name.buf, strerror(errno));
 			trace_disable(key);
 		} else {
 			key->fd = fd;
 			key->need_close = 1;
 		}
+		strbuf_release(&name);
 	} else {
 		warning("unknown trace value for '%s': %s\n"
 			"         If you want to trace into a file, then please set %s\n"
