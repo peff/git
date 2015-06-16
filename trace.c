@@ -125,12 +125,13 @@ static int prepare_trace_line(const char *file, int line,
 	localtime_r(&secs, &tm);
 	strbuf_addf(buf, "%02d:%02d:%02d.%06ld ", tm.tm_hour, tm.tm_min,
 		    tm.tm_sec, (long) tv.tv_usec);
+	strbuf_addf(buf, "[pid=%lu] ", (unsigned long)getpid());
 
 #ifdef HAVE_VARIADIC_MACROS
 	/* print file:line */
 	strbuf_addf(buf, "%s:%d ", file, line);
-	/* align trace output (column 40 catches most files names in git) */
-	while (buf->len < 40)
+	/* align trace output (column 50 catches most files names in git) */
+	while (buf->len < 50)
 		strbuf_addch(buf, ' ');
 #endif
 
