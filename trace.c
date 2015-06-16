@@ -53,15 +53,28 @@ static int get_trace_fd(struct trace_key *key, const char *override_envvar)
 	else if (strlen(trace) == 1 && isdigit(*trace))
 		key->fd = atoi(trace);
 	else if (is_absolute_path(trace)) {
-		int fd = open(trace, O_WRONLY | O_APPEND | O_CREAT, 0666);
+		struct strbuf name = STRBUF_INIT;
+		int fd;
+
+		while (strbuf_expand_step(&name, &trace)) {
+			if (skip_prefix(trace, "%", &trace))
+				strbuf_addch(&name, '%');
+			else if (skip_prefix(trace, "p", &trace))
+				strbuf_addf(&name, "%lu", (unsigned long)getpid());
+			else
+				strbuf_addch(&name, '%');
+		}
+
+		fd = open(name.buf, O_WRONLY | O_APPEND | O_CREAT, 0666);
 		if (fd == -1) {
 			warning("could not open '%s' for tracing: %s",
-				trace, strerror(errno));
+				name.buf, strerror(errno));
 			trace_disable(key);
 		} else {
 			key->fd = fd;
 			key->need_close = 1;
 		}
+		strbuf_release(&name);
 	} else {
 		warning("unknown trace value for '%s': %s\n"
 			"         If you want to trace into a file, then please set %s\n"
