@@ -178,10 +178,30 @@ sub show_hunk {
 			if $bits & 2;
 	}
 
+	my $highlighted = count_highlight(@highlight_a) +
+			  count_highlight(@highlight_b);
+	my $total = length($a) + length($b);
+	my $pct = $highlighted / $total;
+
+	if ($pct > 0.5) {
+		@highlight_a = ();
+		@highlight_b = ();
+	}
+
 	# And now show the output both with the original stripped annotations,
 	# as well as our new highlights.
 	show_image($a, [merge_annotations(\@stripped_a, \@highlight_a)]);
 	show_image($b, [merge_annotations(\@stripped_b, \@highlight_b)]);
+}
+
+sub count_highlight {
+	my $total = 0;
+	while (@_) {
+		my $from = shift;
+		my $to = shift;
+		$total += $to->[0] - $from->[0];
+	}
+	return $total;
 }
 
 # Strip out any diff syntax (i.e., leading +/-), along with any ANSI color
