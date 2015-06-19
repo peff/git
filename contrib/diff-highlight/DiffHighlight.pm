@@ -3,6 +3,7 @@ package DiffHighlight;
 use 5.008001;
 use warnings FATAL => 'all';
 use strict;
+use Algorithm::Diff;
 
 # Use the correct value for both UNIX and Windows (/dev/null vs nul)
 use File::Spec;
@@ -144,142 +145,108 @@ sub color_config {
 }
 
 sub show_hunk {
-	my ($a, $b) = @_;
+	my ($lines_a, $lines_b) = @_;
 
 	# If one side is empty, then there is nothing to compare or highlight.
-	if (!@$a || !@$b) {
-		$line_cb->(@$a, @$b);
+	if (!@$lines_a || !@$lines_b) {
+		$line_cb->(@$lines_a, @$lines_b);
 		return;
 	}
 
-	# If we have mismatched numbers of lines on each side, we could try to
-	# be clever and match up similar lines. But for now we are simple and
-	# stupid, and only handle multi-line hunks that remove and add the same
-	# number of lines.
-	if (@$a != @$b) {
-		$line_cb->(@$a, @$b);
-		return;
+	# Strip out any cruft so we can do the real diff on $a and $b.
+	my ($a, @stripped_a) = strip_image(@$lines_a);
+	my ($b, @stripped_b) = strip_image(@$lines_b);
+
+	# Now we do the actual diff. Our highlight list is in the same
+	# annotation format as the @stripped data.
+	my $diff = Algorithm::Diff->new([split_image($a)], [split_image($b)]);
+	my ($offset_a, $offset_b) = (0, 0);
+	my (@highlight_a, @highlight_b);
+	while ($diff->Next()) {
+		my $bits = $diff->Diff();
+
+		push @highlight_a, [$offset_a, $OLD_HIGHLIGHT[1]]
+			if $bits & 1;
+		$offset_a += length($_) for $diff->Items(1);
+		push @highlight_a, [$offset_a, $OLD_HIGHLIGHT[2]]
+			if $bits & 1;
+
+		push @highlight_b, [$offset_b, $NEW_HIGHLIGHT[1]]
+			if $bits & 2;
+		$offset_b += length($_) for $diff->Items(2);
+		push @highlight_b, [$offset_b, $NEW_HIGHLIGHT[2]]
+			if $bits & 2;
 	}
 
-	my @queue;
-	for (my $i = 0; $i < @$a; $i++) {
-		my ($rm, $add) = highlight_pair($a->[$i], $b->[$i]);
-		$line_cb->($rm);
-		push @queue, $add;
-	}
-	$line_cb->(@queue);
+	# And now show the output both with the original stripped annotations,
+	# as well as our new highlights.
+	show_image($a, [merge_annotations(\@stripped_a, \@highlight_a)]);
+	show_image($b, [merge_annotations(\@stripped_b, \@highlight_b)]);
 }
 
-sub highlight_pair {
-	my @a = split_line(shift);
-	my @b = split_line(shift);
+# Strip out any diff syntax (i.e., leading +/-), along with any ANSI color
+# codes from the pre- or post-image of a hunk. The result is a string of text
+# suitable for diffing against the other side of the hunk.
+#
+# In addition to returning the hunk itself, we also return an arrayref that
+# contains the stripped data.  Each element is itself an arrayref containing
+# the offset into the stripped hunk, along with the stripped data that belongs
+# there.
+sub strip_image {
+	my $image = '';
+	my @stripped;
+	foreach my $line (@_) {
+		$line =~ s/^$COLOR*[+-]$COLOR*//
+			or die "BUG: line was not +/-: $line";
+		push @stripped, [length($image), $&];
 
-	# Find common prefix, taking care to skip any ansi
-	# color codes.
-	my $seen_plusminus;
-	my ($pa, $pb) = (0, 0);
-	while ($pa < @a && $pb < @b) {
-		if ($a[$pa] =~ /$COLOR/) {
-			$pa++;
-		}
-		elsif ($b[$pb] =~ /$COLOR/) {
-			$pb++;
-		}
-		elsif ($a[$pa] eq $b[$pb]) {
-			$pa++;
-			$pb++;
-		}
-		elsif (!$seen_plusminus && $a[$pa] eq '-' && $b[$pb] eq '+') {
-			$seen_plusminus = 1;
-			$pa++;
-			$pb++;
-		}
-		else {
-			last;
+		while (length($line)) {
+			if ($line =~ s/^$COLOR+//) {
+				push @stripped, [length($image), $&];
+			} elsif ($line =~ s/^(.+?)($COLOR|$)/$2/s) {
+				$image .= $1;
+			} else {
+				die "BUG: we should have matched _something_";
+			}
 		}
 	}
 
-	# Find common suffix, ignoring colors.
-	my ($sa, $sb) = ($#a, $#b);
-	while ($sa >= $pa && $sb >= $pb) {
-		if ($a[$sa] =~ /$COLOR/) {
-			$sa--;
-		}
-		elsif ($b[$sb] =~ /$COLOR/) {
-			$sb--;
-		}
-		elsif ($a[$sa] eq $b[$sb]) {
-			$sa--;
-			$sb--;
-		}
-		else {
-			last;
-		}
-	}
-
-	if (is_pair_interesting(\@a, $pa, $sa, \@b, $pb, $sb)) {
-		return highlight_line(\@a, $pa, $sa, \@OLD_HIGHLIGHT),
-		       highlight_line(\@b, $pb, $sb, \@NEW_HIGHLIGHT);
-	}
-	else {
-		return join('', @a),
-		       join('', @b);
-	}
+	return $image, @stripped;
 }
 
-# we split either by $COLOR or by character. This has the side effect of
-# leaving in graph cruft. It works because the graph cruft does not contain "-"
-# or "+"
-sub split_line {
-	local $_ = shift;
-	return utf8::decode($_) ?
-		map { utf8::encode($_); $_ }
-			map { /$COLOR/ ? $_ : (split //) }
-			split /($COLOR+)/ :
-		map { /$COLOR/ ? $_ : (split //) }
-		split /($COLOR+)/;
+# Split the pre- or post-image into diffable elements. Returns
+sub split_image {
+	return split(/([[:space:]]+|[[:punct:]]+)/, shift);
 }
 
-sub highlight_line {
-	my ($line, $prefix, $suffix, $theme) = @_;
-
-	my $start = join('', @{$line}[0..($prefix-1)]);
-	my $mid = join('', @{$line}[$prefix..$suffix]);
-	my $end = join('', @{$line}[($suffix+1)..$#$line]);
-
-	# If we have a "normal" color specified, then take over the whole line.
-	# Otherwise, we try to just manipulate the highlighted bits.
-	if (defined $theme->[0]) {
-		s/$COLOR//g for ($start, $mid, $end);
-		chomp $end;
-		return join('',
-			$theme->[0], $start, $RESET,
-			$theme->[1], $mid, $RESET,
-			$theme->[0], $end, $RESET,
-			"\n"
-		);
-	} else {
-		return join('',
-			$start,
-			$theme->[1], $mid, $theme->[2],
-			$end
-		);
+sub merge_annotations {
+	my ($a, $b) = @_;
+	my @r;
+	while (@$a && @$b) {
+		if ($a->[0]->[0] <= $b->[0]->[0]) {
+			push @r, shift @$a;
+		} else {
+			push @r, shift @$b;
+		}
 	}
+	push @r, @$a;
+	push @r, @$b;
+	return @r;
 }
 
-# Pairs are interesting to highlight only if we are going to end up
-# highlighting a subset (i.e., not the whole line). Otherwise, the highlighting
-# is just useless noise. We can detect this by finding either a matching prefix
-# or suffix (disregarding boring bits like whitespace and colorization).
-sub is_pair_interesting {
-	my ($a, $pa, $sa, $b, $pb, $sb) = @_;
-	my $prefix_a = join('', @$a[0..($pa-1)]);
-	my $prefix_b = join('', @$b[0..($pb-1)]);
-	my $suffix_a = join('', @$a[($sa+1)..$#$a]);
-	my $suffix_b = join('', @$b[($sb+1)..$#$b]);
+sub show_image {
+	my ($image, $annotations) = @_;
+	my $pos = 0;
 
-	return visible_substr($prefix_a, $graph_indent) !~ /^$COLOR*-$BORING*$/ ||
-	       visible_substr($prefix_b, $graph_indent) !~ /^$COLOR*\+$BORING*$/ ||
-	       $suffix_a !~ /^$BORING*$/ ||
-	       $suffix_b !~ /^$BORING*$/;
+	foreach my $an (@$annotations) {
+		if ($pos < $an->[0]) {
+			$line_cb->(substr($image, $pos, $an->[0] - $pos));
+			$pos = $an->[0];
+		}
+		$line_cb->($an->[1]);
+	}
+
+	if ($pos < length($image)) {
+		$line_cb->(substr($image, $pos));
+	}
 }
