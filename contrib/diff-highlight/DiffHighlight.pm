@@ -236,7 +236,7 @@ sub strip_image {
 
 # Split the pre- or post-image into diffable elements. Returns
 sub split_image {
-	return split(/([[:space:]]+|[[:punct:]]+)/, shift);
+	return split(/([A-Za-z0-9-]+)/, shift);
 }
 
 sub merge_annotations {
