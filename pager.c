@@ -7,6 +7,7 @@
 #include "alias.h"
 #include "repository.h"
 #include "environment.h"
+#include "compat/pipe-id.h"
 
 int pager_use_color = 1;
 
@@ -156,6 +157,7 @@ void setup_pager(struct repository *r)
 {
 	static int once = 0;
 	const char *pager = git_pager(r, isatty(1));
+	const char *pipe_id;
 
 	if (!pager)
 		return;
@@ -192,6 +194,10 @@ void setup_pager(struct repository *r)
 	}
 	close(pager_process.in);
 
+	pipe_id = pipe_id_get(1);
+	if (pipe_id)
+		setenv("GIT_PAGER_PIPE_ID", pipe_id, 1);
+
 	sigchain_push_common(wait_for_pager_signal);
 
 	if (!once) {
@@ -202,7 +208,15 @@ void setup_pager(struct repository *r)
 
 int pager_in_use(void)
 {
-	return git_env_bool("GIT_PAGER_IN_USE", 0);
+	const char *pipe_id;
+
+	if (!git_env_bool("GIT_PAGER_IN_USE", 0))
+		return 0;
+
+	pipe_id = getenv("GIT_PAGER_PIPE_ID");
+	if (!pipe_id) /* historical compatibility */
+		return 1;
+	return pipe_id_match(1, pipe_id);
 }
 
 /*
