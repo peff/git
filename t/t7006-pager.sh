@@ -324,7 +324,7 @@ test_expect_success TTY 'colors are suppressed by color.pager' '
 	! colorful paginated.out
 '
 
-test_expect_success 'color when writing to a file intended for a pager' '
+test_expect_success 'color goes to files when GIT_PAGER_PIPE_ID is not used' '
 	rm -f colorful.log &&
 	test_config color.ui auto &&
 	(
@@ -341,6 +341,24 @@ test_expect_success TTY 'colors are sent to pager for external commands' '
 	test_config color.ui auto &&
 	test_terminal git -p externallog &&
 	colorful paginated.out
+'
+
+test_expect_success TTY 'no color when paged program writes to file' '
+	test_config alias.externallog "!git log >log.out" &&
+	test_config color.ui auto &&
+	test_terminal env TERM=vt100 git -p externallog &&
+	test_line_count = 0 paginated.out &&
+	test -s log.out &&
+	! colorful log.out
+'
+
+test_expect_success TTY 'no color when paged program writes to pipe' '
+	test_config alias.externallog "!git log | cat >log.out" &&
+	test_config color.ui auto &&
+	test_terminal env TERM=vt100 git -p externallog &&
+	test_line_count = 0 paginated.out &&
+	test -s log.out &&
+	! colorful log.out
 '
 
 # Use this helper to make it easy for the caller of your
