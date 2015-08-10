@@ -290,6 +290,7 @@ compat_sources = [
   'compat/nonblock.c',
   'compat/obstack.c',
   'compat/open.c',
+  'compat/pipe-id.c',
   'compat/terminal.c',
 ]
 
