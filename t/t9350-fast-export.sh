@@ -598,7 +598,7 @@ test_expect_success 'directory becomes symlink'        '
 	(cd result && git show master:foo)
 '
 
-test_expect_failure 'symlink becomes directory'        '
+test_expect_success 'symlink becomes directory'        '
 	git init symlinktodir &&
 	git init symlinktodirresult &&
 	(
