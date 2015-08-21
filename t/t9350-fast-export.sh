@@ -611,7 +611,7 @@ test_expect_success 'directory becomes symlink'        '
 	(cd result && git show main:foo)
 '
 
-test_expect_failure 'symlink becomes directory'        '
+test_expect_success 'symlink becomes directory'        '
 	git init symlinktodir &&
 	git init symlinktodirresult &&
 	(
@@ -629,10 +629,10 @@ test_expect_failure 'symlink becomes directory'        '
 	) &&
 	(
 		cd symlinktodir &&
-		git fast-export master -- foo |
+		git fast-export main -- foo |
 		(cd ../symlinktodirresult && git fast-import --quiet)
 	) &&
-	(cd symlinktodirresult && git show master:foo)
+	(cd symlinktodirresult && git show main:foo)
 '
 
 test_expect_success 'fast-export quotes pathnames' '
