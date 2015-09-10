@@ -673,7 +673,7 @@ int start_command(struct child_process *cmd)
 
 	if (!cmd->argv)
 		cmd->argv = cmd->args.v;
-	if (cmd->git_cmd) {
+	if (cmd->git_cmd && is_bare_repository_cfg >= 0) {
 		/*
 		 * Load any extra variables into env_array. But
 		 * if we weren't going to use it (in favor of "env"),
