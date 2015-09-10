@@ -803,4 +803,34 @@ test_expect_success '#31: setup' '
 '
 run_wt_tests 31 gitfile
 
+# Case #32: bare repos inside non-bare repos
+test_expect_success '#32: setup' '
+	sane_unset GIT_DIR &&
+	sane_unset GIT_WORK_TREE &&
+	REPO=32/deep/inside/repo.git &&
+	git init --bare $REPO &&
+	test_commit bare-repo &&
+	git push $REPO HEAD &&
+	test_commit outer-repo
+'
+
+test_expect_success '#32a: untracked bare inside non-bare OK' '
+	echo bare-repo >expect &&
+	(cd $REPO && git log --format=%s -1) >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success '#32b: tracked bare inside non-bare ignored' '
+	git add 32 &&
+	echo outer-repo >expect &&
+	(cd $REPO && git log --format=%s -1) >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success '#32c: --git-dir overrides skipping' '
+	echo bare-repo >expect &&
+	(cd $REPO && git --git-dir=. log --format=%s -1) >actual &&
+	test_cmp expect actual
+'
+
 test_done

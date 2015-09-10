@@ -6,6 +6,7 @@
 #include "chdir-notify.h"
 #include "promisor-remote.h"
 #include "quote.h"
+#include "run-command.h"
 
 static int inside_git_dir = -1;
 static int inside_work_tree = -1;
@@ -1173,6 +1174,144 @@ enum discovery_result {
 };
 
 /*
+ * Return true iff the bare repo found at the current working
+ * directory is inside the working tree of an outer non-bare
+ * repository.
+ */
+static int bare_cwd_is_in_worktree(void)
+{
+	struct child_process cmd = CHILD_PROCESS_INIT;
+	struct strbuf buf = STRBUF_INIT;
+	int ret;
+
+	cmd.out = -1;
+	cmd.no_stderr = 1;
+	cmd.dir = "..";
+	cmd.git_cmd = 1;
+	argv_array_pushl(&cmd.args, "rev-parse", "--is-inside-work-tree", NULL);
+
+	if (capture_command(&cmd, &buf, 5))
+		return 0; /* probably not inside repo at all */
+
+	strbuf_trim(&buf);
+	ret = git_parse_maybe_bool(buf.buf);
+	if (ret < 0)
+		die("confusing output from rev-parse --is-inside-work-tree: %s",
+		    buf.buf);
+	strbuf_release(&buf);
+
+	return ret;
+}
+
+/*
+ * Return true iff the bare repo found at the current working
+ * directory is tracked in the index of an outer non-bare
+ * repository.
+ *
+ * We _should_ be able to do this in-process, but we'd have to:
+ *
+ *   1. Factor out the traversal logic from setup_git_directory
+ *      to walk backwards looking for ".git", so that we can do
+ *      so but _not_ choose that as our git-dir.
+ *
+ *   2. Read its index, taking into account any config from
+ *      the outer repo (e.g., we might care about core.ignorecase).
+ *
+ * Or alternatively, we'd need to be able to setup_git_directory()
+ * the outer non-bare repo, do our checks, and then throw that away
+ * and re-setup with the bare repo we found.
+ *
+ * Using a new process is much simpler, though less efficient. Note that
+ * we use two processes here (one to check that we are inside somebody's
+ * working tree, and the other to check whether they are tracking us).
+ * If we invent a new command, this could be done in a single
+ * sub-process, but the common case is that the first check reports "no",
+ * and we do not even bother with the second process.
+ */
+static int bare_cwd_is_tracked(void)
+{
+	struct child_process cmd = CHILD_PROCESS_INIT;
+	struct strbuf cwd = STRBUF_INIT;
+	int ret;
+	char c;
+
+	/*
+	 * We can first check whether we are in the working tree of another
+	 * repo at all. This catches the obvious case that we are not in
+	 * another repo, but also cases where we are inside ".git" (e.g.,
+	 * when looking at .git/modules). The ls-files check would get
+	 * confused by this, because it would treat the pathspec we feed
+	 * it as relative to the working tree root.
+	 */
+	if (!bare_cwd_is_in_worktree())
+		return 0;
+
+	/*
+	 * We have to start our child process outside of the bare repo
+	 * we're in (otherwise we'll just find it again!). So we need
+	 * to know what that path is called from one level up. We
+	 * don't need to go further if the enclosing repo is higher
+	 * up, because the git sub-process will treat the path we
+	 * feed it as relative.
+	 *
+	 * Note that we can special-case "/" early; ; we know it can't
+	 * have an enclosing repo, and that lets us not worry about
+	 * special-casing our pathspec.
+	 */
+	if (strbuf_getcwd(&cwd))
+		die("unable to get current working directory");
+	if (!strcmp(cwd.buf, "/")) {
+		strbuf_release(&cwd);
+		return 0;
+	}
+
+	cmd.out = -1;
+	cmd.no_stderr = 1;
+	cmd.dir = "..";
+	cmd.git_cmd = 1;
+	argv_array_pushl(&cmd.args, "--literal-pathspecs",
+			 "ls-files", "--", basename(cwd.buf), NULL);
+
+	/*
+	 * hack to make our tests happy; otherwise the sub-process will trace,
+	 * too, polluting the output
+	 */
+	argv_array_push(&cmd.env_array, "GIT_TRACE_SETUP=");
+
+	if (start_command(&cmd))
+		die("unable to spawn ls-files");
+	switch (xread(cmd.out, &c, 1)) {
+	case 0:
+		/*
+		 * no output; either there is no outer repo, or our
+		 * path is untracked within it
+		 */
+		ret = 0;
+		break;
+	case 1:
+		/*
+		 * some output; we don't bother reading all of it, because it
+		 * will be some paths that are inside our cwd; knowing that it
+		 * contains any paths is enough to count it as tracked
+		 */
+		ret = 1;
+		break;
+	default:
+		die_errno("unable to read from ls-files");
+	}
+
+	if (ret)
+		trace_printf("setup: ignoring tracked bare repo at %s",
+			     cwd.buf);
+
+	close(cmd.out);
+	finish_command(&cmd);
+	strbuf_release(&cwd);
+
+	return ret;
+}
+
+/*
  * We cannot decide in this function whether we are in the work tree or
  * not, since the config can only be read _after_ this function was called.
  *
@@ -1296,7 +1435,7 @@ static enum discovery_result setup_git_directory_gently_1(struct strbuf *dir,
 			return ret;
 		}
 
-		if (is_git_directory(dir->buf)) {
+		if (is_git_directory(dir->buf) && !bare_cwd_is_tracked()) {
 			if (!ensure_valid_ownership(NULL, NULL, dir->buf))
 				return GIT_DIR_INVALID_OWNERSHIP;
 			strbuf_addstr(gitdir, ".");
