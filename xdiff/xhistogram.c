@@ -275,13 +275,13 @@ static int find_lcs(xpparam_t const *xpp, xdfenv_t *env,
 	memset(index.records, 0, sz);
 
 	sz = index.line_map_size = count1;
-	sz *= sizeof(struct record *);
+	sz = st_mult(sz, sizeof(struct record *));
 	if (!(index.line_map = (struct record **) xdl_malloc(sz)))
 		goto cleanup;
 	memset(index.line_map, 0, sz);
 
 	sz = index.line_map_size;
-	sz *= sizeof(unsigned int);
+	sz = st_mult(sz, sizeof(unsigned int));
 	if (!(index.next_ptrs = (unsigned int *) xdl_malloc(sz)))
 		goto cleanup;
 	memset(index.next_ptrs, 0, sz);
