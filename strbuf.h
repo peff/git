@@ -1,6 +1,8 @@
 #ifndef STRBUF_H
 #define STRBUF_H
 
+#include "strutil.h"
+
 struct string_list;
 
 /**
