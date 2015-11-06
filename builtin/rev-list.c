@@ -80,6 +80,19 @@ static int arg_show_object_names = 1;
 
 #define DEFAULT_OIDSET_SIZE     (16*1024)
 
+static int show_disk_usage;
+static off_t total_disk_usage;
+
+static off_t get_object_disk_usage(struct object *obj)
+{
+	off_t size;
+	struct object_info oi = OBJECT_INFO_INIT;
+	oi.disk_sizep = &size;
+	if (oid_object_info_extended(the_repository, &obj->oid, &oi, 0) < 0)
+		die("unable to get disk usage of %s", oid_to_hex(&obj->oid));
+	return size;
+}
+
 static void finish_commit(struct commit *commit);
 static void show_commit(struct commit *commit, void *data)
 {
@@ -87,6 +100,9 @@ static void show_commit(struct commit *commit, void *data)
 	struct rev_info *revs = info->revs;
 
 	display_progress(progress, ++progress_counter);
+
+	if (show_disk_usage)
+		total_disk_usage += get_object_disk_usage(&commit->object);
 
 	if (info->flags & REV_LIST_QUIET) {
 		finish_commit(commit);
@@ -258,6 +274,8 @@ static void show_object(struct object *obj, const char *name, void *cb_data)
 	if (finish_object(obj, name, cb_data))
 		return;
 	display_progress(progress, ++progress_counter);
+	if (show_disk_usage)
+		total_disk_usage += get_object_disk_usage(obj);
 	if (info->flags & REV_LIST_QUIET)
 		return;
 
@@ -584,6 +602,15 @@ int cmd_rev_list(int argc, const char **argv, const char *prefix)
 			continue;
 		}
 
+		if (!strcmp(arg, "--disk-usage")) {
+			show_disk_usage = 1;
+			revs.tag_objects = 1;
+			revs.tree_objects = 1;
+			revs.blob_objects = 1;
+			info.flags |= REV_LIST_QUIET;
+			continue;
+		}
+
 		usage(rev_list_usage);
 
 	}
@@ -626,6 +653,16 @@ int cmd_rev_list(int argc, const char **argv, const char *prefix)
 	if (use_bitmap_index) {
 		if (!try_bitmap_count(&revs, &filter_options))
 			return 0;
+		if (show_disk_usage) {
+			/* XXX should be in its own function */
+			struct bitmap_index *bitmap_git;
+			if ((bitmap_git = prepare_bitmap_walk(&revs,
+							      &filter_options))) {
+				total_disk_usage = get_disk_usage_from_bitmap(bitmap_git);
+				printf("%"PRIuMAX"\n", (uintmax_t)total_disk_usage);
+				return 0;
+			}
+		}
 		if (!try_bitmap_traversal(&revs, &filter_options))
 			return 0;
 	}
@@ -689,6 +726,9 @@ int cmd_rev_list(int argc, const char **argv, const char *prefix)
 		else
 			printf("%d\n", revs.count_left + revs.count_right);
 	}
+
+	if (show_disk_usage)
+		printf("%"PRIuMAX"\n", (uintmax_t)total_disk_usage);
 
 	return 0;
 }
