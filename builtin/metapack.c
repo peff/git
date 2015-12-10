@@ -1,6 +1,7 @@
 #include "builtin.h"
 #include "parse-options.h"
 #include "commit-metapack.h"
+#include "tree-metapack.h"
 
 static const char *metapack_usage[] = {
 	N_("git metapack [options] <packindex...>"),
@@ -8,11 +9,14 @@ static const char *metapack_usage[] = {
 };
 
 #define METAPACK_COMMITS (1<<0)
+#define METAPACK_TREES   (1<<1)
 
 static void metapack_one(const char *idx, int type)
 {
 	if (type & METAPACK_COMMITS)
 		commit_metapack_write(idx);
+	if (type & METAPACK_TREES)
+		tree_metapack_write(idx);
 }
 
 static void metapack_all(int type)
@@ -51,6 +55,8 @@ int cmd_metapack(int argc, const char **argv, const char *prefix)
 		OPT_BOOL(0, "all", &all, N_("create metapacks for all packs")),
 		OPT_BIT(0, "commits", &type, N_("create commit metapacks"),
 			METAPACK_COMMITS),
+		OPT_BIT(0, "trees", &type, N_("create tree metapacks"),
+			METAPACK_TREES),
 		OPT_END()
 	};
 

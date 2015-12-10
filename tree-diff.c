@@ -5,6 +5,7 @@
 #include "diff.h"
 #include "diffcore.h"
 #include "tree.h"
+#include "tree-metapack.h"
 
 /*
  * internal mode marker, saying a tree entry != entry of tp[imin]
@@ -402,6 +403,27 @@ static inline void update_tp_entries(struct tree_desc *tp, int nparent)
 			update_tree_entry(&tp[i]);
 }
 
+static void emit_metapack(const char *path,
+			  unsigned old_mode,
+			  unsigned new_mode,
+			  const unsigned char *old_sha1,
+			  const unsigned char *new_sha1,
+			  void *data)
+{
+	struct diff_options *opt = data;
+	struct combine_diff_path dummy, *p;
+	struct strbuf base = STRBUF_INIT;
+
+	dummy.next = NULL;
+	p = path_appendnew(&dummy, 1, &base, path, strlen(path), new_mode, new_sha1);
+	p->parent[0].mode = old_mode;
+	hashcpy(p->parent[0].oid.hash, old_sha1);
+	p->next = NULL;
+
+	opt->pathchange(opt, p);
+	free(p);
+}
+
 static struct combine_diff_path *ll_diff_tree_paths(
 	struct combine_diff_path *p, const struct object_id *oid,
 	const struct object_id **parents_oid, int nparent,
@@ -410,6 +432,11 @@ static struct combine_diff_path *ll_diff_tree_paths(
 	struct tree_desc t, *tp;
 	void *ttree, **tptree;
 	int i;
+
+	if (nparent == 1 && !base->len) {
+		if (!tree_metapack(sha1, parents_sha1[0], emit_metapack, opt))
+			return p;
+	}
 
 	FAST_ARRAY_ALLOC(tp, nparent);
 	FAST_ARRAY_ALLOC(tptree, nparent);

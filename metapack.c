@@ -72,6 +72,12 @@ void metapack_writer_add_uint32(struct metapack_writer *mw, uint32_t v)
 	metapack_writer_add(mw, &v, 4);
 }
 
+void metapack_writer_add_uint16(struct metapack_writer *mw, uint16_t v)
+{
+	v = htons(v);
+	metapack_writer_add(mw, &v, 2);
+}
+
 void metapack_writer_foreach(struct metapack_writer *mw,
 			     metapack_writer_each_fn cb,
 			     void *data)

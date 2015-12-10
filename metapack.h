@@ -16,6 +16,7 @@ void metapack_writer_init(struct metapack_writer *mw,
 			  int version);
 void metapack_writer_add(struct metapack_writer *mw, const void *data, int len);
 void metapack_writer_add_uint32(struct metapack_writer *mw, uint32_t v);
+void metapack_writer_add_uint16(struct metapack_writer *mw, uint16_t v);
 void metapack_writer_finish(struct metapack_writer *mw);
 
 typedef void (*metapack_writer_each_fn)(struct metapack_writer *,
