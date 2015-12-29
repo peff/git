@@ -1843,6 +1843,18 @@ static int create_symref_locked(struct files_ref_store *refs,
 	return 0;
 }
 
+static const char symlink_deprecation_warning[] =
+"The core.preferSymlinkRefs configuration option has been\n"
+"deprecated and will be removed in a future version of Git. If your\n"
+"workflow or script depends on '.git/HEAD' being a symbolic link,\n"
+"it should be adjusted to use:\n"
+"\n"
+"        git rev-parse HEAD\n"
+"\n"
+"        git rev-parse --symbolic-full-name HEAD\n"
+"\n"
+"to get the sha1 or branch name, respectively.";
+
 static int files_create_symref(struct ref_store *ref_store,
 			       const char *refname, const char *target,
 			       const char *logmsg)
@@ -1852,6 +1864,9 @@ static int files_create_symref(struct ref_store *ref_store,
 	struct strbuf err = STRBUF_INIT;
 	struct ref_lock *lock;
 	int ret;
+
+	if (prefer_symlink_refs)
+		warning("%s", symlink_deprecation_warning);
 
 	lock = lock_ref_oid_basic(refs, refname, NULL,
 				  NULL, NULL, REF_NO_DEREF, NULL,
