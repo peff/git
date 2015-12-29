@@ -50,15 +50,6 @@ test_expect_success 'prompt - branch name' '
 	test_cmp expected "$actual"
 '
 
-test_expect_success SYMLINKS 'prompt - branch name - symlink symref' '
-	printf " (main)" >expected &&
-	test_when_finished "git checkout main" &&
-	test_config core.preferSymlinkRefs true &&
-	git checkout main &&
-	__git_ps1 >"$actual" &&
-	test_cmp expected "$actual"
-'
-
 test_expect_success 'prompt - unborn branch' '
 	printf " (unborn)" >expected &&
 	git checkout --orphan unborn &&
