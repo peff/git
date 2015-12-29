@@ -2024,9 +2024,21 @@ static int commit_ref_update(struct files_ref_store *refs,
 #else
 static int create_ref_symlink(struct ref_lock *lock, const char *target)
 {
+	static const char symlink_deprecation_warning[] =
+		"The core.preferSymlinkRefs configuration option has been\n"
+		"deprecated and will be removed in a future version of Git. If your\n"
+		"workflow or script depends on '.git/HEAD' being a symbolic link,\n"
+		"it should be adjusted to use:\n"
+		"\n"
+		"        git rev-parse HEAD\n"
+		"\n"
+		"        git rev-parse --symbolic-full-name HEAD\n"
+		"\n"
+		"to get the sha1 or branch name, respectively.";
 	int ret = -1;
 
 	char *ref_path = get_locked_file_path(&lock->lk);
+	warning("%s", symlink_deprecation_warning);
 	unlink(ref_path);
 	ret = symlink(target, ref_path);
 	free(ref_path);
