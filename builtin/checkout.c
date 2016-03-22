@@ -859,15 +859,23 @@ static void update_refs_for_switch(const struct checkout_opts *opts,
 				strbuf_release(&err);
 			}
 			free(refname);
-		}
-		else
+		} else {
+			const char *start_point;
+			if (!strcmp(new_branch_info->name, "HEAD") &&
+			    !new_branch_info->path &&
+			    old_branch_info->path)
+				start_point = old_branch_info->path;
+			else
+				start_point = new_branch_info->name;
+
 			create_branch(the_repository,
-				      opts->new_branch, new_branch_info->name,
+				      opts->new_branch, start_point,
 				      opts->new_branch_force ? 1 : 0,
 				      opts->new_branch_force ? 1 : 0,
 				      opts->new_branch_log,
 				      opts->quiet,
 				      opts->track);
+		}
 		new_branch_info->name = opts->new_branch;
 		setup_branch_path(new_branch_info);
 	}
