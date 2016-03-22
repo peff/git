@@ -1,6 +1,8 @@
 #!/bin/sh
 
 test_description='reflog walk shows repeated commits again'
+GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME=main
+export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 . ./test-lib.sh
 
 test_expect_success 'setup commits' '
@@ -22,7 +24,7 @@ test_expect_success 'reflog shows all entries' '
 		topic@{1} reset: moving to one
 		topic@{2} reset: moving to two
 		topic@{3} reset: moving to one
-		topic@{4} branch: Created from HEAD
+		topic@{4} branch: Created from refs/heads/main
 	EOF
 	git log -g --format="%gd %gs" topic >actual &&
 	test_cmp expect actual
