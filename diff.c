@@ -3509,9 +3509,7 @@ static void builtin_diff(const char *name_a,
 		   ( (!textconv_one && diff_filespec_is_binary(o->repo, one)) ||
 		     (!textconv_two && diff_filespec_is_binary(o->repo, two)) )) {
 		struct strbuf sb = STRBUF_INIT;
-		if (!one->data && !two->data &&
-		    S_ISREG(one->mode) && S_ISREG(two->mode) &&
-		    !o->flags.binary) {
+		if (!one->data && !two->data && !o->flags.binary) {
 			if (oideq(&one->oid, &two->oid)) {
 				if (must_show_header)
 					emit_diff_symbol(o, DIFF_SYMBOL_HEADER,
