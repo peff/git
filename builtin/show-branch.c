@@ -379,7 +379,7 @@ static int append_ref(const char *refname, const struct object_id *oid,
 		      int allow_dups)
 {
 	struct commit *commit = lookup_commit_reference_gently(the_repository,
-							       oid, 1);
+							       oid, &error_silent);
 	int i;
 
 	if (!commit)

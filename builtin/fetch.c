@@ -683,9 +683,9 @@ static int update_local_ref(struct ref *ref,
 	}
 
 	current = lookup_commit_reference_gently(the_repository,
-						 &ref->old_oid, 1);
+						 &ref->old_oid, &error_silent);
 	updated = lookup_commit_reference_gently(the_repository,
-						 &ref->new_oid, 1);
+						 &ref->new_oid, &error_silent);
 	if (!current || !updated) {
 		const char *msg;
 		const char *what;
@@ -822,7 +822,7 @@ static int store_updated_refs(const char *raw_url, const char *remote_name,
 
 			commit = lookup_commit_reference_gently(the_repository,
 								&rm->old_oid,
-								1);
+								&error_silent);
 			if (!commit)
 				rm->fetch_head_status = FETCH_HEAD_NOT_FOR_MERGE;
 

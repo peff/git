@@ -1958,7 +1958,7 @@ static int ref_filter_handler(const char *refname, const struct object_id *oid, 
 	 */
 	if (filter->merge_commit || filter->with_commit || filter->no_commit || filter->verbose) {
 		commit = lookup_commit_reference_gently(the_repository, oid,
-							1);
+							&error_silent);
 		if (!commit)
 			return 0;
 		/* We perform the filtering for the '--contains' option... */
@@ -2316,7 +2316,7 @@ int parse_opt_merge_filter(const struct option *opt, const char *arg, int unset)
 		die(_("malformed object name %s"), arg);
 
 	rf->merge_commit = lookup_commit_reference_gently(the_repository,
-							  &oid, 0);
+							  &oid, &error_print);
 	if (!rf->merge_commit)
 		return opterror(opt, "must point to a commit", 0);
 

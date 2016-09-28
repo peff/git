@@ -25,7 +25,8 @@ int save_commit_buffer = 1;
 const char *commit_type = "commit";
 
 struct commit *lookup_commit_reference_gently(struct repository *r,
-		const struct object_id *oid, int quiet)
+					      const struct object_id *oid,
+					      struct error_context *err);
 {
 	struct object *obj = deref_tag(r,
 				       parse_object(r, oid),
@@ -33,12 +34,12 @@ struct commit *lookup_commit_reference_gently(struct repository *r,
 
 	if (!obj)
 		return NULL;
-	return object_as_type(r, obj, OBJ_COMMIT, quiet);
+	return object_as_type(r, obj, OBJ_COMMIT, err);
 }
 
 struct commit *lookup_commit_reference(struct repository *r, const struct object_id *oid)
 {
-	return lookup_commit_reference_gently(r, oid, 0);
+	return lookup_commit_reference_gently(r, oid, &error_print);
 }
 
 struct commit *lookup_commit_or_die(const struct object_id *oid, const char *ref_name)

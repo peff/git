@@ -158,7 +158,8 @@ void *create_object(struct repository *r, const unsigned char *sha1, void *o)
 	return obj;
 }
 
-void *object_as_type(struct repository *r, struct object *obj, enum object_type type, int quiet)
+void *object_as_type(struct repository *r, struct object *obj, enum object_type type,
+		     struct error_context *err)
 {
 	if (obj->type == type)
 		return obj;
@@ -169,10 +170,9 @@ void *object_as_type(struct repository *r, struct object *obj, enum object_type 
 		return obj;
 	}
 	else {
-		if (!quiet)
-			error(_("object %s is a %s, not a %s"),
-			      oid_to_hex(&obj->oid),
-			      type_name(obj->type), type_name(type));
+		report_error(err, _("object %s is a %s, not a %s"),
+			     oid_to_hex(&obj->oid),
+			     type_name(obj->type), type_name(type));
 		return NULL;
 	}
 }

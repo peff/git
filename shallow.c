@@ -496,7 +496,7 @@ static void paint_down(struct paint_info *info, const struct object_id *oid,
 	int bitmap_nr = DIV_ROUND_UP(info->nr_bits, 32);
 	size_t bitmap_size = st_mult(sizeof(uint32_t), bitmap_nr);
 	struct commit *c = lookup_commit_reference_gently(the_repository, oid,
-							  1);
+							  &error_silent);
 	uint32_t *tmp; /* to be freed before return */
 	uint32_t *bitmap;
 
@@ -559,7 +559,7 @@ static int mark_uninteresting(const char *refname, const struct object_id *oid,
 			      int flags, void *cb_data)
 {
 	struct commit *commit = lookup_commit_reference_gently(the_repository,
-							       oid, 1);
+							       oid, &error_silent);
 	if (!commit)
 		return 0;
 	commit->object.flags |= UNINTERESTING;
@@ -672,7 +672,7 @@ static int add_ref(const char *refname, const struct object_id *oid,
 	struct commit_array *ca = cb_data;
 	ALLOC_GROW(ca->commits, ca->nr + 1, ca->alloc);
 	ca->commits[ca->nr] = lookup_commit_reference_gently(the_repository,
-							     oid, 1);
+							     oid, &error_silent);
 	if (ca->commits[ca->nr])
 		ca->nr++;
 	return 0;

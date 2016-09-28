@@ -1726,9 +1726,9 @@ static int update_branch(struct branch *b)
 		struct commit *old_cmit, *new_cmit;
 
 		old_cmit = lookup_commit_reference_gently(the_repository,
-							  &old_oid, 0);
+							  &old_oid, &error_print);
 		new_cmit = lookup_commit_reference_gently(the_repository,
-							  &b->oid, 0);
+							  &b->oid, &error_print);
 		if (!old_cmit || !new_cmit)
 			return error("Branch %s is missing commits.", b->name);
 
