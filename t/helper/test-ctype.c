@@ -3,7 +3,7 @@
 
 static int rc;
 
-static void report_error(const char *class, int ch)
+static void report_fail(const char *class, int ch)
 {
 	printf("%s classifies char %d (0x%02x) wrongly\n", class, ch, ch);
 	rc = 1;
@@ -21,7 +21,7 @@ static int is_in(const char *s, int ch)
 	int i;					\
 	for (i = 0; i < 256; i++) {		\
 		if (is_in(s, i) != t(i))	\
-			report_error(#t, i);	\
+			report_fail(#t, i);	\
 	}					\
 }
 
