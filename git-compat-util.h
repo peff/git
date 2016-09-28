@@ -425,6 +425,22 @@ extern int error_errno(const char *err, ...) __attribute__((format (printf, 1, 2
 extern void warning(const char *err, ...) __attribute__((format (printf, 1, 2)));
 extern void warning_errno(const char *err, ...) __attribute__((format (printf, 1, 2)));
 
+typedef void (*error_function)(void *data, const char *fmt, va_list ap);
+struct error_context {
+	error_function fn;
+	void *data;
+};
+
+extern struct error_context error_silent;
+extern struct error_context error_print;
+extern struct error_context error_warn;
+extern struct error_context error_die;
+
+__attribute__((format (printf, 2, 3)))
+extern int report_error(struct error_context *err, const char *fmt, ...);
+__attribute__((format (printf, 2, 3)))
+extern int report_errno(struct error_context *err, const char *fmt, ...);
+
 #ifndef NO_OPENSSL
 #ifdef APPLE_COMMON_CRYPTO
 #include "compat/apple-common-crypto.h"
@@ -449,6 +465,8 @@ static inline int const_error(void)
 }
 #define error(...) (error(__VA_ARGS__), const_error())
 #define error_errno(...) (error_errno(__VA_ARGS__), const_error())
+#define report_error(...) (report_error(__VA_ARGS__), const_error())
+#define report_errno(...) (report_errno(__VA_ARGS__), const_error())
 #endif
 
 extern void set_die_routine(NORETURN_PTR void (*routine)(const char *err, va_list params));

@@ -262,3 +262,48 @@ void unleak_memory(const void *ptr, size_t len)
 	suppressed_leaks = root;
 }
 #endif
+
+#undef report_errno
+int report_errno(struct error_context *err, const char *fmt, ...)
+{
+	if (err && err->fn) {
+		char buf[1024];
+		va_list ap;
+		va_start(ap, fmt);
+		err->fn(err->data, fmt_with_err(buf, sizeof(buf), fmt), ap);
+		va_end(ap);
+	}
+	return -1;
+}
+
+#undef report_error
+int report_error(struct error_context *err, const char *fmt, ...)
+{
+	if (err && err->fn) {
+		va_list ap;
+		va_start(ap, fmt);
+		err->fn(err->data, fmt, ap);
+		va_end(ap);
+	}
+	return -1;
+}
+
+static void error_print_fn(void *data, const char *fmt, va_list ap)
+{
+	error_routine(fmt, ap);
+}
+
+static void error_warn_fn(void *data, const char *fmt, va_list ap)
+{
+	warn_routine(fmt, ap);
+}
+
+static void error_die_fn(void *data, const char *fmt, va_list ap)
+{
+	die_routine(fmt, ap);
+}
+
+struct error_context error_silent = { NULL };
+struct error_context error_print = { error_print_fn };
+struct error_context error_warn = { error_warn_fn };
+struct error_context error_die = { error_die_fn };
