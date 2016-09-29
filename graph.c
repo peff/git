@@ -1851,7 +1851,7 @@ int graph_is_commit_finished(struct git_graph const *graph)
 	return (graph->state == GRAPH_PADDING);
 }
 
-void graph_show_commit(struct git_graph *graph)
+static void graph_show_commit_1(struct git_graph *graph, int only_pre)
 {
 	struct strbuf msgbuf = STRBUF_INIT;
 	int shown_commit_line = 0;
@@ -1872,6 +1872,8 @@ void graph_show_commit(struct git_graph *graph)
 	}
 
 	while (!shown_commit_line && !graph_is_commit_finished(graph)) {
+		if (only_pre && graph->state == GRAPH_COMMIT)
+			break;
 		shown_commit_line = graph_next_line(graph, &msgbuf);
 		fwrite(msgbuf.buf, sizeof(char), msgbuf.len,
 			graph->revs->diffopt.file);
@@ -1883,6 +1885,16 @@ void graph_show_commit(struct git_graph *graph)
 	}
 
 	strbuf_release(&msgbuf);
+}
+
+void graph_show_precommit(struct git_graph *graph)
+{
+	graph_show_commit_1(graph, 1);
+}
+
+void graph_show_commit(struct git_graph *graph)
+{
+	graph_show_commit_1(graph, 0);
 }
 
 void graph_show_oneline(struct git_graph *graph)
