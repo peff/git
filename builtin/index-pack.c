@@ -807,8 +807,11 @@ static void sha1_object(const void *data, struct object_entry *obj_entry,
 
 	assert(data || obj_entry);
 
-	if (warn_object_size && size > warn_object_size)
+	if (warn_object_size && size > warn_object_size) {
+		if (type != OBJ_BLOB)
+			die("non-blob object size limit exceeded");
 		warn_large_object(oid, size);
+	}
 
 	if (startup_info->have_repository) {
 		read_lock();
