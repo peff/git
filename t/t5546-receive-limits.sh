@@ -139,4 +139,10 @@ test_expect_success 'warnobjectsize catches deltified objects' '
 	git push dest HEAD
 '
 
+test_expect_success 'receive.warnobjectsize does block large non-blobs' '
+	create_dest &&
+	git --git-dir=dest config receive.warnobjectsize 10 &&
+	test_must_fail git push dest HEAD
+'
+
 test_done
