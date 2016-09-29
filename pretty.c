@@ -684,6 +684,23 @@ static int mailmap_name(const char **email, size_t *email_len,
 	return mail_map->nr && map_user(mail_map, email, email_len, name, name_len);
 }
 
+static void format_initials(struct strbuf *out, const char *name, size_t len)
+{
+	int initial = 1;
+	size_t i;
+
+	for (i = 0; i < len; i++) {
+		char c = name[i];
+		if (isspace(c)) {
+			initial = 1;
+			continue;
+		}
+		if (initial && isalpha(c))
+			strbuf_addch(out, tolower(c));
+		initial = 0;
+	}
+}
+
 static size_t format_person_part(struct strbuf *sb, char part,
 				 const char *msg, int len,
 				 const struct date_mode *dmode)
@@ -717,6 +734,10 @@ static size_t format_person_part(struct strbuf *sb, char part,
 		if (at)
 			maillen = at - mail;
 		strbuf_add(sb, mail, maillen);
+		return placeholder_len;
+	}
+	if (part == 'S') {
+		format_initials(sb, name, namelen);
 		return placeholder_len;
 	}
 
