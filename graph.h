@@ -214,6 +214,12 @@ int graph_width(struct git_graph *graph);
 void graph_show_commit(struct git_graph *graph);
 
 /*
+ * Same as graph_show_commit, but stop just _before_ printing
+ * the actual commit line.
+ */
+void graph_show_precommit(struct git_graph *graph);
+
+/*
  * If the graph is non-NULL, print one line of the history graph to stdout.
  * Does not print a terminating newline on the last line.
  */
