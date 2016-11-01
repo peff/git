@@ -1226,6 +1226,9 @@ int access_or_die(const char *path, int mode, unsigned flag);
 /* Warn on an inaccessible file if errno indicates this is an error */
 int warn_on_fopen_errors(const char *path);
 
+/* Open with O_NOFOLLOW, if available on this platform */
+int open_nofollow(const char *path, int flags);
+
 #if !defined(USE_PARENS_AROUND_GETTEXT_N) && defined(__GNUC__)
 #define USE_PARENS_AROUND_GETTEXT_N 1
 #endif
