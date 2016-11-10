@@ -959,6 +959,7 @@ extern int precomposed_unicode;
 extern int protect_hfs;
 extern int protect_ntfs;
 extern const char *core_fsmonitor;
+extern int allow_external_symlinks;
 
 extern int core_apply_sparse_checkout;
 extern int core_sparse_checkout_cone;
@@ -1978,5 +1979,7 @@ int print_sha1_ellipsis(void);
 
 /* Return 1 if the file is empty or does not exists, 0 otherwise. */
 int is_empty_or_missing_file(const char *filename);
+
+int safe_symlink(const char *target, const char *linkpath);
 
 #endif /* CACHE_H */

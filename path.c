@@ -1498,6 +1498,79 @@ int looks_like_command_line_option(const char *str)
 	return str && str[0] == '-';
 }
 
+static int symlink_leaves_repo(const char *target, const char *linkpath)
+{
+	/*
+	 * Absolute paths are always considered to leave the repository (even
+	 * if they happen to point to the working tree path).
+	 */
+	if (is_absolute_path(target))
+		return 1;
+
+	/*
+	 * Allow relative paths that start with a sequence of "../",
+	 * as long as they do not break out of the symlink's root.
+	 * This loop will detect break-out cases and return; otherwise, at the
+	 * end of the loop "target" will point to the first non-".." component.
+	 *
+	 * We count the depth of linkpath by eating up directory components left
+	 * to right. Technically the symlink would resolve right-to-left, but
+	 * we don't care about the actual values, only the number.
+	 */
+	while (target[0] == '.') {
+		if (!target[1]) {
+			/* trailing "." -- ignore */
+			target++;
+		} else if (is_dir_sep(target[1])) {
+			/* "./" -- ignore */
+			target += 2;
+		} else if (target[1] == '.' &&
+			   (!target[2] || is_dir_sep(target[2]))) {
+			/* ".." or "../" -- drop one from linkpath depth */
+			while (!is_dir_sep(*linkpath)) {
+				/* end-of-string; target exceeded our depth */
+				if (!*linkpath)
+					return 1;
+				linkpath++;
+			}
+			/* skip final "/" */
+			linkpath++;
+
+			/* skip past ".." */
+			target += 2;
+			/* and "/" if present */
+			if (is_dir_sep(*target))
+				target++;
+		}
+	}
+
+	/*
+	 * Now we have a path in "target" that only go down into the tree.
+	 * Disallow any interior "../", like "foo/../bar". These might be
+	 * OK, but we cannot know unless we know whether "foo" is itself a
+	 * symlink. So err on the side of caution.
+	 */
+	while (*target) {
+		const char *v;
+		if (skip_prefix(target, "..", &v) && (!*v || is_dir_sep(*v)))
+			return 1;
+		target++;
+	}
+
+	return 0;
+}
+
+int safe_symlink(const char *target, const char *linkpath)
+{
+	if (!allow_external_symlinks &&
+	    symlink_leaves_repo(target, linkpath)) {
+		errno = EPERM;
+		return -1;
+	}
+
+	return symlink(target, linkpath);
+}
+
 char *xdg_config_home(const char *filename)
 {
 	const char *home, *config_home;

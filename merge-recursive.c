@@ -986,7 +986,7 @@ static int update_file_flags(struct merge_options *opt,
 			char *lnk = xmemdupz(buf, size);
 			safe_create_leading_directories_const(path);
 			unlink(path);
-			if (symlink(lnk, path))
+			if (safe_symlink(lnk, path))
 				ret = err(opt, _("failed to symlink '%s': %s"),
 					  path, strerror(errno));
 			free(lnk);
