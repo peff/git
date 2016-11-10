@@ -292,6 +292,8 @@ enum path_format {
 void format_path(struct strbuf *dest, const char *path,
 		 const char *prefix, enum path_format format);
 
+int safe_symlink(struct repository *, const char *target, const char *linkpath);
+
 # ifdef USE_THE_REPOSITORY_VARIABLE
 #  include "strbuf.h"
 #  include "repository.h"
