@@ -71,6 +71,8 @@ NO_GETTEXT = Nope
 NO_TCLTK = Nope
 XDL_FAST_HASH =
 
+GIT_PERF_MAKE_OPTS = O=2 strict= -j16
+
 CFLAGS += $(EXTRA_CFLAGS)
 
 -include $(Meta)/config/config.mak.local
