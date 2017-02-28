@@ -2,7 +2,7 @@
 
 export GIT_META_TEST
 if test -z "$GIT_META_TEST"; then
-	GIT_META_TEST='make -j8 test'
+	GIT_META_TEST='git test run HEAD'
 fi
 
 while test $# -gt 0; do
