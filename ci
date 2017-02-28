@@ -32,7 +32,7 @@ test_one() {
 	fi
 
 	(
-		enter_worktree "$WORKTREE_ROOT/$branch" &&
+		enter_worktree "$WORKTREE_ROOT" &&
 		# we only care about "bad". "good" etc are obviously
 		# fine. "known-bad" is a failure, but one we already
 		# knew about, and so we avoid triggering the failure
