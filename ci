@@ -22,6 +22,10 @@ test_one() {
 		echo >&2 "skipping tests on a detached HEAD"
 		return 0
 	fi
+	if test "$branch" = "private"; then
+		echo >&2 "skipping tests on private branch"
+		return 0
+	fi
 	if ! git rev-parse --verify "$branch@{u}" >/dev/null 2>&1; then
 		echo >&2 "skipping tests on branch without upstream: $branch"
 		return 0
