@@ -12,7 +12,7 @@ check_merge() {
 	return 1
 }
 
-for i in `Meta/topics`; do
+for i in `Meta/topics -t`; do
 	case "$i" in
 	*-wip)
 		continue
