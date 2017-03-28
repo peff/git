@@ -2,6 +2,28 @@
 
 WORKTREE_ROOT=Meta/tmp-ci
 
+if test "$1" = "--status"; then
+	git test run -k --dry-run @{u}.. 2>/dev/null |
+	while read tree line; do
+		case "$line" in
+		known-good)
+			printf 'G'
+			;;
+		known-bad)
+			printf 'B'
+			;;
+		unknown)
+			printf '.'
+			;;
+		*)
+			printf '?'
+			;;
+		esac
+	done
+	echo
+	exit 0
+fi
+
 test=$1
 test -z "$test" && test=default
 
