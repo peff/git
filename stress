@@ -24,7 +24,7 @@ for i in $(seq $GIT_STRESS_LOAD); do
 		cd t &&
 		while ! test -e "$GIT_STRESS_ROOT/fail"
 		do
-			if ./$test --root="$root" -v -i >"$root/output" 2>&1
+			if ./$test --root="$root" -v -i -x >"$root/output" 2>&1
 			then
 				echo >&2 "OK $i"
 			else
