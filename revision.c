@@ -398,6 +398,16 @@ void add_pending_oid(struct rev_info *revs, const char *name,
 	add_pending_object(revs, object, name);
 }
 
+static void warn_ignored_object(struct object *object, const char *name)
+{
+	if (object->flags & UNINTERESTING)
+		return;
+
+	warning(_("ignoring %s object in traversal: %s"),
+		type_name(object->type),
+		(name && *name) ? name : oid_to_hex(&object->oid));
+}
+
 static struct commit *handle_commit(struct rev_info *revs,
 				    struct object_array_entry *entry)
 {
@@ -463,8 +473,10 @@ static struct commit *handle_commit(struct rev_info *revs,
 	 */
 	if (object->type == OBJ_TREE) {
 		struct tree *tree = (struct tree *)object;
-		if (!revs->tree_objects)
+		if (!revs->tree_objects) {
+			warn_ignored_object(object, name);
 			return NULL;
+		}
 		if (flags & UNINTERESTING) {
 			mark_tree_contents_uninteresting(revs->repo, tree);
 			return NULL;
@@ -477,8 +489,10 @@ static struct commit *handle_commit(struct rev_info *revs,
 	 * Blob object? You know the drill by now..
 	 */
 	if (object->type == OBJ_BLOB) {
-		if (!revs->blob_objects)
+		if (!revs->blob_objects) {
+			warn_ignored_object(object, name);
 			return NULL;
+		}
 		if (flags & UNINTERESTING)
 			return NULL;
 		add_pending_object_with_path(revs, object, name, mode, path);
