@@ -9,7 +9,6 @@ endif
 CFLAGS =
 
 ifdef SANITIZE
-COMPILER ?= clang
 CFLAGS += -fsanitize=$(SANITIZE) -fno-sanitize-recover=$(SANITIZE)
 CFLAGS += -fno-omit-frame-pointer
 ifeq ($(SANITIZE),memory)
