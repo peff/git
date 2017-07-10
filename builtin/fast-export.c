@@ -955,9 +955,6 @@ static void get_tags_and_duplicates(struct rev_cmdline_info *info)
 
 		commit = get_commit(e, full_name);
 		if (!commit) {
-			warning("%s: Unexpected object of type %s, skipping.",
-				e->name,
-				type_name(e->item->type));
 			free(full_name);
 			continue;
 		}
