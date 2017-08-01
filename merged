@@ -12,6 +12,13 @@ check_merge() {
 	return 1
 }
 
+check_pu=
+case "$1" in
+--pu)
+	check_pu=t
+	;;
+esac
+
 for i in `Meta/topics -t`; do
 	case "$i" in
 	*-wip)
@@ -28,6 +35,7 @@ for i in `Meta/topics -t`; do
 
 	check_merge $i origin/master ${upstream:-origin} ||
 	check_merge $i origin/next ${upstream:-origin} ||
+	{ test -n "$check_pu" && check_merge $i origin/pu ${upstream:-origin}; } ||
 	show $i 'not merged'
 done
 exit 0
