@@ -4,8 +4,6 @@
 [remote "github"]
 	url = git@github.com:peff/git.git
 	fetch = +refs/heads/*:refs/remotes/github/*
-[push]
-	default = matching
 [remote]
 	pushDefault = github
 [rerere]
