@@ -76,15 +76,15 @@ void metapack_writer_foreach(struct metapack_writer *mw,
 			     metapack_writer_each_fn cb,
 			     void *data)
 {
-	const unsigned char *sha1;
+	struct object_id oid;
 	uint32_t i = 0;
 
 	/*
 	 * We'll feed these to the callback in sorted order, since that is the
 	 * order that they are stored in the .idx file.
 	 */
-	while ((sha1 = nth_packed_object_sha1(mw->pack, i++)))
-		cb(mw, sha1, data);
+	while (nth_packed_object_oid(&oid, mw->pack, i++))
+		cb(mw, &oid, data);
 }
 
 int metapack_init(struct metapack *m,

@@ -19,7 +19,7 @@ void metapack_writer_add_uint32(struct metapack_writer *mw, uint32_t v);
 void metapack_writer_finish(struct metapack_writer *mw);
 
 typedef void (*metapack_writer_each_fn)(struct metapack_writer *,
-					const unsigned char *sha1,
+					const struct object_id *oid,
 					void *data);
 void metapack_writer_foreach(struct metapack_writer *mw,
 			     metapack_writer_each_fn cb,
