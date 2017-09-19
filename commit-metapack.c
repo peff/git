@@ -98,7 +98,7 @@ int have_commit_metapacks(void)
 }
 
 static int lookup_commit_metapack_one(struct commit_metapack *p,
-				      const unsigned char *sha1,
+				      const struct object_id *oid,
 				      struct commit_entry *out)
 {
 	uint32_t lo, hi;
@@ -109,7 +109,7 @@ static int lookup_commit_metapack_one(struct commit_metapack *p,
 		uint32_t mi = lo + (hi - lo) / 2;
 		const unsigned char *base = p->index + (size_t)mi * 4;
 		uint32_t commit = get_be32(base);
-		int cmp = hashcmp(sha1, nth_packed_object_sha1(p->pack, commit));
+		int cmp = hashcmp(oid->hash, nth_packed_object_sha1(p->pack, commit));
 
 		if (!cmp) {
 			base = p->data + (size_t)mi * 20;
@@ -130,27 +130,27 @@ static int lookup_commit_metapack_one(struct commit_metapack *p,
 	return -1;
 }
 
-int commit_metapack(const unsigned char *sha1,
+int commit_metapack(const struct object_id *commit,
 		    uint32_t *timestamp,
 		    uint32_t *generation,
-		    const unsigned char **tree,
-		    const unsigned char **parent1,
-		    const unsigned char **parent2)
+		    struct object_id *tree,
+		    struct object_id *parent1,
+		    struct object_id *parent2)
 {
 	struct commit_metapack *p;
 
 	prepare_commit_metapacks();
 	for (p = commit_metapacks; p; p = p->next) {
 		struct commit_entry ent;
-		if (!lookup_commit_metapack_one(p, sha1, &ent)) {
+		if (!lookup_commit_metapack_one(p, commit, &ent)) {
 			*timestamp = ent.timestamp;
 			*generation = ent.generation;
-			*tree = nth_packed_object_sha1(p->pack, ent.tree);
-			*parent1 = nth_packed_object_sha1(p->pack, ent.parent1);
+			nth_packed_object_oid(tree, p->pack, ent.tree);
+			nth_packed_object_oid(parent1, p->pack, ent.parent1);
 			if (ent.parent1 != ent.parent2)
-				*parent2 = nth_packed_object_sha1(p->pack, ent.parent2);
+				nth_packed_object_oid(parent2, p->pack, ent.parent2);
 			else
-				*parent2 = null_sha1;
+				oidclr(parent2);
 			return 0;
 		}
 	}

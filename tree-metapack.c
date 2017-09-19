@@ -4,6 +4,7 @@
 #include "commit.h"
 #include "diff.h"
 #include "diffcore.h"
+#include "packfile.h"
 
 struct tree_metapack {
 	struct metapack mp;
@@ -86,28 +87,29 @@ static void prepare_tree_metapacks(void)
 }
 
 /* XXX find_object_entry_pos uses ints to return 32-bit offsets! */
-static int sha1_to_uint32(const unsigned char *sha1, struct packed_git *p,
-			  uint32_t *pos)
+static int oid_to_uint32(const struct object_id *oid, struct packed_git *p,
+			 uint32_t *pos)
 {
 	int r;
 
-	if (is_null_sha1(sha1)) {
+	if (is_null_oid(oid)) {
 		*pos = 0xffffffff;
 		return 0;
 	}
 
-	r = find_pack_entry_pos(sha1, p);
+	r = find_pack_entry_pos(oid->hash, p);
 	if (r == -1)
 		return -1;
 	*pos = r;
 	return 0;
 }
 
-static const unsigned char *uint32_to_sha1(struct packed_git *pack, uint32_t pos)
+static void uint32_to_oid(struct object_id *oid, struct packed_git *pack, uint32_t pos)
 {
 	if (pos == 0xffffffff)
-		return null_sha1;
-	return nth_packed_object_sha1(pack, pos);
+		oidclr(oid);
+	else
+		nth_packed_object_oid(oid, pack, pos);
 }
 
 static int emit_tree_metapack(struct tree_metapack *p,
@@ -123,6 +125,7 @@ static int emit_tree_metapack(struct tree_metapack *p,
 		uint32_t path_pos = get_be32(base);
 		unsigned old_mode, new_mode;
 		uint32_t old_sha1_pos, new_sha1_pos;
+		struct object_id old_oid, new_oid;
 
 		if (!path_pos)
 			return 0;
@@ -138,10 +141,12 @@ static int emit_tree_metapack(struct tree_metapack *p,
 		new_sha1_pos = get_be32(base);
 		base += 4;
 
+		uint32_to_oid(&old_oid, p->pack, old_sha1_pos);
+		uint32_to_oid(&new_oid, p->pack, new_sha1_pos);
+
 		cb((const char *)(p->mp.data + path_pos),
 		   old_mode, new_mode,
-		   uint32_to_sha1(p->pack, old_sha1_pos),
-		   uint32_to_sha1(p->pack, new_sha1_pos),
+		   &old_oid, &new_oid,
 		   data);
 	}
 	warning("truncated tree metapack");
@@ -149,8 +154,8 @@ static int emit_tree_metapack(struct tree_metapack *p,
 }
 
 static int lookup_tree_metapack(struct tree_metapack *p,
-				const unsigned char *sha1,
-				const unsigned char *parent,
+				const struct object_id *oid,
+				const struct object_id *parent,
 				tree_metapack_fun cb,
 				void *data)
 {
@@ -162,12 +167,17 @@ static int lookup_tree_metapack(struct tree_metapack *p,
 		uint32_t mi = lo + (hi - lo) / 2;
 		const unsigned char *base = p->index + (size_t)mi * 12;
 		uint32_t commit = get_be32(base);
-		int cmp = hashcmp(sha1, uint32_to_sha1(p->pack, commit));
+		struct object_id candidate;
+		int cmp;
+
+		uint32_to_oid(&candidate, p->pack, commit);
+		cmp = oidcmp(oid, &candidate);
 
 		if (!cmp) {
 			uint32_t parent_pos = get_be32(base + 4);
 			uint32_t diff_pos = get_be32(base + 8);
-			if (hashcmp(parent, uint32_to_sha1(p->pack, parent_pos))) {
+			uint32_to_oid(&candidate, p->pack, parent_pos);
+			if (oidcmp(parent, &candidate)) {
 				return -1;
 			}
 			return emit_tree_metapack(p, diff_pos, cb, data);
@@ -181,8 +191,8 @@ static int lookup_tree_metapack(struct tree_metapack *p,
 	return -1;
 }
 
-int tree_metapack(const unsigned char *sha1,
-		  const unsigned char *parent,
+int tree_metapack(const struct object_id *oid,
+		  const struct object_id *parent,
 		  tree_metapack_fun cb,
 		  void *data)
 {
@@ -190,7 +200,7 @@ int tree_metapack(const unsigned char *sha1,
 
 	prepare_tree_metapacks();
 	for (p = tree_metapacks; p; p = p->next) {
-		if (!lookup_tree_metapack(p, sha1, parent, cb, data))
+		if (!lookup_tree_metapack(p, oid, parent, cb, data))
 			return 0;
 	}
 	return -1;
@@ -222,21 +232,21 @@ struct write_cb {
 };
 
 static void get_diffs(struct metapack_writer *mw,
-		      const unsigned char *sha1,
+		      const struct object_id *oid,
 		      void *vdata)
 {
 	struct write_cb *data = vdata;
 	struct diff_entry *diff;
 	struct commit *c;
 	int i;
-	enum object_type type = sha1_object_info(sha1, NULL);
+	enum object_type type = sha1_object_info(oid->hash, NULL);
 
 	if (type != OBJ_COMMIT)
 		return;
 
-	c = lookup_commit(sha1);
+	c = lookup_commit(oid);
 	if (!c || parse_commit(c))
-		die("unable to read commit %s", sha1_to_hex(sha1));
+		die("unable to read commit %s", oid_to_hex(oid));
 	if (!c->parents)
 		return;
 	/* XXX we should be able to store multiple parents */
@@ -248,13 +258,13 @@ static void get_diffs(struct metapack_writer *mw,
 	ALLOC_GROW(data->entries, data->nr + 1, data->alloc);
 	diff = &data->entries[data->nr];
 
-	if (sha1_to_uint32(c->tree->object.oid.hash, mw->pack, &diff->tree) < 0)
+	if (oid_to_uint32(&c->tree->object.oid, mw->pack, &diff->tree) < 0)
 		return;
-	if (sha1_to_uint32(c->parents->item->tree->object.oid.hash, mw->pack, &diff->parent) < 0)
+	if (oid_to_uint32(&c->parents->item->tree->object.oid, mw->pack, &diff->parent) < 0)
 		return;
-	if (diff_tree_sha1(c->parents->item->tree->object.oid.hash,
-			   c->tree->object.oid.hash,
-			   "", &data->diffopt) < 0)
+	if (diff_tree_oid(&c->parents->item->tree->object.oid,
+			  &c->tree->object.oid,
+			  "", &data->diffopt) < 0)
 		return;
 
 	diff->nr = diff_queued_diff.nr;
@@ -264,8 +274,8 @@ static void get_diffs(struct metapack_writer *mw,
 		struct diff_filespec *old = p->one, *new = p->two;
 		struct pair_entry *out = &diff->paths[i];
 
-		if (sha1_to_uint32(old->sha1, mw->pack, &out->old_sha1) < 0 ||
-		    sha1_to_uint32(new->sha1, mw->pack, &out->new_sha1) < 0) {
+		if (oid_to_uint32(&old->oid, mw->pack, &out->old_sha1) < 0 ||
+		    oid_to_uint32(&new->oid, mw->pack, &out->new_sha1) < 0) {
 			free(diff->paths);
 			diff_flush(&data->diffopt);
 			return;
@@ -328,8 +338,10 @@ static int path_entry_hashcmp(const struct path_entry *e1,
 static int diff_entry_cmp(const void *va, const void *vb, void *data)
 {
 	const struct diff_entry *a = va, *b = vb;
-	return hashcmp(uint32_to_sha1(data, a->tree),
-		       uint32_to_sha1(data, b->tree));
+	struct object_id oid_a, oid_b;
+	uint32_to_oid(&oid_a, data, a->tree);
+	uint32_to_oid(&oid_b, data, b->tree);
+	return oidcmp(&oid_a, &oid_b);
 }
 
 void tree_metapack_write(const char *idx)
@@ -344,7 +356,7 @@ void tree_metapack_write(const char *idx)
 
 	/* Figure out how many eligible commits we've got in this pack. */
 	memset(&data, 0, sizeof(data));
-	hashmap_init(&data.paths, (hashmap_cmp_fn)path_entry_hashcmp, 0);
+	hashmap_init(&data.paths, (hashmap_cmp_fn)path_entry_hashcmp, NULL, 0);
 	diff_setup(&data.diffopt);
 	DIFF_OPT_SET(&data.diffopt, RECURSIVE);
 	metapack_writer_foreach(&mw, get_diffs, &data);

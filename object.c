@@ -256,20 +256,20 @@ struct object *parse_object(const struct object_id *oid)
 	if (!save_commit_buffer &&
 	    (!obj || (obj && obj->type == OBJ_COMMIT))) {
 		uint32_t timestamp, generation;
-		const unsigned char *tree, *p1, *p2;
-		if (!commit_metapack(sha1, &timestamp, &generation, &tree, &p1, &p2)) {
+		struct object_id tree, p1, p2;
+		if (!commit_metapack(oid, &timestamp, &generation, &tree, &p1, &p2)) {
 			struct commit *commit;
 			if (obj)
 				commit = (struct commit *)obj;
 			else
-				commit = lookup_commit(sha1);
+				commit = lookup_commit(oid);
 
 			commit->date = timestamp;
 			commit->generation = generation;
-			commit->tree = lookup_tree(tree);
-			commit_list_insert(lookup_commit(p1), &commit->parents);
-			if (!is_null_sha1(p2))
-				commit_list_insert(lookup_commit(p2), &commit->parents->next);
+			commit->tree = lookup_tree(&tree);
+			commit_list_insert(lookup_commit(&p1), &commit->parents);
+			if (!is_null_oid(&p2))
+				commit_list_insert(lookup_commit(&p2), &commit->parents->next);
 			commit->object.parsed = 1;
 			return &commit->object;
 		}

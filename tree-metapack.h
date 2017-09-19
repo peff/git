@@ -4,12 +4,12 @@
 typedef void (*tree_metapack_fun)(const char *path,
 				  unsigned old_mode,
 				  unsigned new_mode,
-				  const unsigned char *old_sha1,
-				  const unsigned char *new_sha1,
+				  const struct object_id *old_sha1,
+				  const struct object_id *new_sha1,
 				  void *data);
 
-int tree_metapack(const unsigned char *sha1,
-		  const unsigned char *parent,
+int tree_metapack(const struct object_id *sha1,
+		  const struct object_id *parent,
 		  tree_metapack_fun cb,
 		  void *data);
 

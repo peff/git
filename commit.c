@@ -375,18 +375,18 @@ int parse_commit_buffer(struct commit *item, const void *buffer, unsigned long s
 
 static int parse_commit_metapack(struct commit *item)
 {
-	const unsigned char *tree, *p1, *p2;
+	struct object_id tree, p1, p2;
 	uint32_t ts, gen;
 
-	if (commit_metapack(item->object.oid.hash, &ts, &gen, &tree, &p1, &p2) < 0)
+	if (commit_metapack(&item->object.oid, &ts, &gen, &tree, &p1, &p2) < 0)
 		return -1;
 
 	item->date = ts;
 	item->generation = gen;
-	item->tree = lookup_tree(tree);
-	commit_list_insert(lookup_commit(p1), &item->parents);
-	if (!is_null_sha1(p2))
-		commit_list_insert(lookup_commit(p2), &item->parents->next);
+	item->tree = lookup_tree(&tree);
+	commit_list_insert(lookup_commit(&p1), &item->parents);
+	if (!is_null_oid(&p2))
+		commit_list_insert(lookup_commit(&p2), &item->parents->next);
 
 	item->object.parsed = 1;
 	return 0;

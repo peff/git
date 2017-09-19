@@ -406,8 +406,8 @@ static inline void update_tp_entries(struct tree_desc *tp, int nparent)
 static void emit_metapack(const char *path,
 			  unsigned old_mode,
 			  unsigned new_mode,
-			  const unsigned char *old_sha1,
-			  const unsigned char *new_sha1,
+			  const struct object_id *old_oid,
+			  const struct object_id *new_oid,
 			  void *data)
 {
 	struct diff_options *opt = data;
@@ -415,9 +415,9 @@ static void emit_metapack(const char *path,
 	struct strbuf base = STRBUF_INIT;
 
 	dummy.next = NULL;
-	p = path_appendnew(&dummy, 1, &base, path, strlen(path), new_mode, new_sha1);
+	p = path_appendnew(&dummy, 1, &base, path, strlen(path), new_mode, new_oid);
 	p->parent[0].mode = old_mode;
-	hashcpy(p->parent[0].oid.hash, old_sha1);
+	oidcpy(&p->parent[0].oid, old_oid);
 	p->next = NULL;
 
 	opt->pathchange(opt, p);
@@ -434,7 +434,7 @@ static struct combine_diff_path *ll_diff_tree_paths(
 	int i;
 
 	if (nparent == 1 && !base->len) {
-		if (!tree_metapack(sha1, parents_sha1[0], emit_metapack, opt))
+		if (!tree_metapack(oid, parents_oid[0], emit_metapack, opt))
 			return p;
 	}
 
