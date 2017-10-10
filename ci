@@ -1,6 +1,6 @@
 #!/bin/sh
 
-WORKTREE_ROOT=Meta/tmp-ci
+WORKTREE_ROOT=.git/tmp-ci
 
 if test "$1" = "--status"; then
 	git test run -k --dry-run @{u}.. 2>/dev/null |
