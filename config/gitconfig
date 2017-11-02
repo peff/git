@@ -1,6 +1,7 @@
 [remote "origin"]
 	url = git://github.com/gitster/git.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
+	fetch = +refs/notes/amlog:refs/notes/amlog
 [remote "github"]
 	url = git@github.com:peff/git.git
 	fetch = +refs/heads/*:refs/remotes/github/*
