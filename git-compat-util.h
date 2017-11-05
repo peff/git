@@ -425,10 +425,10 @@ extern int error_errno(const char *err, ...) __attribute__((format (printf, 1, 2
 extern void warning(const char *err, ...) __attribute__((format (printf, 1, 2)));
 extern void warning_errno(const char *err, ...) __attribute__((format (printf, 1, 2)));
 
-typedef void (*error_function)(void *data, const char *fmt, va_list ap);
+struct error_context;
+typedef void (*error_function)(struct error_context *err, const char *fmt, va_list ap);
 struct error_context {
 	error_function fn;
-	void *data;
 };
 
 extern struct error_context error_silent;
