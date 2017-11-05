@@ -643,4 +643,17 @@ char *xstrvfmt(const char *fmt, va_list ap);
 __attribute__((format (printf, 1, 2)))
 char *xstrfmt(const char *fmt, ...);
 
+/*
+ * use like:
+ *   struct error_strbuf err = ERROR_STRBUF_INIT;
+ *   ...
+ *   some_func(&err.err);
+ */
+struct error_strbuf {
+  struct error_context err;
+  struct strbuf buf;
+};
+void error_strbuf_vaddf(struct error_context *err, const char *fmt, va_list ap);
+#define ERROR_STRBUF_INIT { { error_strbuf_vaddf }, STRBUF_INIT }
+
 #endif /* STRBUF_H */

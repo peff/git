@@ -1011,3 +1011,9 @@ int strbuf_normalize_path(struct strbuf *src)
 	strbuf_release(&dst);
 	return 0;
 }
+
+void error_strbuf_vaddf(struct error_context *err, const char *fmt, va_list ap)
+{
+	struct error_strbuf *es = (struct error_strbuf *)err;
+	strbuf_vaddf(&es->buf, fmt, ap);
+}
