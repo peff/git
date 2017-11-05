@@ -438,7 +438,7 @@ static int check_repo_format(const char *var, const char *value, void *vdata)
 static int check_repository_format_gently(const char *gitdir, struct repository_format *candidate, int *nongit_ok)
 {
 	struct strbuf sb = STRBUF_INIT;
-	struct strbuf err = STRBUF_INIT;
+	struct error_context *err = nongit_ok ? &error_warn : &error_die;
 	int has_common;
 
 	has_common = get_common_dir(&sb, gitdir);
@@ -454,14 +454,9 @@ static int check_repository_format_gently(const char *gitdir, struct repository_
 	if (candidate->version < 0)
 		return 0;
 
-	if (verify_repository_format(candidate, &err) < 0) {
-		if (nongit_ok) {
-			warning("%s", err.buf);
-			strbuf_release(&err);
-			*nongit_ok = -1;
-			return -1;
-		}
-		die("%s", err.buf);
+	if (verify_repository_format(candidate, err) < 0) {
+		*nongit_ok = -1;
+		return -1;
 	}
 
 	repository_format_precious_objects = candidate->precious_objects;
@@ -497,22 +492,22 @@ int read_repository_format(struct repository_format *format, const char *path)
 }
 
 int verify_repository_format(const struct repository_format *format,
-			     struct strbuf *err)
+			     struct error_context *err)
 {
 	if (GIT_REPO_VERSION_READ < format->version) {
-		strbuf_addf(err, _("Expected git repo version <= %d, found %d"),
-			    GIT_REPO_VERSION_READ, format->version);
+		report_error(err, _("Expected git repo version <= %d, found %d"),
+			     GIT_REPO_VERSION_READ, format->version);
 		return -1;
 	}
 
 	if (format->version >= 1 && format->unknown_extensions.nr) {
 		int i;
 
-		strbuf_addstr(err, _("unknown repository extensions found:"));
+		report_error(err, _("unknown repository extensions found:"));
 
 		for (i = 0; i < format->unknown_extensions.nr; i++)
-			strbuf_addf(err, "\n\t%s",
-				    format->unknown_extensions.items[i].string);
+			report_error(err, "\n\t%s",
+				     format->unknown_extensions.items[i].string);
 		return -1;
 	}
 
@@ -980,7 +975,8 @@ static enum discovery_result setup_git_directory_gently_1(struct strbuf *dir,
 int discover_git_directory(struct strbuf *commondir,
 			   struct strbuf *gitdir)
 {
-	struct strbuf dir = STRBUF_INIT, err = STRBUF_INIT;
+	struct strbuf dir = STRBUF_INIT;
+	struct error_strbuf err = ERROR_STRBUF_INIT;
 	size_t gitdir_offset = gitdir->len, cwd_len;
 	size_t commondir_offset = commondir->len;
 	struct repository_format candidate;
@@ -1014,10 +1010,10 @@ int discover_git_directory(struct strbuf *commondir,
 	read_repository_format(&candidate, dir.buf);
 	strbuf_release(&dir);
 
-	if (verify_repository_format(&candidate, &err) < 0) {
+	if (verify_repository_format(&candidate, &err.err) < 0) {
 		warning("ignoring git dir '%s': %s",
-			gitdir->buf + gitdir_offset, err.buf);
-		strbuf_release(&err);
+			gitdir->buf + gitdir_offset, err.buf.buf);
+		strbuf_release(&err.buf);
 		strbuf_setlen(commondir, commondir_offset);
 		strbuf_setlen(gitdir, gitdir_offset);
 		return -1;

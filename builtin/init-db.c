@@ -97,7 +97,7 @@ static void copy_templates(const char *template_dir)
 	struct strbuf template_path = STRBUF_INIT;
 	size_t template_len;
 	struct repository_format template_format;
-	struct strbuf err = STRBUF_INIT;
+	struct error_strbuf err = ERROR_STRBUF_INIT;
 	DIR *dir;
 	char *to_free = NULL;
 
@@ -132,10 +132,10 @@ static void copy_templates(const char *template_dir)
 	 * verified.
 	 */
 	if (template_format.version >= 0 &&
-	    verify_repository_format(&template_format, &err) < 0) {
+	    verify_repository_format(&template_format, &err.err) < 0) {
 		warning(_("not copying templates from '%s': %s"),
-			  template_dir, err.buf);
-		strbuf_release(&err);
+			  template_dir, err.buf.buf);
+		strbuf_release(&err.buf);
 		goto close_free_return;
 	}
 

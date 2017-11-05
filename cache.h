@@ -982,7 +982,7 @@ int read_repository_format(struct repository_format *format, const char *path);
  * any errors encountered.
  */
 int verify_repository_format(const struct repository_format *format,
-			     struct strbuf *err);
+			     struct error_context *err);
 
 /*
  * Check the repository format version in the path found in get_git_dir(),
