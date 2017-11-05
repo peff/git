@@ -199,7 +199,7 @@ struct tree *lookup_tree(struct repository *r, const struct object_id *oid)
 	if (!obj)
 		return create_object(r, oid->hash,
 				     alloc_tree_node(r));
-	return object_as_type(r, obj, OBJ_TREE, 0);
+	return object_as_type(r, obj, OBJ_TREE, &error_print);
 }
 
 int parse_tree_buffer(struct tree *item, void *buffer, unsigned long size)
