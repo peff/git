@@ -9,6 +9,7 @@
 #include "mailmap.h"
 #include "shortlog.h"
 #include "parse-options.h"
+#include "trailer.h"
 
 static char const * const shortlog_usage[] = {
 	N_("git shortlog [<options>] [<revision-range>] [[--] <path>...]"),
@@ -136,6 +137,8 @@ static void read_from_stdin(struct shortlog *log)
 	case SHORTLOG_GROUP_COMMITTER:
 		match = committer_match;
 		break;
+	case SHORTLOG_GROUP_TRAILER:
+		die(_("using --group=trailer with stdin is not supported"));
 	default:
 		BUG("unhandled shortlog group");
 	}
@@ -196,6 +199,22 @@ void shortlog_add_commit(struct shortlog *log, struct commit *commit)
 				      log->email ? "%cN <%cE>" : "%cN",
 				      &ident, &ctx);
 		insert_one_record(log, ident.buf, oneline_str);
+		break;
+	case SHORTLOG_GROUP_TRAILER:
+		{
+			struct strbuf msg = STRBUF_INIT;
+			struct trailer_iterator iter;
+
+			format_commit_message(commit, "%B", &msg, &ctx);
+			trailer_iterator_init(&iter, msg.buf);
+			while (trailer_iterator_advance(&iter)) {
+				if (strcasecmp(iter.key.buf, log->trailer))
+					continue;
+				insert_one_record(log, iter.val.buf, oneline_str);
+			}
+			trailer_iterator_release(&iter);
+			strbuf_release(&msg);
+		}
 		break;
 	}
 
@@ -263,12 +282,17 @@ static int parse_wrap_args(const struct option *opt, const char *arg, int unset)
 static int parse_group_option(const struct option *opt, const char *arg, int unset)
 {
 	struct shortlog *log = opt->value;
+	const char *field;
 
 	if (unset || !strcasecmp(arg, "author"))
 		log->group = SHORTLOG_GROUP_AUTHOR;
 	else if (!strcasecmp(arg, "committer"))
 		log->group = SHORTLOG_GROUP_COMMITTER;
-	else
+	else if (skip_prefix(arg, "trailer:", &field)) {
+		log->group = SHORTLOG_GROUP_TRAILER;
+		free(log->trailer);
+		log->trailer = xstrdup(field);
+	} else
 		return error(_("unknown group type: %s"), arg);
 
 	return 0;
