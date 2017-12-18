@@ -770,9 +770,9 @@ static int check_collison(struct object_entry *entry)
 	return 0;
 }
 
-static void sha1_object(const void *data, struct object_entry *obj_entry,
-			unsigned long size, enum object_type type,
-			const struct object_id *oid)
+static void process_object(const void *data, struct object_entry *obj_entry,
+			   unsigned long size, enum object_type type,
+			   const struct object_id *oid)
 {
 	void *new_data = NULL;
 	int collision_test_needed = 0;
@@ -951,8 +951,8 @@ static void resolve_delta(struct object_entry *delta_obj,
 		bad_object(delta_obj->idx.offset, _("failed to apply delta"));
 	hash_object_file(the_hash_algo, result->data, result->size,
 			 type_name(delta_obj->real_type), &delta_obj->idx.oid);
-	sha1_object(result->data, NULL, result->size, delta_obj->real_type,
-		    &delta_obj->idx.oid);
+	process_object(result->data, NULL, result->size, delta_obj->real_type,
+		       &delta_obj->idx.oid);
 	counter_lock();
 	nr_resolved_deltas++;
 	counter_unlock();
@@ -1140,8 +1140,8 @@ static void parse_pack_objects(unsigned char *hash)
 			obj->real_type = OBJ_BAD;
 			nr_delays++;
 		} else
-			sha1_object(data, NULL, obj->size, obj->type,
-				    &obj->idx.oid);
+			process_object(data, NULL, obj->size, obj->type,
+				       &obj->idx.oid);
 		free(data);
 		display_progress(progress, i+1);
 	}
@@ -1167,8 +1167,8 @@ static void parse_pack_objects(unsigned char *hash)
 		if (obj->real_type != OBJ_BAD)
 			continue;
 		obj->real_type = obj->type;
-		sha1_object(NULL, obj, obj->size, obj->type,
-			    &obj->idx.oid);
+		process_object(NULL, obj, obj->size, obj->type,
+			       &obj->idx.oid);
 		nr_delays--;
 	}
 	if (nr_delays)
