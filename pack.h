@@ -104,11 +104,6 @@ const char *write_rev_file_order(const char *rev_name, uint32_t *pack_order, uin
 int encode_in_pack_object_header(unsigned char *hdr, int hdr_len,
 				 enum object_type, uintmax_t);
 
-#define PH_ERROR_EOF		(-1)
-#define PH_ERROR_PACK_SIGNATURE	(-2)
-#define PH_ERROR_PROTOCOL	(-3)
-int read_pack_header(int fd, struct pack_header *);
-
 struct hashfile *create_tmp_packfile(char **pack_tmp_name);
 void finish_tmp_packfile(struct strbuf *name_buffer, const char *pack_tmp_name, struct pack_idx_entry **written_list, uint32_t nr_written, struct pack_idx_option *pack_idx_opts, unsigned char sha1[]);
 
