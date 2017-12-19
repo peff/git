@@ -1912,9 +1912,7 @@ int cmd_index_pack(int argc,
 							 &rev_index_name_buf);
 	}
 
-	if (verify) {
-		if (!index_name)
-			die(_("--verify with no packfile name given"));
+	if (verify && index_name) {
 		read_idx_option(&opts, index_name);
 		opts.flags |= WRITE_IDX_VERIFY | WRITE_IDX_STRICT;
 	}
