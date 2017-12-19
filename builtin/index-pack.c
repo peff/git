@@ -134,6 +134,7 @@ static const char *progress_title;
 static int show_resolving_progress;
 static int show_stat;
 static int check_self_contained_and_connected;
+static int unpack_to_loose;
 
 static struct progress *progress;
 
@@ -893,6 +894,21 @@ static void process_object(const void *data, struct object_entry *obj_entry,
 		read_unlock();
 	}
 
+	if (unpack_to_loose) {
+		struct object_id dummy;
+
+		/* XXX This will expand too-large objects! */
+		if (!data)
+			data = new_data = get_data_from_pack(obj_entry);
+
+		/* XXX extra unnecessary hash! */
+		/* XXX there should be a thread-safe write_sha1_file! */
+		read_lock();
+		if (write_object_file(data, size, type, &dummy) < 0)
+			die("failed to write object %s", oid_to_hex(oid));
+		read_unlock();
+	}
+
 	free(new_data);
 }
 
@@ -1289,7 +1305,7 @@ static void conclude_pack(int fix_thin_pack, const char *curr_pack, unsigned cha
 		return;
 	}
 
-	if (fix_thin_pack) {
+	if (fix_thin_pack || unpack_to_loose) {
 		struct hashfile *f;
 		unsigned char read_hash[GIT_MAX_RAWSZ], tail_hash[GIT_MAX_RAWSZ];
 		struct strbuf msg = STRBUF_INIT;
@@ -1725,7 +1741,7 @@ int cmd_index_pack(int argc,
 		   struct repository *repo UNUSED)
 {
 	int i, fix_thin_pack = 0, verify = 0, stat_only = 0, rev_index;
-	const char *curr_index;
+	const char *curr_index = NULL;
 	char *curr_rev_index = NULL;
 	const char *index_name = NULL, *pack_name = NULL, *rev_index_name = NULL;
 	const char *keep_msg = NULL;
@@ -1851,6 +1867,8 @@ int cmd_index_pack(int argc,
 				rev_index = 1;
 			} else if (!strcmp(arg, "--no-rev-index")) {
 				rev_index = 0;
+			} else if (!strcmp(arg, "--unpack")) {
+				unpack_to_loose = 1;
 			} else
 				usage(index_pack_usage);
 			continue;
@@ -1938,17 +1956,19 @@ int cmd_index_pack(int argc,
 	if (show_stat)
 		show_pack_info(stat_only);
 
-	ALLOC_ARRAY(idx_objects, nr_objects);
-	for (i = 0; i < nr_objects; i++)
-		idx_objects[i] = &objects[i].idx;
-	curr_index = write_idx_file(index_name, idx_objects, nr_objects, &opts, pack_hash);
-	if (rev_index)
-		curr_rev_index = write_rev_file(rev_index_name, idx_objects,
-						nr_objects, pack_hash,
-						opts.flags);
-	free(idx_objects);
+	if (!unpack_to_loose) {
+		ALLOC_ARRAY(idx_objects, nr_objects);
+		for (i = 0; i < nr_objects; i++)
+			idx_objects[i] = &objects[i].idx;
+		curr_index = write_idx_file(index_name, idx_objects, nr_objects, &opts, pack_hash);
+		if (rev_index)
+			curr_rev_index = write_rev_file(rev_index_name, idx_objects,
+							nr_objects, pack_hash,
+							opts.flags);
+		free(idx_objects);
+	}
 
-	if (!verify)
+	if (!verify && !unpack_to_loose)
 		final(pack_name, curr_pack,
 		      index_name, curr_index,
 		      rev_index_name, curr_rev_index,
@@ -1964,8 +1984,13 @@ int cmd_index_pack(int argc,
 	free(objects);
 	strbuf_release(&index_name_buf);
 	strbuf_release(&rev_index_name_buf);
-	if (!pack_name)
+	if (!pack_name) {
+		if (unpack_to_loose) {
+			close(output_fd);
+			unlink_or_warn(curr_pack);
+		}
 		free((void *) curr_pack);
+	}
 	if (!index_name)
 		free((void *) curr_index);
 	free(curr_rev_index);
