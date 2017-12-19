@@ -84,6 +84,7 @@ static int show_resolving_progress;
 static int show_stat;
 static int check_self_contained_and_connected;
 static int unpack_to_loose;
+static unsigned long unpack_limit;
 
 static struct progress *progress;
 
@@ -1784,6 +1785,9 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 				repo_set_hash_algo(the_repository, hash_algo);
 			} else if (!strcmp(arg, "--unpack")) {
 				unpack_to_loose = 1;
+			} else if (skip_prefix(arg, "--unpack-limit=", &arg)) {
+				if (!git_parse_ulong(arg, &unpack_limit))
+					die("--unpack-limit expects a non-negative integer");
 			} else
 				usage(index_pack_usage);
 			continue;
@@ -1836,6 +1840,8 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 
 	curr_pack = open_pack_file(pack_name);
 	parse_pack_header();
+	if (nr_objects < unpack_limit)
+		unpack_to_loose = 1;
 	objects = xcalloc(st_add(nr_objects, 1), sizeof(struct object_entry));
 	if (show_stat)
 		obj_stat = xcalloc(st_add(nr_objects, 1), sizeof(struct object_stat));

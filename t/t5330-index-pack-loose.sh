@@ -69,4 +69,18 @@ test_expect_success 'unpack base and thin packs' '
 	verify_packs 0
 '
 
+test_expect_success 'unpack limit (under)' '
+	mktmp &&
+	git -C tmp index-pack --stdin --unpack-limit=10 <ofs-delta.pack &&
+	verify_objects &&
+	verify_packs 0
+'
+
+test_expect_success 'unpack limit (over)' '
+	mktmp &&
+	git -C tmp index-pack --stdin --unpack-limit=3 <ofs-delta.pack &&
+	verify_objects &&
+	verify_packs 1
+'
+
 test_done
