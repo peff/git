@@ -14,7 +14,7 @@
 #include "decorate.h"
 #include "fsck.h"
 
-static int dry_run, quiet, recover, has_errors, strict;
+static int dry_run, quiet, has_errors, strict;
 static const char unpack_usage[] = "git unpack-objects [-n] [-q] [-r] [--strict]";
 
 /* We always read in 4kB chunks. */
@@ -117,8 +117,6 @@ static void *get_data(unsigned long size)
 		if (ret != Z_OK) {
 			error("inflate returned %d", ret);
 			FREE_AND_NULL(buf);
-			if (!recover)
-				exit(1);
 			has_errors = 1;
 			break;
 		}
@@ -432,8 +430,6 @@ static void unpack_delta_entry(enum object_type type, unsigned long delta_size,
 	if (!base) {
 		error("failed to read delta-pack base object %s",
 		      oid_to_hex(&base_oid));
-		if (!recover)
-			exit(1);
 		has_errors = 1;
 		return;
 	}
@@ -478,8 +474,6 @@ static void unpack_one(unsigned nr)
 	default:
 		error("bad object type %d", type);
 		has_errors = 1;
-		if (recover)
-			return;
 		exit(1);
 	}
 }
@@ -535,7 +529,7 @@ int cmd_unpack_objects(int argc, const char **argv, const char *prefix)
 				continue;
 			}
 			if (!strcmp(arg, "-r")) {
-				recover = 1;
+				warning("option -r is deprecated and does nothing");
 				continue;
 			}
 			if (!strcmp(arg, "--strict")) {
