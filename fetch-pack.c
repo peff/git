@@ -827,10 +827,6 @@ static int get_pack(struct fetch_pack_args *args,
 		    struct oidset *gitmodules_oids)
 {
 	struct async demux;
-	int do_keep = args->keep_pack;
-	const char *cmd_name;
-	struct pack_header header;
-	int pass_header = 0;
 	struct child_process cmd = CHILD_PROCESS_INIT;
 	int fsck_objects = 0;
 	int ret;
@@ -851,17 +847,6 @@ static int get_pack(struct fetch_pack_args *args,
 	else
 		demux.out = xd[0];
 
-	if (!args->keep_pack && unpack_limit && !index_pack_args) {
-
-		if (read_pack_header(demux.out, &header))
-			die(_("protocol error: bad pack header"));
-		pass_header = 1;
-		if (ntohl(header.hdr_entries) < unpack_limit)
-			do_keep = 0;
-		else
-			do_keep = 1;
-	}
-
 	if (alternate_shallow_file) {
 		strvec_push(&cmd.args, "--shallow-file");
 		strvec_push(&cmd.args, alternate_shallow_file);
@@ -874,57 +859,50 @@ static int get_pack(struct fetch_pack_args *args,
 	    : 0)
 		fsck_objects = 1;
 
-	if (do_keep || args->from_promisor || index_pack_args || fsck_objects) {
-		if (pack_lockfiles || fsck_objects)
-			cmd.out = -1;
-		cmd_name = "index-pack";
-		strvec_push(&cmd.args, cmd_name);
-		strvec_push(&cmd.args, "--stdin");
-		if (!args->quiet && !args->no_progress)
-			strvec_push(&cmd.args, "-v");
-		if (args->use_thin_pack)
-			strvec_push(&cmd.args, "--fix-thin");
-		if ((do_keep || index_pack_args) && (args->lock_pack || unpack_limit)) {
-			char hostname[HOST_NAME_MAX + 1];
-			if (xgethostname(hostname, sizeof(hostname)))
-				xsnprintf(hostname, sizeof(hostname), "localhost");
-			strvec_pushf(&cmd.args,
-				     "--keep=fetch-pack %"PRIuMAX " on %s",
-				     (uintmax_t)getpid(), hostname);
-		}
-		if (!index_pack_args && args->check_self_contained_and_connected)
-			strvec_push(&cmd.args, "--check-self-contained-and-connected");
-		else
-			/*
-			 * We cannot perform any connectivity checks because
-			 * not all packs have been downloaded; let the caller
-			 * have this responsibility.
-			 */
-			args->check_self_contained_and_connected = 0;
-
-		if (args->from_promisor)
-			/*
-			 * create_promisor_file() may be called afterwards but
-			 * we still need index-pack to know that this is a
-			 * promisor pack. For example, if transfer.fsckobjects
-			 * is true, index-pack needs to know that .gitmodules
-			 * is a promisor object (so that it won't complain if
-			 * it is missing).
-			 */
-			strvec_push(&cmd.args, "--promisor");
+	if (pack_lockfiles || fsck_objects)
+		cmd.out = -1;
+	strvec_push(&cmd.args, "index-pack");
+	strvec_push(&cmd.args, "--stdin");
+	if (!args->quiet && !args->no_progress)
+		strvec_push(&cmd.args, "-v");
+	if (args->use_thin_pack)
+		strvec_push(&cmd.args, "--fix-thin");
+	if ((args->keep_pack || index_pack_args) && (args->lock_pack || unpack_limit)) {
+		char hostname[HOST_NAME_MAX + 1];
+		if (xgethostname(hostname, sizeof(hostname)))
+			xsnprintf(hostname, sizeof(hostname), "localhost");
+		strvec_pushf(&cmd.args,
+			     "--keep=fetch-pack %"PRIuMAX " on %s",
+			     (uintmax_t)getpid(), hostname);
 	}
-	else {
-		cmd_name = "unpack-objects";
-		strvec_push(&cmd.args, cmd_name);
-		if (args->quiet || args->no_progress)
-			strvec_push(&cmd.args, "-q");
+	if (!index_pack_args && args->check_self_contained_and_connected)
+		strvec_push(&cmd.args, "--check-self-contained-and-connected");
+	else
+		/*
+		 * We cannot perform any connectivity checks because
+		 * not all packs have been downloaded; let the caller
+		 * have this responsibility.
+		 */
 		args->check_self_contained_and_connected = 0;
-	}
 
-	if (pass_header)
-		strvec_pushf(&cmd.args, "--pack_header=%"PRIu32",%"PRIu32,
-			     ntohl(header.hdr_version),
-				 ntohl(header.hdr_entries));
+	if (args->from_promisor)
+		/*
+		 * create_promisor_file() may be called afterwards but
+		 * we still need index-pack to know that this is a
+		 * promisor pack. For example, if transfer.fsckobjects
+		 * is true, index-pack needs to know that .gitmodules
+		 * is a promisor object (so that it won't complain if
+		 * it is missing).
+		 */
+		strvec_push(&cmd.args, "--promisor");
+
+	if (args->keep_pack || args->from_promisor || index_pack_args)
+		; /* never --unpack */
+	else if (!unpack_limit)
+		strvec_push(&cmd.args, "--unpack");
+	else
+		strvec_pushf(&cmd.args, "--unpack-limit=%d", unpack_limit+1); /* hackery? */
+
 	if (fsck_objects) {
 		if (args->from_promisor || index_pack_args)
 			/*
@@ -948,8 +926,8 @@ static int get_pack(struct fetch_pack_args *args,
 	cmd.in = demux.out;
 	cmd.git_cmd = 1;
 	if (start_command(&cmd))
-		die(_("fetch-pack: unable to fork off %s"), cmd_name);
-	if (do_keep && (pack_lockfiles || fsck_objects)) {
+		die(_("fetch-pack: unable to fork off index-pack"));
+	if (args->keep_pack && (pack_lockfiles || fsck_objects)) {
 		int is_well_formed;
 		char *pack_lockfile = index_pack_lockfile(cmd.out, &is_well_formed);
 
@@ -971,7 +949,7 @@ static int get_pack(struct fetch_pack_args *args,
 			args->check_self_contained_and_connected &&
 			ret == 0;
 	else
-		die(_("%s failed"), cmd_name);
+		die(_("index-pack failed"));
 	if (use_sideband && finish_async(&demux))
 		die(_("error in sideband demultiplexer"));
 
@@ -979,7 +957,7 @@ static int get_pack(struct fetch_pack_args *args,
 	 * Now that index-pack has succeeded, write the promisor file using the
 	 * obtained .keep filename if necessary
 	 */
-	if (do_keep && pack_lockfiles && pack_lockfiles->nr && args->from_promisor)
+	if (args->keep_pack && pack_lockfiles && pack_lockfiles->nr && args->from_promisor)
 		create_promisor_file(pack_lockfiles->items[0].string, sought, nr_sought);
 
 	return 0;
