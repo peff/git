@@ -83,6 +83,7 @@ static int verbose;
 static int show_resolving_progress;
 static int show_stat;
 static int check_self_contained_and_connected;
+static int unpack_to_loose;
 
 static struct progress *progress;
 
@@ -862,6 +863,21 @@ static void process_object(const void *data, struct object_entry *obj_entry,
 		read_unlock();
 	}
 
+	if (unpack_to_loose) {
+		struct object_id dummy;
+
+		/* XXX This will expand too-large objects! */
+		if (!data)
+			data = new_data = get_data_from_pack(obj_entry);
+
+		/* XXX extra unnecessary hash! */
+		/* XXX there should be a thread-safe write_sha1_file! */
+		read_lock();
+		if (write_object_file(data, size, type_name(type), &dummy) < 0)
+			die("failed to write object %s", oid_to_hex(oid));
+		read_unlock();
+	}
+
 	free(new_data);
 }
 
@@ -1239,7 +1255,7 @@ static void conclude_pack(int fix_thin_pack, const char *curr_pack, unsigned cha
 		return;
 	}
 
-	if (fix_thin_pack) {
+	if (fix_thin_pack || unpack_to_loose) {
 		struct hashfile *f;
 		unsigned char read_hash[GIT_MAX_RAWSZ], tail_hash[GIT_MAX_RAWSZ];
 		struct strbuf msg = STRBUF_INIT;
@@ -1657,7 +1673,7 @@ static void show_pack_info(int stat_only)
 int cmd_index_pack(int argc, const char **argv, const char *prefix)
 {
 	int i, fix_thin_pack = 0, verify = 0, stat_only = 0;
-	const char *curr_index;
+	const char *curr_index = NULL;
 	const char *index_name = NULL, *pack_name = NULL;
 	const char *keep_msg = NULL;
 	const char *promisor_msg = NULL;
@@ -1766,6 +1782,8 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 				if (hash_algo == GIT_HASH_UNKNOWN)
 					die(_("unknown hash algorithm '%s'"), arg);
 				repo_set_hash_algo(the_repository, hash_algo);
+			} else if (!strcmp(arg, "--unpack")) {
+				unpack_to_loose = 1;
 			} else
 				usage(index_pack_usage);
 			continue;
@@ -1835,13 +1853,15 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 	if (show_stat)
 		show_pack_info(stat_only);
 
-	ALLOC_ARRAY(idx_objects, nr_objects);
-	for (i = 0; i < nr_objects; i++)
-		idx_objects[i] = &objects[i].idx;
-	curr_index = write_idx_file(index_name, idx_objects, nr_objects, &opts, pack_hash);
-	free(idx_objects);
+	if (!unpack_to_loose) {
+		ALLOC_ARRAY(idx_objects, nr_objects);
+		for (i = 0; i < nr_objects; i++)
+			idx_objects[i] = &objects[i].idx;
+		curr_index = write_idx_file(index_name, idx_objects, nr_objects, &opts, pack_hash);
+		free(idx_objects);
+	}
 
-	if (!verify)
+	if (!verify && !unpack_to_loose)
 		final(pack_name, curr_pack,
 		      index_name, curr_index,
 		      keep_msg, promisor_msg,
@@ -1854,8 +1874,13 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 
 	free(objects);
 	strbuf_release(&index_name_buf);
-	if (pack_name == NULL)
+	if (pack_name == NULL) {
+		if (unpack_to_loose) {
+			close(output_fd);
+			unlink_or_warn(curr_pack);
+		}
 		free((void *) curr_pack);
+	}
 	if (index_name == NULL)
 		free((void *) curr_index);
 
