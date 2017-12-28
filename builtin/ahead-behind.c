@@ -1,4 +1,5 @@
 #include "cache.h"
+#include "commit.h"
 #include "dir.h"
 #include "commit.h"
 #include "revision.h"
