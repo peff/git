@@ -98,4 +98,10 @@ void NORETURN die_conclude_merge(void);
 void advise_on_updating_sparse_paths(struct string_list *pathspec_list);
 void detach_advice(const char *new_name);
 
+/*
+ * Turn off all advice flags; this can be used to centrally enforce a --quiet
+ * option.
+ */
+void disable_advice(void);
+
 #endif /* ADVICE_H */
