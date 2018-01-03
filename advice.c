@@ -303,3 +303,11 @@ void detach_advice(const char *new_name)
 
 	fprintf(stderr, fmt, new_name);
 }
+
+void disable_advice(void)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(advice_config); i++)
+		*advice_config[i].preference = 0;
+}

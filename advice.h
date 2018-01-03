@@ -92,4 +92,10 @@ void NORETURN die_resolve_conflict(const char *me);
 void NORETURN die_conclude_merge(void);
 void detach_advice(const char *new_name);
 
+/*
+ * Turn off all advice flags; this can be used to centrally enforce a --quiet
+ * option.
+ */
+void disable_advice(void);
+
 #endif /* ADVICE_H */
