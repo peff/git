@@ -313,3 +313,11 @@ void advise_on_moving_dirty_path(struct string_list *pathspec_list)
 			    "* Use \"git add --sparse <paths>\" to update the index\n"
 			    "* Use \"git sparse-checkout reapply\" to apply the sparsity rules"));
 }
+
+void disable_advice(void)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(advice_setting); i++)
+		advice_setting[i].level = ADVICE_LEVEL_DISABLED;
+}
