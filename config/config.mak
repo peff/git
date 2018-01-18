@@ -24,7 +24,7 @@ COMPILER ?= gcc
 O = 0
 CC = ccache $(COMPILER)
 export CCACHE_CPP2=1
-CFLAGS += -g -O$(O)
+CFLAGS += -g3 -O$(O)
 CFLAGS += -Wall -Werror
 CFLAGS += -Wdeclaration-after-statement
 CFLAGS += -Wpointer-arith
@@ -36,7 +36,7 @@ else
 CFLAGS += -Wold-style-declaration
 CFLAGS += -Wold-style-definition
 endif
-LDFLAGS = -g
+LDFLAGS = -g3
 
 # Relax compilation on a detached HEAD (which is probably
 # historical, and may contain compiler warnings that later
