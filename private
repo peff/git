@@ -7,6 +7,7 @@ cont=
 force=
 noautorerere=
 careful=0
+test_script=
 options=
 while test $# -gt 0; do
 case "$1" in
@@ -24,6 +25,11 @@ case "$1" in
 -c|--careful)
 	careful=$(($careful + 1))
 	options="$options $1"
+	;;
+-t)
+	shift
+	test_script="$1"
+	options="$options -t $1"
 	;;
 *)
 	echo >&2 "unknown option: $1"
@@ -81,10 +87,12 @@ for i in `Meta/topics`; do
 			exit 1
 		fi
 	fi
-	if test "$careful" -gt 0; then
+	if test "$careful" -gt 0 || test -n "$test_script"; then
 		make -j16 || exit 1
 		if test "$careful" -gt 1; then
 			make test || exit 1
+		elif test -n "$test_script"; then
+			(cd t && make t${test_script}*.sh) || exit 1
 		fi
 	fi
 done
