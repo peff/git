@@ -3410,9 +3410,10 @@ int diff_filespec_is_binary(struct repository *r,
 
 	if (one->is_binary == -1) {
 		diff_filespec_load_driver(one, r->index);
-		if (one->driver->binary != -1)
+		if (one->driver->binary != -1) {
 			one->is_binary = one->driver->binary;
-		else {
+			/* diff_populate_filespec(one, CHECK_SIZE_ONLY); ? */
+		} else {
 			if (!one->data && DIFF_FILE_VALID(one))
 				diff_populate_filespec(r, one, &dpf_options);
 			if (one->is_binary == -1 && one->data)
