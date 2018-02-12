@@ -74,8 +74,15 @@ static int should_break(struct repository *r,
 		options.missing_object_data = r;
 	}
 
-	if (diff_populate_filespec(r, src, &options) ||
-	    diff_populate_filespec(r, dst, &options))
+	if (diff_populate_filespec(r, src, CHECK_SIZE_ONLY) ||
+	    diff_populate_filespec(r, dst, CHECK_SIZE_ONLY))
+		return 0; /* error but caught downstream */
+
+	if (src->size > big_file_threshold || dst->size > big_file_threshold)
+		return 0; /* too big to be worth computation */
+
+	if (diff_populate_filespec(r, src, 0) ||
+	    diff_populate_filespec(r, dst, 0))
 		return 0; /* error but caught downstream */
 
 	max_size = ((src->size > dst->size) ? src->size : dst->size);
