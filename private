@@ -87,13 +87,13 @@ for i in `Meta/topics`; do
 			exit 1
 		fi
 	fi
-	if test "$careful" -gt 0 || test -n "$test_script"; then
+	if test "$careful" -gt 0; then
 		make -j16 || exit 1
 		if test "$careful" -gt 1; then
 			make test || exit 1
-		elif test -n "$test_script"; then
-			(cd t && make t${test_script}*.sh) || exit 1
 		fi
+	elif test -n "$test_script" && test -e t/t${test_script}*.sh; then
+		(make -j16 && cd t && make t${test_script}*.sh) || exit 1
 	fi
 done
 
