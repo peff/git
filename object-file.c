@@ -1470,11 +1470,16 @@ static int loose_object_info(struct repository *r,
 		status = error(_("unable to parse %s header"), oid_to_hex(oid));
 
 	if (status >= 0 && oi->contentp) {
-		*oi->contentp = unpack_loose_rest(&stream, hdr,
-						  *oi->sizep, oid);
-		if (!*oi->contentp) {
-			git_inflate_end(&stream);
-			status = -1;
+		if ((flags & OBJECT_INFO_AVOID_BIG) && *oi->sizep > big_file_threshld) {
+			*oi->contentp = NULL;
+			git_inflated_end(&stream);
+		} else {
+			*oi->contentp = unpack_loose_rest(&stream, hdr,
+							  *oi->sizep, oid);
+			if (!*oi->contentp) {
+				git_inflate_end(&stream);
+				status = -1;
+			}
 		}
 	} else
 		git_inflate_end(&stream);
@@ -1594,7 +1599,7 @@ static int do_oid_object_info_extended(struct repository *r,
 		 * information below, so return early.
 		 */
 		return 0;
-	rtype = packed_object_info(r, e.p, e.offset, oi);
+	rtype = packed_object_info(r, e.p, e.offset, oi, flags);
 	if (rtype < 0) {
 		mark_bad_packed_object(e.p, real->hash);
 		return do_oid_object_info_extended(r, real, oi, 0);
