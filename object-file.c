@@ -1567,9 +1567,15 @@ static int loose_object_info(struct repository *r,
 
 		if (!oi->contentp)
 			break;
-		*oi->contentp = unpack_loose_rest(&stream, hdr, *oi->sizep, oid);
-		if (*oi->contentp)
+		if ((flags & OBJECT_INFO_AVOID_BIG) && *oi->sizep > big_file_threshld) {
+			*oi->contentp = NULL;
+			git_inflate_end(&stream);
 			goto cleanup;
+		} else {
+			*oi->contentp = unpack_loose_rest(&stream, hdr, *oi->sizep, oid);
+			if (*oi->contentp)
+				goto cleanup;
+		}
 
 		status = -1;
 		break;
@@ -1714,7 +1720,7 @@ static int do_oid_object_info_extended(struct repository *r,
 		 * information below, so return early.
 		 */
 		return 0;
-	rtype = packed_object_info(r, e.p, e.offset, oi);
+	rtype = packed_object_info(r, e.p, e.offset, oi, flags);
 	if (rtype < 0) {
 		mark_bad_packed_object(e.p, real);
 		return do_oid_object_info_extended(r, real, oi, 0);
