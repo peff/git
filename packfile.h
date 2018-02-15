@@ -175,7 +175,8 @@ extern int do_check_packed_object_crc;
 
 int packed_object_info(struct repository *r,
 		       struct packed_git *pack,
-		       off_t offset, struct object_info *);
+		       off_t offset, struct object_info *,
+		       int flags);
 
 void mark_bad_packed_object(struct packed_git *, const struct object_id *);
 const struct packed_git *has_packed_and_bad(struct repository *, const struct object_id *);
