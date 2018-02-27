@@ -6863,11 +6863,12 @@ size_t fill_textconv(struct repository *r,
 {
 	size_t size;
 
+	if (!DIFF_FILE_VALID(df)) {
+		*outbuf = "";
+		return 0;
+	}
+
 	if (!driver) {
-		if (!DIFF_FILE_VALID(df)) {
-			*outbuf = "";
-			return 0;
-		}
 		if (diff_populate_filespec(r, df, NULL))
 			die("unable to read files to diff");
 		*outbuf = df->data;
