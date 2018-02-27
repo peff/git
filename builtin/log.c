@@ -596,7 +596,7 @@ static int show_blob_object(const struct object_id *oid, struct rev_info *rev, c
 				 &oidc, &obj_context))
 		die(_("not a valid object name %s"), obj_name);
 	if (!obj_context.path ||
-	    !textconv_object(the_repository, obj_context.path,
+	    !textconv_object(the_repository, NULL, obj_context.path,
 			     obj_context.mode, &oidc, 1, &buf, &size)) {
 		object_context_release(&obj_context);
 		return odb_stream_blob_to_fd(the_repository->objects, 1, oid, NULL, 0);
