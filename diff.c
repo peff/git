@@ -3351,28 +3351,36 @@ static void emit_binary_diff(struct diff_options *o,
 	emit_binary_diff_body(o, two, one);
 }
 
-int diff_filespec_is_binary(struct repository *r,
-			    struct diff_filespec *one)
+enum diff_content diff_filespec_content_type(struct repository *r,
+					     struct diff_filespec *one)
 {
 	struct diff_populate_filespec_options dpf_options = {
 		.check_binary = 1,
 	};
 
-	if (one->is_binary == -1) {
+	if (one->content_type == DIFF_CONTENT_UNKNOWN) {
 		diff_filespec_load_driver(one, r->index);
 		if (one->driver->binary != -1)
-			one->is_binary = one->driver->binary;
+			one->content_type = one->driver->binary;
 		else {
 			if (!one->data && DIFF_FILE_VALID(one))
 				diff_populate_filespec(r, one, &dpf_options);
-			if (one->is_binary == -1 && one->data)
-				one->is_binary = buffer_is_binary(one->data,
-						one->size);
-			if (one->is_binary == -1)
-				one->is_binary = 0;
+			if (one->content_type == DIFF_CONTENT_UNKNOWN && one->data) {
+				if (!buffer_is_binary(one->data, one->size))
+					one->content_type = DIFF_CONTENT_TEXT;
+				else
+					one->content_type = DIFF_CONTENT_BINARY;
+			}
+			if (one->content_type == DIFF_CONTENT_UNKNOWN)
+				one->content_type = DIFF_CONTENT_TEXT;
 		}
 	}
-	return one->is_binary;
+	return one->content_type;
+}
+
+int diff_filespec_is_binary(struct repository *r, struct diff_filespec *one)
+{
+	return diff_filespec_content_type(r, one) != DIFF_CONTENT_TEXT;
 }
 
 static const struct userdiff_funcname *
@@ -3826,7 +3834,7 @@ struct diff_filespec *alloc_filespec(const char *path)
 
 	FLEXPTR_ALLOC_STR(spec, path, path);
 	spec->count = 1;
-	spec->is_binary = -1;
+	spec->content_type = DIFF_CONTENT_UNKNOWN;
 	return spec;
 }
 
@@ -4030,8 +4038,9 @@ int diff_populate_filespec(struct repository *r,
 		 * is probably fine.
 		 */
 		if (check_binary &&
-		    s->size > big_file_threshold && s->is_binary == -1) {
-			s->is_binary = 1;
+		    s->size > big_file_threshold &&
+		    s->content_type == DIFF_CONTENT_UNKNOWN) {
+			s->content_type = DIFF_CONTENT_BINARY;
 			return 0;
 		}
 		fd = open(s->path, O_RDONLY);
@@ -4080,8 +4089,9 @@ object_read:
 		if (size_only || check_binary) {
 			if (size_only)
 				return 0;
-			if (s->size > big_file_threshold && s->is_binary == -1) {
-				s->is_binary = 1;
+			if (s->size > big_file_threshold &&
+			    s->content_type == DIFF_CONTENT_UNKNOWN) {
+				s->content_type = DIFF_CONTENT_BINARY;
 				return 0;
 			}
 		}
