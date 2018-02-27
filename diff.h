@@ -616,12 +616,13 @@ size_t fill_textconv(struct repository *r,
 		     char **outbuf);
 
 /*
- * Look up the userdiff driver for the given filespec, and return it if
- * and only if it has textconv enabled (otherwise return NULL). The result
- * can be passed to fill_textconv().
+ * Return the userdiff textconv driver for the given filespec if textconv is
+ * both enabled and configured for the filespec. Otherwise return NULL.
+ * The result can be passed to fill_textconv().
  */
-struct userdiff_textconv *get_textconv(struct repository *r,
-				     struct diff_filespec *one);
+struct userdiff_textconv *diff_get_textconv(struct repository *r,
+					    struct diff_options *opt,
+					    struct diff_filespec *one);
 
 /*
  * Prepare diff_filespec and convert it using diff textconv API
@@ -629,6 +630,7 @@ struct userdiff_textconv *get_textconv(struct repository *r,
  * Return 1 if the conversion succeeds, 0 otherwise.
  */
 int textconv_object(struct repository *repo,
+		    struct diff_options *opt,
 		    const char *path,
 		    unsigned mode,
 		    const struct object_id *oid, int oid_valid,

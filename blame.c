@@ -241,8 +241,7 @@ static struct commit *fake_working_tree_commit(struct repository *r,
 
 		switch (st.st_mode & S_IFMT) {
 		case S_IFREG:
-			if (opt->flags.allow_textconv &&
-			    textconv_object(r, read_from, mode, &null_oid, 0, &buf_ptr, &buf_len))
+			if (textconv_object(r, opt, read_from, mode, &null_oid, 0, &buf_ptr, &buf_len))
 				strbuf_attach(&buf, buf_ptr, buf_len, buf_len + 1);
 			else if (strbuf_read_file(&buf, read_from, st.st_size) != st.st_size)
 				die_errno("cannot open or read '%s'", read_from);
@@ -1023,8 +1022,7 @@ static void fill_origin_blob(struct diff_options *opt,
 		unsigned long file_size;
 
 		(*num_read_blob)++;
-		if (opt->flags.allow_textconv &&
-		    textconv_object(opt->repo, o->path, o->mode,
+		if (textconv_object(opt->repo, opt, o->path, o->mode,
 				    &o->blob_oid, 1, &file->ptr, &file_size))
 			;
 		else
@@ -2850,8 +2848,8 @@ void setup_scoreboard(struct blame_scoreboard *sb,
 		if (fill_blob_sha1_and_mode(sb->repo, o))
 			die(_("no such path %s in %s"), path, final_commit_name);
 
-		if (sb->revs->diffopt.flags.allow_textconv &&
-		    textconv_object(sb->repo, path, o->mode, &o->blob_oid, 1, (char **) &sb->final_buf,
+		if (textconv_object(sb->repo, &sb->revs->diffopt,
+				    path, o->mode, &o->blob_oid, 1, (char **) &sb->final_buf,
 				    &sb->final_buf_size))
 			;
 		else
