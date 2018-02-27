@@ -1799,8 +1799,8 @@ static void emit_rewrite_diff(const char *name_a,
 			      const char *name_b,
 			      struct diff_filespec *one,
 			      struct diff_filespec *two,
-			      struct userdiff_driver *textconv_one,
-			      struct userdiff_driver *textconv_two,
+			      struct userdiff_textconv *textconv_one,
+			      struct userdiff_textconv *textconv_two,
 			      struct diff_options *o)
 {
 	int lc_a, lc_b;
@@ -3451,8 +3451,8 @@ void diff_set_default_prefix(struct diff_options *options)
 	options->b_prefix = diff_dst_prefix ? diff_dst_prefix : "b/";
 }
 
-struct userdiff_driver *get_textconv(struct repository *r,
-				     struct diff_filespec *one)
+struct userdiff_textconv *get_textconv(struct repository *r,
+				       struct diff_filespec *one)
 {
 	if (!DIFF_FILE_VALID(one))
 		return NULL;
@@ -3545,8 +3545,8 @@ static void builtin_diff(const char *name_a,
 	const char *meta = diff_get_color_opt(o, DIFF_METAINFO);
 	const char *reset = diff_get_color_opt(o, DIFF_RESET);
 	const char *a_prefix, *b_prefix;
-	struct userdiff_driver *textconv_one = NULL;
-	struct userdiff_driver *textconv_two = NULL;
+	struct userdiff_textconv *textconv_one = NULL;
+	struct userdiff_textconv *textconv_two = NULL;
 	struct strbuf header = STRBUF_INIT;
 	const char *line_prefix = diff_line_prefix(o);
 
@@ -7300,7 +7300,7 @@ static char *run_textconv(struct repository *r,
 }
 
 size_t fill_textconv(struct repository *r,
-		     struct userdiff_driver *driver,
+		     struct userdiff_textconv *textconv,
 		     struct diff_filespec *df,
 		     char **outbuf)
 {
@@ -7311,39 +7311,39 @@ size_t fill_textconv(struct repository *r,
 		return 0;
 	}
 
-	if (!driver) {
+	if (!textconv) {
 		if (diff_populate_filespec(r, df, NULL))
 			die("unable to read files to diff");
 		*outbuf = df->data;
 		return df->size;
 	}
 
-	if (!driver->textconv)
-		BUG("fill_textconv called with non-textconv driver");
+	if (!textconv->program)
+		BUG("fill_textconv called with empty textconv program");
 
-	if (driver->textconv_cache && df->oid_valid) {
-		*outbuf = notes_cache_get(driver->textconv_cache,
+	if (textconv->cache && df->oid_valid) {
+		*outbuf = notes_cache_get(textconv->cache,
 					  &df->oid,
 					  &size);
 		if (*outbuf)
 			return size;
 	}
 
-	*outbuf = run_textconv(r, driver->textconv, df, &size);
+	*outbuf = run_textconv(r, textconv->program, df, &size);
 	if (!*outbuf)
 		die("unable to read files to diff");
 
-	if (driver->textconv_cache && df->oid_valid) {
+	if (textconv->cache && df->oid_valid) {
 		/* ignore errors, as we might be in a readonly repository */
-		notes_cache_put(driver->textconv_cache, &df->oid, *outbuf,
-				size);
+		notes_cache_put(textconv->cache, &df->oid, *outbuf, size);
+
 		/*
 		 * we could save up changes and flush them all at the end,
 		 * but we would need an extra call after all diffing is done.
 		 * Since generating a cache entry is the slow path anyway,
 		 * this extra overhead probably isn't a big deal.
 		 */
-		notes_cache_write(driver->textconv_cache);
+		notes_cache_write(textconv->cache);
 	}
 
 	return size;
@@ -7358,7 +7358,7 @@ int textconv_object(struct repository *r,
 		    unsigned long *buf_size)
 {
 	struct diff_filespec *df;
-	struct userdiff_driver *textconv;
+	struct userdiff_textconv *textconv;
 
 	df = alloc_filespec(path);
 	fill_filespec(df, oid, oid_valid, mode);
