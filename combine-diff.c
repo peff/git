@@ -311,7 +311,7 @@ static struct lline *coalesce_lines(struct lline *base, int *lenbase,
 
 static char *grab_blob(struct repository *r,
 		       const struct object_id *oid, unsigned int mode,
-		       unsigned long *size, struct userdiff_driver *textconv,
+		       unsigned long *size, struct userdiff_textconv *textconv,
 		       const char *path)
 {
 	char *blob;
@@ -424,7 +424,7 @@ static void combine_diff(struct repository *r,
 			 mmfile_t *result_file,
 			 struct sline *sline, unsigned int cnt, int n,
 			 int num_parent, int result_deleted,
-			 struct userdiff_driver *textconv,
+			 struct userdiff_textconv *textconv,
 			 const char *path, long flags)
 {
 	unsigned int p_lno, lno;
@@ -1024,7 +1024,7 @@ static void show_patch_diff(struct combine_diff_path *elem, int num_parent,
 	int i, show_hunks;
 	mmfile_t result_file;
 	struct userdiff_driver *userdiff;
-	struct userdiff_driver *textconv = NULL;
+	struct userdiff_textconv *textconv = NULL;
 	int is_binary;
 	const char *line_prefix = diff_line_prefix(opt);
 

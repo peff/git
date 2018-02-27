@@ -120,8 +120,8 @@ static int has_changes(mmfile_t *one, mmfile_t *two,
 static int pickaxe_match(struct diff_filepair *p, struct diff_options *o,
 			 regex_t *regexp, kwset_t kws, pickaxe_fn fn)
 {
-	struct userdiff_driver *textconv_one = NULL;
-	struct userdiff_driver *textconv_two = NULL;
+	struct userdiff_textconv *textconv_one = NULL;
+	struct userdiff_textconv *textconv_two = NULL;
 	mmfile_t mf1, mf2;
 	int ret;
 
