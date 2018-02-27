@@ -3451,9 +3451,13 @@ void diff_set_default_prefix(struct diff_options *options)
 	options->b_prefix = diff_dst_prefix ? diff_dst_prefix : "b/";
 }
 
-struct userdiff_textconv *get_textconv(struct repository *r,
-				       struct diff_filespec *one)
+struct userdiff_textconv *diff_get_textconv(struct repository *r,
+					    struct diff_options *opt,
+					    struct diff_filespec *one)
 {
+	if (!opt->flags.allow_textconv)
+		return NULL;
+
 	if (!DIFF_FILE_VALID(one))
 		return NULL;
 
@@ -3579,10 +3583,8 @@ static void builtin_diff(const char *name_a,
 		return;
 	}
 
-	if (o->flags.allow_textconv) {
-		textconv_one = get_textconv(o->repo, one);
-		textconv_two = get_textconv(o->repo, two);
-	}
+	textconv_one = diff_get_textconv(o->repo, o, one);
+	textconv_two = diff_get_textconv(o->repo, o, two);
 
 	/* Never use a non-valid filename anywhere if at all possible */
 	name_a = DIFF_FILE_VALID(one) ? name_a : name_b;
@@ -7350,6 +7352,7 @@ size_t fill_textconv(struct repository *r,
 }
 
 int textconv_object(struct repository *r,
+		    struct diff_options *opt,
 		    const char *path,
 		    unsigned mode,
 		    const struct object_id *oid,
@@ -7357,12 +7360,20 @@ int textconv_object(struct repository *r,
 		    char **buf,
 		    unsigned long *buf_size)
 {
+	struct diff_options fallback_opt;
 	struct diff_filespec *df;
 	struct userdiff_textconv *textconv;
 
+	if (!opt) {
+		repo_diff_setup(r, &fallback_opt);
+		fallback_opt.flags.allow_textconv = 1;
+		diff_setup_done(&fallback_opt);
+		opt = &fallback_opt;
+	}
+
 	df = alloc_filespec(path);
 	fill_filespec(df, oid, oid_valid, mode);
-	textconv = get_textconv(r, df);
+	textconv = diff_get_textconv(r, opt, df);
 	if (!textconv) {
 		free_filespec(df);
 		return 0;
