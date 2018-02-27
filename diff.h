@@ -73,6 +73,7 @@ struct option;
 struct repository;
 struct rev_info;
 struct userdiff_driver;
+struct userdiff_textconv;
 
 typedef int (*pathchange_fn_t)(struct diff_options *options,
 		 struct combine_diff_path *path);
@@ -664,18 +665,16 @@ void show_interdiff(const struct object_id *, const struct object_id *,
 		    int indent, struct diff_options *);
 
 /*
- * Fill the contents of the filespec "df", respecting any textconv defined by
- * its userdiff driver.  The "driver" parameter must come from a
- * previous call to get_textconv(), and therefore should either be NULL or have
- * textconv enabled.
+ * Fill the contents of the filespec "df", respecting respecting the textconv
+ * driver (if non-NULL).
  *
  * Note that the memory ownership of the resulting buffer depends on whether
- * the driver field is NULL. If it is, then the memory belongs to the filespec
+ * the textconv field is NULL. If it is, then the memory belongs to the filespec
  * struct. If it is non-NULL, then "outbuf" points to a newly allocated buffer
  * that should be freed by the caller.
  */
 size_t fill_textconv(struct repository *r,
-		     struct userdiff_driver *driver,
+		     struct userdiff_textconv *textconv,
 		     struct diff_filespec *df,
 		     char **outbuf);
 
@@ -684,7 +683,7 @@ size_t fill_textconv(struct repository *r,
  * and only if it has textconv enabled (otherwise return NULL). The result
  * can be passed to fill_textconv().
  */
-struct userdiff_driver *get_textconv(struct repository *r,
+struct userdiff_textconv *get_textconv(struct repository *r,
 				     struct diff_filespec *one);
 
 /*
