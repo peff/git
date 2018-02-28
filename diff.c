@@ -55,6 +55,8 @@ static struct diff_options default_diff_options;
 static long diff_algorithm;
 static unsigned ws_error_highlight_default = WSEH_NEW;
 
+static struct userdiff_textconv autoencode_textconv = { "autoencode" };
+
 static char diff_colors[][COLOR_MAXLEN] = {
 	GIT_COLOR_RESET,
 	GIT_COLOR_NORMAL,	/* CONTEXT */
@@ -3425,6 +3427,8 @@ struct userdiff_textconv *diff_get_textconv(struct repository *r,
 					    struct diff_options *opt,
 					    struct diff_filespec *one)
 {
+	struct userdiff_textconv *textconv;
+
 	if (!opt->flags.allow_textconv)
 		return NULL;
 
@@ -3432,7 +3436,13 @@ struct userdiff_textconv *diff_get_textconv(struct repository *r,
 		return NULL;
 
 	diff_filespec_load_driver(one, r->index);
-	return userdiff_get_textconv(r, one->driver);
+	textconv = userdiff_get_textconv(r, one->driver);
+
+	if (!textconv && opt->flags.allow_autoencode &&
+	    diff_filespec_content_type(r, one) == DIFF_CONTENT_UTF)
+		textconv = &autoencode_textconv;
+
+	return textconv;
 }
 
 static void builtin_diff(const char *name_a,
@@ -5574,6 +5584,8 @@ static void prep_parse_options(struct diff_options *options)
 		OPT_CALLBACK_F(0, "textconv", options, NULL,
 			       N_("run external text conversion filters when comparing binary files"),
 			       PARSE_OPT_NOARG, diff_opt_textconv),
+		OPT_BOOL(0, "autoencode", &options->flags.allow_autoencode,
+			 N_("allow automatic encoding conversion")),
 		OPT_CALLBACK_F(0, "ignore-submodules", options, N_("<when>"),
 			       N_("ignore changes to submodules in the diff generation"),
 			       PARSE_OPT_NONEG | PARSE_OPT_OPTARG,
@@ -6901,6 +6913,35 @@ size_t fill_textconv(struct repository *r,
 	if (!DIFF_FILE_VALID(df)) {
 		*outbuf = "";
 		return 0;
+	}
+
+	if (textconv == &autoencode_textconv) {
+		size_t outsize;
+		const char *from_encoding;
+
+		if (diff_populate_filespec(r, df, 0))
+			die("unable to read files to diff");
+
+		from_encoding = buffer_has_utf_bom(df->data, df->size);
+		if (!from_encoding)
+			BUG("autoencode triggered for non-utf content");
+
+		*outbuf = reencode_string_len(df->data, df->size,
+					      "UTF-8", from_encoding,
+					      &outsize);
+
+		/*
+		 * FIXME Our encoding guess failed. It's too late to return
+		 * the original content, since the caller has already decided
+		 * not to treat the contents as binary. But we could perhaps
+		 * give some munged text form (e.g., by escaping high-bit
+		 * characters and NULs).
+		 */
+		if (!*outbuf)
+			die_errno("unable to reencode from %s for path '%s'",
+				  from_encoding, df->path);
+
+		return outsize;
 	}
 
 	if (!textconv) {
