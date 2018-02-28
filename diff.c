@@ -5199,6 +5199,8 @@ void repo_diff_setup(struct repository *r, struct diff_options *options)
 
 	options->color_moved = diff_color_moved_default;
 	options->color_moved_ws_handling = diff_color_moved_ws_default;
+
+	options->flags.allow_autoencode = -1;
 }
 
 static const char diff_status_letters[] = {
@@ -5397,6 +5399,9 @@ void diff_setup_done(struct diff_options *options)
 
 	if (options->pathspec.has_wildcard && options->max_depth_valid)
 		die("max-depth cannot be used with wildcard pathspecs");
+
+	if (options->flags.allow_autoencode == -1)
+		options->flags.allow_autoencode = !options->flags.binary;
 }
 
 int parse_long_opt(const char *opt, const char **argv,
