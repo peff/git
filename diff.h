@@ -176,7 +176,7 @@ struct diff_flags {
 	unsigned dirstat_by_file;
 	unsigned allow_textconv;
 	unsigned textconv_set_via_cmdline;
-	unsigned allow_autoencode;
+	int allow_autoencode;
 	unsigned diff_from_contents;
 	unsigned dirty_submodules;
 	unsigned ignore_untracked_in_submodules;

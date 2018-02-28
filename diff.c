@@ -4639,6 +4639,8 @@ void repo_diff_setup(struct repository *r, struct diff_options *options)
 	options->color_moved = diff_color_moved_default;
 	options->color_moved_ws_handling = diff_color_moved_ws_default;
 
+	options->flags.allow_autoencode = -1;
+
 	prep_parse_options(options);
 }
 
@@ -4743,6 +4745,9 @@ void diff_setup_done(struct diff_options *options)
 
 	if (!options->use_color || external_diff())
 		options->color_moved = 0;
+
+	if (options->flags.allow_autoencode == -1)
+		options->flags.allow_autoencode = !options->flags.binary;
 
 	FREE_AND_NULL(options->parseopts);
 }
