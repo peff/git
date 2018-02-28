@@ -4835,6 +4835,8 @@ void repo_diff_setup(struct repository *r, struct diff_options *options)
 
 	options->color_moved = diff_color_moved_default;
 	options->color_moved_ws_handling = diff_color_moved_ws_default;
+
+	options->flags.allow_autoencode = -1;
 }
 
 static const char diff_status_letters[] = {
@@ -5029,6 +5031,9 @@ void diff_setup_done(struct diff_options *options)
 			options->filter = ~filter_bit[DIFF_STATUS_FILTER_AON];
 		options->filter &= ~options->filter_not;
 	}
+
+	if (options->flags.allow_autoencode == -1)
+		options->flags.allow_autoencode = !options->flags.binary;
 }
 
 int parse_long_opt(const char *opt, const char **argv,
