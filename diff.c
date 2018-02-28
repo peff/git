@@ -3351,6 +3351,27 @@ static void emit_binary_diff(struct diff_options *o,
 	emit_binary_diff_body(o, two, one);
 }
 
+static const char *buffer_has_utf_bom(const void *vdata, size_t size)
+{
+	const unsigned char *data = vdata;
+
+	if (size >= 4) {
+		if (data[0] == 0x00 && data[1] == 0x00 &&
+		    data[2] == 0xfe && data[3] == 0xff)
+			return "UTF-32";
+		if (data[0] == 0xff && data[1] == 0xfe &&
+		    data[2] == 0x00 && data[3] == 0x00)
+			return "UTF-32";
+	}
+	if (size >= 2) {
+		if (data[0] == 0xfe && data[1] == 0xff)
+			return "UTF-16";
+		if (data[0] == 0xff && data[1] == 0xfe)
+			return "UTF-16";
+	}
+	return NULL;
+}
+
 enum diff_content diff_filespec_content_type(struct repository *r,
 					     struct diff_filespec *one)
 {
@@ -3368,6 +3389,8 @@ enum diff_content diff_filespec_content_type(struct repository *r,
 			if (one->content_type == DIFF_CONTENT_UNKNOWN && one->data) {
 				if (!buffer_is_binary(one->data, one->size))
 					one->content_type = DIFF_CONTENT_TEXT;
+				else if (buffer_has_utf_bom(one->data, one->size))
+					one->content_type = DIFF_CONTENT_UTF;
 				else
 					one->content_type = DIFF_CONTENT_BINARY;
 			}

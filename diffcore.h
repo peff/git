@@ -58,7 +58,8 @@ struct diff_filespec {
 	enum diff_content {
 		DIFF_CONTENT_UNKNOWN = -1,
 		DIFF_CONTENT_TEXT = 0,
-		DIFF_CONTENT_BINARY = 1
+		DIFF_CONTENT_BINARY = 1,
+		DIFF_CONTENT_UTF
 	} content_type;
 	struct userdiff_driver *driver;
 };
