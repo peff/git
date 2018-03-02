@@ -196,9 +196,9 @@ void get_commit_format(const char *arg, struct rev_info *rev)
 /*
  * Generic support for pretty-printing the header
  */
-static int get_one_line(const char *msg)
+static size_t get_one_line(const char *msg)
 {
-	int ret = 0;
+	size_t ret = 0;
 
 	for (;;) {
 		char c = *msg++;
@@ -260,20 +260,20 @@ static int needs_rfc822_quoting(const char *s, int len)
 	return 0;
 }
 
-static int last_line_length(struct strbuf *sb)
+static size_t last_line_length(struct strbuf *sb)
 {
-	int i;
+	size_t i;
 
 	/* How many bytes are already used on the last line? */
-	for (i = sb->len - 1; i >= 0; i--)
+	for (i = sb->len - 1; i != SIZE_MAX; i--)
 		if (sb->buf[i] == '\n')
 			break;
 	return sb->len - (i + 1);
 }
 
-static void add_rfc822_quoted(struct strbuf *out, const char *s, int len)
+static void add_rfc822_quoted(struct strbuf *out, const char *s, size_t len)
 {
-	int i;
+	size_t i;
 
 	/* just a guess, we may have to also backslash-quote */
 	strbuf_grow(out, len + 2);
@@ -349,9 +349,9 @@ static int is_rfc2047_special(char ch, enum rfc2047_type type)
 	return !(isalnum(ch) || ch == '!' || ch == '*' || ch == '+' || ch == '-' || ch == '/');
 }
 
-static int needs_rfc2047_encoding(const char *line, int len)
+static int needs_rfc2047_encoding(const char *line, size_t len)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < len; i++) {
 		int ch = line[i];
@@ -369,7 +369,7 @@ static void add_rfc2047(struct strbuf *sb, const char *line, size_t len,
 {
 	static const int max_encoded_length = 76; /* per rfc2047 */
 	int i;
-	int line_len = last_line_length(sb);
+	size_t line_len = last_line_length(sb);
 
 	strbuf_grow(sb, len * 3 + strlen(encoding) + 100);
 	strbuf_addf(sb, "=?%s?q?", encoding);
@@ -521,9 +521,9 @@ void pp_user_info(struct pretty_print_context *pp,
 	}
 }
 
-static int is_blank_line(const char *line, int *len_p)
+static size_t is_blank_line(const char *line, size_t *len_p)
 {
-	int len = *len_p;
+	size_t len = *len_p;
 	while (len && isspace(line[len - 1]))
 		len--;
 	*len_p = len;
@@ -533,8 +533,8 @@ static int is_blank_line(const char *line, int *len_p)
 const char *skip_blank_lines(const char *msg)
 {
 	for (;;) {
-		int linelen = get_one_line(msg);
-		int ll = linelen;
+		size_t linelen = get_one_line(msg);
+		size_t ll = linelen;
 		if (!linelen)
 			break;
 		if (!is_blank_line(msg, &ll))
@@ -686,7 +686,7 @@ static int mailmap_name(const char **email, size_t *email_len,
 }
 
 static size_t format_person_part(struct strbuf *sb, char part,
-				 const char *msg, int len,
+				 const char *msg, size_t len,
 				 const struct date_mode *dmode)
 {
 	/* currently all placeholders have same length */
@@ -799,7 +799,7 @@ struct format_commit_context {
 	char *commit_encoding;
 	size_t width, indent1, indent2;
 	int auto_color;
-	int padding;
+	size_t padding;
 
 	/* These offsets are relative to the start of the commit message. */
 	struct chunk author;
@@ -815,11 +815,11 @@ struct format_commit_context {
 static void parse_commit_header(struct format_commit_context *context)
 {
 	const char *msg = context->message;
-	int i;
+	size_t i;
 
 	for (i = 0; msg[i]; i++) {
 		const char *name;
-		int eol;
+		size_t eol;
 		for (eol = i; msg[eol] && msg[eol] != '\n'; eol++)
 			; /* do nothing */
 
@@ -880,7 +880,7 @@ const char *format_subject(struct strbuf *sb, const char *msg,
 
 	for (;;) {
 		const char *line = msg;
-		int linelen = get_one_line(line);
+		size_t linelen = get_one_line(line);
 
 		msg += linelen;
 		if (!linelen || is_blank_line(line, &linelen))
@@ -941,10 +941,10 @@ static void rewrap_message_tail(struct strbuf *sb,
 	c->indent2 = new_indent2;
 }
 
-static int format_reflog_person(struct strbuf *sb,
-				char part,
-				struct reflog_walk_info *log,
-				const struct date_mode *dmode)
+static size_t format_reflog_person(struct strbuf *sb,
+				   char part,
+				   struct reflog_walk_info *log,
+				   const struct date_mode *dmode)
 {
 	const char *ident;
 
@@ -1574,10 +1574,10 @@ static size_t format_and_pad_commit(struct strbuf *sb, /* in UTF-8 */
 				    struct format_commit_context *c)
 {
 	struct strbuf local_sb = STRBUF_INIT;
-	int total_consumed = 0, len, padding = c->padding;
-	if (padding < 0) {
+	size_t total_consumed = 0, len, padding = c->padding;
+	if (padding == SIZE_MAX) {
 		const char *start = strrchr(sb->buf, '\n');
-		int occupied;
+		size_t occupied;
 		if (!start)
 			start = sb->buf;
 		occupied = utf8_strnwidth(start, -1, 1);
@@ -1805,7 +1805,7 @@ static void pp_header(struct pretty_print_context *pp,
 
 	for (;;) {
 		const char *name, *line = *msg_p;
-		int linelen = get_one_line(*msg_p);
+		size_t linelen = get_one_line(*msg_p);
 
 		if (!linelen)
 			return;
@@ -1932,7 +1932,7 @@ static int pp_utf8_width(const char *start, const char *end)
 }
 
 static void strbuf_add_tabexpand(struct strbuf *sb, int tabwidth,
-				 const char *line, int linelen)
+				 const char *line, size_t linelen)
 {
 	const char *tab;
 
@@ -1974,7 +1974,7 @@ static void strbuf_add_tabexpand(struct strbuf *sb, int tabwidth,
  */
 static void pp_handle_indent(struct pretty_print_context *pp,
 			     struct strbuf *sb, int indent,
-			     const char *line, int linelen)
+			     const char *line, size_t linelen)
 {
 	strbuf_addchars(sb, ' ', indent);
 	if (pp->expand_tabs_in_log)
@@ -1983,7 +1983,7 @@ static void pp_handle_indent(struct pretty_print_context *pp,
 		strbuf_add(sb, line, linelen);
 }
 
-static int is_mboxrd_from(const char *line, int len)
+static int is_mboxrd_from(const char *line, size_t len)
 {
 	/*
 	 * a line matching /^From $/ here would only have len == 4
@@ -2001,7 +2001,7 @@ void pp_remainder(struct pretty_print_context *pp,
 	int first = 1;
 	for (;;) {
 		const char *line = *msg_p;
-		int linelen = get_one_line(line);
+		size_t linelen = get_one_line(line);
 		*msg_p += linelen;
 
 		if (!linelen)
@@ -2036,7 +2036,7 @@ void pretty_print_commit(struct pretty_print_context *pp,
 			 const struct commit *commit,
 			 struct strbuf *sb)
 {
-	unsigned long beginning_of_body;
+	size_t beginning_of_body;
 	int indent = 4;
 	const char *msg;
 	const char *reencoded;
