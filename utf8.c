@@ -206,7 +206,7 @@ int utf8_width(const char **start, size_t *remainder_p)
  * string, assuming that the string is utf8.  Returns strlen() instead
  * if the string does not look like a valid utf8 string.
  */
-int utf8_strnwidth(const char *string, int len, int skip_ansi)
+size_t utf8_strnwidth(const char *string, size_t len, int skip_ansi)
 {
 	int width = 0;
 	const char *orig = string;
@@ -223,7 +223,7 @@ int utf8_strnwidth(const char *string, int len, int skip_ansi)
 	return string ? width : len;
 }
 
-int utf8_strwidth(const char *string)
+size_t utf8_strwidth(const char *string)
 {
 	return utf8_strnwidth(string, -1, 0);
 }
