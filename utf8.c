@@ -211,7 +211,7 @@ size_t utf8_strnwidth(const char *string, size_t len, int skip_ansi)
 	int width = 0;
 	const char *orig = string;
 
-	if (len == -1)
+	if (len == SIZE_MAX)
 		len = strlen(string);
 	while (string && string < orig + len) {
 		int skip;
