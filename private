@@ -62,7 +62,7 @@ fi
 
 for i in `Meta/topics`; do
 	case "$i" in
-	*-wip)
+	*-wip|*-stale)
 		echo >&2 "Skipping $i (wip)..."
 		continue
 		;;

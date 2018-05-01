@@ -21,7 +21,7 @@ esac
 
 for i in `Meta/topics -t`; do
 	case "$i" in
-	*-wip)
+	*-wip|*-stale)
 		continue
 		;;
 	esac

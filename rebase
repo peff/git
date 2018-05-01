@@ -77,7 +77,7 @@ done |
 tsort |
 while read i upstream; do
 	case "$i" in
-	*/maint-*|*-maint)
+	*/maint-*|*-maint|*-stale)
 		echo "===> Skipping $i (maint)"
 		continue
 		;;
