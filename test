@@ -9,6 +9,7 @@ while test $# -gt 0; do
 	case "$1" in
 	-c) GIT_META_TEST='git test run -t compile' ;;
 	-t) GIT_META_TEST="make -j8 && (cd t && ./t${2#t}-*.sh)"; shift ;;
+	--retest) GIT_META_TEST='git test run --retest HEAD' ;;
 	*) break ;;
 	esac
 	shift
