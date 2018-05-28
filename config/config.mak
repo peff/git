@@ -30,6 +30,7 @@ CFLAGS += -Wdeclaration-after-statement
 CFLAGS += -Wpointer-arith
 CFLAGS += -Wstrict-prototypes
 CFLAGS += -Wvla
+CFLAGS += -Wmissing-prototypes
 ifeq ($(patsubst clang-%,clang,$(COMPILER)), clang)
 CFLAGS += -Wtautological-constant-out-of-range-compare
 else
