@@ -49,13 +49,27 @@ if test "$cont" = t; then
 		GIT_EDITOR=true git commit || exit
 	fi
 else
-	test -z "$force" &&
-	test -n "`git rev-list -1 --no-merges --first-parent \
-		 $upstream..private`" &&
-	  {
-		  git log --no-merges --first-parent $upstream..private
-		  exit 1
-	  }
+	fixup=
+	extra=
+	tmp="$GIT_DIR/private-commits"
+	git rev-list --oneline --no-merges --first-parent $upstream..private >"$tmp"
+	while read hash subject; do
+		case "$subject" in
+		"merge-fixup "*)
+			fixup="$fixup $hash:${subject#merge-fixup }"
+			;;
+		*)
+			extra="$extra $hash"
+			;;
+		esac
+	done <"$tmp"
+	rm -f "$tmp"
+
+	if test -z "$force" && test -n "$extra"; then
+		git log --no-walk $extra
+		exit 1
+	fi
+
 	git checkout -q ${force:+-f} $upstream^0 || exit
 	echo "Meta/private --continue $options" >"$GIT_DIR/continue"
 fi
@@ -87,6 +101,15 @@ for i in `Meta/topics`; do
 			exit 1
 		fi
 	fi
+	for f in $fixup; do
+		case "$f" in
+		*:$i)
+			hash=${f%:$i}
+			echo >&2 "Applying fixup for $i ($hash)..."
+			git cherry-pick $hash || exit 1
+			;;
+		esac
+	done
 	if test "$careful" -gt 0; then
 		make -j16 || exit 1
 		if test "$careful" -gt 1; then
