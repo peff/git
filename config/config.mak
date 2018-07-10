@@ -58,7 +58,6 @@ endif
 USE_LIBPCRE = YesPlease
 
 GIT_TEST_OPTS = --root=/var/ram/git-tests
-TEST_LINT = test-lint
 GIT_PROVE_OPTS= -j16 --state=slow,save
 DEFAULT_TEST_TARGET = prove
 export GIT_TEST_HTTPD = Yes
