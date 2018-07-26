@@ -39,6 +39,7 @@ shift
 done
 
 GIT_DIR=`git rev-parse --git-dir` || exit
+FIXUP_FILE=$GIT_DIR/private-fixup
 
 if test "$cont" = t; then
 	if git symbolic-ref -q HEAD >/dev/null; then
@@ -48,7 +49,9 @@ if test "$cont" = t; then
 	if test -f "$GIT_DIR/MERGE_HEAD"; then
 		GIT_EDITOR=true git commit || exit
 	fi
+	fixup=$(cat "$FIXUP_FILE")
 else
+	>"$FIXUP_FILE"
 	fixup=
 	extra=
 	tmp="$GIT_DIR/private-commits"
@@ -72,6 +75,7 @@ else
 
 	git checkout -q ${force:+-f} $upstream^0 || exit
 	echo "Meta/private --continue $options" >"$GIT_DIR/continue"
+	echo "$fixup" >"$FIXUP_FILE"
 fi
 
 for i in `Meta/topics`; do
