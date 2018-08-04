@@ -1,9 +1,13 @@
 Meta = $(HOME)/compile/git/Meta
+ifeq ($(GIT_VERSION),omitted)
+prefix := /none
+else
 prefix_base := $(shell $(Meta)/install/prefix)
 ifeq ($(prefix_base), detached)
 prefix := /do/not/install
 else
 prefix := $(HOME)/local/git/$(prefix_base)
+endif
 endif
 
 CFLAGS =
