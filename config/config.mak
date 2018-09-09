@@ -29,17 +29,11 @@ O = 0
 CC = ccache $(COMPILER)
 export CCACHE_CPP2=1
 CFLAGS += -g -O$(O)
-CFLAGS += -Wall -Werror
-CFLAGS += -Wdeclaration-after-statement
-CFLAGS += -Wpointer-arith
-CFLAGS += -Wstrict-prototypes
-CFLAGS += -Wvla
-CFLAGS += -Wmissing-prototypes
+CFLAGS += -Wall
 ifeq ($(patsubst clang-%,clang,$(COMPILER)), clang)
 CFLAGS += -Wtautological-constant-out-of-range-compare
 else
 CFLAGS += -Wold-style-declaration
-CFLAGS += -Wold-style-definition
 endif
 LDFLAGS = -g
 
@@ -54,6 +48,8 @@ ifeq ($(strict),)
   CFLAGS += -Wno-error
   CFLAGS += -Wno-cpp
 imap-send.o: EXTRA_CPPFLAGS += -DNO_OPENSSL
+else
+  DEVELOPER = 1
 endif
 ifeq ($(filter-out %maint, $(head)),)
   CFLAGS += -Wno-unused-value -Wno-strict-prototypes
