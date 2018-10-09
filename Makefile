@@ -860,6 +860,7 @@ TEST_BUILTINS_OBJS += test-xml-encode.o
 # them in TEST_BUILTINS_OBJS above.
 TEST_PROGRAMS_NEED_X += test-fake-ssh
 TEST_PROGRAMS_NEED_X += test-tool
+TEST_PROGRAMS_NEED_X += test-tree-bitmap
 
 TEST_PROGRAMS = $(patsubst %,t/helper/%$X,$(TEST_PROGRAMS_NEED_X))
 
