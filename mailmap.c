@@ -8,7 +8,7 @@
 #define debug_mm(...) fprintf(stderr, __VA_ARGS__)
 #define debug_str(X) ((X) ? (X) : "(none)")
 #else
-static inline void debug_mm(const char *format, ...) {}
+static inline void debug_mm(const char *UNUSED(format), ...) {}
 static inline const char *debug_str(const char *s) { return s; }
 #endif
 
