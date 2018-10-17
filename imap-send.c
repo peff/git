@@ -920,7 +920,7 @@ static char *cram(const char *challenge_64, const char *user, const char *pass)
 
 #endif
 
-static int auth_cram_md5(struct imap_store *ctx, struct imap_cmd *cmd, const char *prompt)
+static int auth_cram_md5(struct imap_store *ctx, struct imap_cmd *UNUSED(cmd), const char *prompt)
 {
 	int ret;
 	char *response;
@@ -1408,7 +1408,7 @@ static int append_msgs_to_imap(struct imap_server_conf *server,
 }
 
 #ifdef USE_CURL_FOR_IMAP_SEND
-static CURL *setup_curl(struct imap_server_conf *srvc, struct credential *cred)
+static CURL *setup_curl(struct imap_server_conf *UNUSED(srvc), struct credential *cred)
 {
 	CURL *curl;
 	struct strbuf path = STRBUF_INIT;
