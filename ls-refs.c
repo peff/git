@@ -85,7 +85,8 @@ static int ls_refs_config(const char *var, const char *value,
 	return parse_hide_refs_config(var, value, "uploadpack");
 }
 
-int ls_refs(struct repository *r, struct strvec *keys,
+int ls_refs(struct repository *UNUSED(r),
+	    struct strvec *UNUSED(keys),
 	    struct packet_reader *request)
 {
 	struct ls_refs_data data;
