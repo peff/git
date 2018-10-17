@@ -74,7 +74,7 @@ static void send_info(struct repository *r, struct packet_writer *writer,
 	}
 }
 
-int cap_object_info(struct repository *r, struct strvec *keys,
+int cap_object_info(struct repository *r, struct strvec *UNUSED(keys),
 		    struct packet_reader *request)
 {
 	struct requested_info info;
