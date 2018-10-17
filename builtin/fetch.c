@@ -126,7 +126,8 @@ static int git_fetch_config(const char *k, const char *v, void *cb)
 	return git_default_config(k, v, cb);
 }
 
-static int parse_refmap_arg(const struct option *opt, const char *arg, int unset)
+static int parse_refmap_arg(const struct option *UNUSED(opt),
+			    const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
 
