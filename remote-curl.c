@@ -699,7 +699,7 @@ static size_t rpc_out(void *ptr, size_t eltsize,
 }
 
 #ifndef NO_CURL_IOCTL
-static curlioerr rpc_ioctl(CURL *handle, int cmd, void *clientp)
+static curlioerr rpc_ioctl(CURL *UNUSED(handle), int cmd, void *clientp)
 {
 	struct rpc_state *rpc = clientp;
 
