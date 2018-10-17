@@ -86,10 +86,10 @@ static void process_blob(struct traversal_context *ctx,
  * the link, and how to do it. Whether it necessarily makes
  * any sense what-so-ever to ever do that is another issue.
  */
-static void process_gitlink(struct traversal_context *ctx,
-			    const unsigned char *sha1,
-			    struct strbuf *path,
-			    const char *name)
+static void process_gitlink(struct traversal_context *UNUSED(ctx),
+			    const unsigned char *UNUSED(sha1),
+			    struct strbuf *UNUSED(path),
+			    const char *UNUSED(name))
 {
 	/* Nothing to do */
 }
