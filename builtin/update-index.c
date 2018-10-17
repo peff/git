@@ -817,7 +817,7 @@ static int chmod_callback(const struct option *opt,
 	return 0;
 }
 
-static int resolve_undo_clear_callback(const struct option *opt,
+static int resolve_undo_clear_callback(const struct option *UNUSED(opt),
 				const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);

@@ -98,7 +98,8 @@ static int parse_decoration_style(const char *value)
 	return -1;
 }
 
-static int decorate_callback(const struct option *opt, const char *arg, int unset)
+static int decorate_callback(const struct option *UNUSED(opt), const char *arg,
+			     int unset)
 {
 	if (unset)
 		decoration_style = 0;
@@ -1380,7 +1381,8 @@ static int inline_callback(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-static int header_callback(const struct option *opt, const char *arg, int unset)
+static int header_callback(const struct option *UNUSED(opt), const char *arg,
+			   int unset)
 {
 	if (unset) {
 		string_list_clear(&extra_hdr, 0);
@@ -1392,7 +1394,8 @@ static int header_callback(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-static int to_callback(const struct option *opt, const char *arg, int unset)
+static int to_callback(const struct option *UNUSED(opt), const char *arg,
+		       int unset)
 {
 	if (unset)
 		string_list_clear(&extra_to, 0);
@@ -1401,7 +1404,8 @@ static int to_callback(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-static int cc_callback(const struct option *opt, const char *arg, int unset)
+static int cc_callback(const struct option *UNUSED(opt), const char *arg,
+		       int unset)
 {
 	if (unset)
 		string_list_clear(&extra_cc, 0);

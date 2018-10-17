@@ -207,7 +207,9 @@ int parse_opt_string_list(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-int parse_opt_noop_cb(const struct option *opt, const char *arg, int unset)
+int parse_opt_noop_cb(const struct option *UNUSED(opt),
+		      const char *UNUSED(arg),
+		      int UNUSED(unset))
 {
 	return 0;
 }

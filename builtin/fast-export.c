@@ -48,7 +48,7 @@ static int anonymize;
 static struct hashmap anonymized_seeds;
 static struct revision_sources revision_sources;
 
-static int parse_opt_signed_tag_mode(const struct option *opt,
+static int parse_opt_signed_tag_mode(const struct option *UNUSED(opt),
 				     const char *arg, int unset)
 {
 	if (unset || !strcmp(arg, "abort"))
@@ -66,7 +66,7 @@ static int parse_opt_signed_tag_mode(const struct option *opt,
 	return 0;
 }
 
-static int parse_opt_tag_of_filtered_mode(const struct option *opt,
+static int parse_opt_tag_of_filtered_mode(const struct option *UNUSED(opt),
 					  const char *arg, int unset)
 {
 	if (unset || !strcmp(arg, "abort"))
@@ -80,7 +80,7 @@ static int parse_opt_tag_of_filtered_mode(const struct option *opt,
 	return 0;
 }
 
-static int parse_opt_reencode_mode(const struct option *opt,
+static int parse_opt_reencode_mode(const struct option *UNUSED(opt),
 				   const char *arg, int unset)
 {
 	if (unset) {

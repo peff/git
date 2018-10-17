@@ -212,7 +212,7 @@ static void append_strategy(struct strategy *s)
 	use_strategies[use_strategies_nr++] = s;
 }
 
-static int option_parse_strategy(const struct option *opt,
+static int option_parse_strategy(const struct option *UNUSED(opt),
 				 const char *name, int unset)
 {
 	if (unset)
@@ -222,7 +222,7 @@ static int option_parse_strategy(const struct option *opt,
 	return 0;
 }
 
-static int option_parse_x(const struct option *opt,
+static int option_parse_x(const struct option *UNUSED(opt),
 			  const char *arg, int unset)
 {
 	if (unset)
@@ -233,7 +233,7 @@ static int option_parse_x(const struct option *opt,
 	return 0;
 }
 
-static int option_parse_n(const struct option *opt,
+static int option_parse_n(const struct option *UNUSED(opt),
 			  const char *arg, int unset)
 {
 	BUG_ON_OPT_ARG(arg);
