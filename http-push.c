@@ -607,7 +607,7 @@ static void finish_request(struct transfer_request *request)
 
 #ifdef USE_CURL_MULTI
 static int is_running_queue;
-static int fill_active_slot(void *unused)
+static int fill_active_slot(void *UNUSED(data))
 {
 	struct transfer_request *request;
 
