@@ -42,7 +42,8 @@ static const char *color_grep_slots[] = {
 	[GREP_COLOR_SEP]	    = "separator",
 };
 
-static void std_output(struct grep_opt *opt, const void *buf, size_t size)
+static void std_output(struct grep_opt *UNUSED(opt),
+		       const void *buf, size_t size)
 {
 	fwrite(buf, size, 1, stdout);
 }
