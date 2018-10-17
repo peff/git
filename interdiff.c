@@ -3,7 +3,7 @@
 #include "revision.h"
 #include "interdiff.h"
 
-static struct strbuf *idiff_prefix_cb(struct diff_options *opt, void *data)
+static struct strbuf *idiff_prefix_cb(struct diff_options *UNUSED(opt), void *data)
 {
 	return data;
 }

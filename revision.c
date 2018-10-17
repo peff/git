@@ -604,10 +604,12 @@ static struct commit *one_relevant_parent(const struct rev_info *revs,
 static int tree_difference = REV_TREE_SAME;
 
 static void file_add_remove(struct diff_options *options,
-		    int addremove, unsigned mode,
-		    const struct object_id *oid,
-		    int oid_valid,
-		    const char *fullpath, unsigned dirty_submodule)
+		    int addremove,
+		    unsigned UNUSED(mode),
+		    const struct object_id *UNUSED(oid),
+		    int UNUSED(oid_valid),
+		    const char *UNUSED(fullpath),
+		    unsigned UNUSED(dirty_submodule))
 {
 	int diff = addremove == '+' ? REV_TREE_NEW : REV_TREE_OLD;
 	struct rev_info *revs = options->change_fn_data;
@@ -618,12 +620,15 @@ static void file_add_remove(struct diff_options *options,
 }
 
 static void file_change(struct diff_options *options,
-		 unsigned old_mode, unsigned new_mode,
-		 const struct object_id *old_oid,
-		 const struct object_id *new_oid,
-		 int old_oid_valid, int new_oid_valid,
-		 const char *fullpath,
-		 unsigned old_dirty_submodule, unsigned new_dirty_submodule)
+		 unsigned UNUSED(old_mode),
+		 unsigned UNUSED(new_mode),
+		 const struct object_id *UNUSED(old_oid),
+		 const struct object_id *UNUSED(new_oid),
+		 int UNUSED(old_oid_valid),
+		 int UNUSED(new_oid_valid),
+		 const char *UNUSED(fullpath),
+		 unsigned UNUSED(old_dirty_submodule),
+		 unsigned UNUSED(new_dirty_submodule))
 {
 	tree_difference = REV_TREE_DIFFERENT;
 	options->flags.has_changes = 1;

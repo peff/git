@@ -785,7 +785,7 @@ static const char *default_name_or_path(const char *path_or_name)
 }
 
 static void collect_changed_submodules_cb(struct diff_queue_struct *q,
-					  struct diff_options *options,
+					  struct diff_options *UNUSED(options),
 					  void *data)
 {
 	struct collect_changed_submodules_cb_data *me = data;

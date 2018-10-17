@@ -124,7 +124,8 @@ static void print_new_head_line(struct commit *commit)
 }
 
 static void update_index_from_diff(struct diff_queue_struct *q,
-		struct diff_options *opt, void *data)
+				   struct diff_options *UNUSED(opt),
+				   void *data)
 {
 	int i;
 	int intent_to_add = *(int *)data;

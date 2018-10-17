@@ -1204,7 +1204,7 @@ static void prepare_submodule_summary(struct summary_cb *info,
 }
 
 static void submodule_summary_callback(struct diff_queue_struct *q,
-				       struct diff_options *options,
+				       struct diff_options *UNUSED(options),
 				       void *data)
 {
 	int i;
