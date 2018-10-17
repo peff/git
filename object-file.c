@@ -159,7 +159,8 @@ static void git_hash_unknown_final(unsigned char *hash, git_hash_ctx *ctx)
 	BUG("trying to finalize unknown hash");
 }
 
-static void git_hash_unknown_final_oid(struct object_id *oid, git_hash_ctx *ctx)
+static void git_hash_unknown_final_oid(struct object_id *UNUSED(oid),
+				       git_hash_ctx *UNUSED(ctx))
 {
 	BUG("trying to finalize unknown hash");
 }
