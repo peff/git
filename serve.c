@@ -8,13 +8,13 @@
 #include "serve.h"
 #include "upload-pack.h"
 
-static int always_advertise(struct repository *r,
-			    struct strbuf *value)
+static int always_advertise(struct repository *UNUSED(r),
+			    struct strbuf *UNUSED(value))
 {
 	return 1;
 }
 
-static int agent_advertise(struct repository *r,
+static int agent_advertise(struct repository *UNUSED(r),
 			   struct strbuf *value)
 {
 	if (value)
