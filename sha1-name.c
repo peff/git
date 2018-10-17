@@ -228,7 +228,7 @@ static int finish_object_disambiguation(struct disambiguate_state *ds,
 
 static int disambiguate_commit_only(struct repository *r,
 				    const struct object_id *oid,
-				    void *cb_data_unused)
+				    void *UNUSED(cb_data))
 {
 	int kind = oid_object_info(r, oid, NULL);
 	return kind == OBJ_COMMIT;
@@ -236,7 +236,7 @@ static int disambiguate_commit_only(struct repository *r,
 
 static int disambiguate_committish_only(struct repository *r,
 					const struct object_id *oid,
-					void *cb_data_unused)
+					void *UNUSED(cb_data))
 {
 	struct object *obj;
 	int kind;
@@ -256,7 +256,7 @@ static int disambiguate_committish_only(struct repository *r,
 
 static int disambiguate_tree_only(struct repository *r,
 				  const struct object_id *oid,
-				  void *cb_data_unused)
+				  void *UNUSED(cb_data))
 {
 	int kind = oid_object_info(r, oid, NULL);
 	return kind == OBJ_TREE;
@@ -264,7 +264,7 @@ static int disambiguate_tree_only(struct repository *r,
 
 static int disambiguate_treeish_only(struct repository *r,
 				     const struct object_id *oid,
-				     void *cb_data_unused)
+				     void *UNUSED(cb_data))
 {
 	struct object *obj;
 	int kind;
@@ -284,7 +284,7 @@ static int disambiguate_treeish_only(struct repository *r,
 
 static int disambiguate_blob_only(struct repository *r,
 				  const struct object_id *oid,
-				  void *cb_data_unused)
+				  void *UNUSED(cb_data))
 {
 	int kind = oid_object_info(r, oid, NULL);
 	return kind == OBJ_BLOB;
