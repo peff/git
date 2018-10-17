@@ -127,7 +127,7 @@ struct bundle_transport_data {
 
 static struct ref *get_refs_from_bundle(struct transport *transport,
 					int for_push,
-					const struct strvec *ref_prefixes)
+					const struct strvec *UNUSED(ref_prefixes))
 {
 	struct bundle_transport_data *data = transport->data;
 	struct ref *result = NULL;
