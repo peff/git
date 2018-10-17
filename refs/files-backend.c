@@ -2899,7 +2899,7 @@ cleanup:
 
 static int files_transaction_abort(struct ref_store *ref_store,
 				   struct ref_transaction *transaction,
-				   struct strbuf *err)
+				   struct strbuf *UNUSED(err))
 {
 	struct files_ref_store *refs =
 		files_downcast(ref_store, 0, "ref_transaction_abort");
@@ -3158,7 +3158,7 @@ static int files_reflog_expire(struct ref_store *ref_store,
 	return -1;
 }
 
-static int files_init_db(struct ref_store *ref_store, struct strbuf *err)
+static int files_init_db(struct ref_store *ref_store, struct strbuf *UNUSED(err))
 {
 	struct files_ref_store *refs =
 		files_downcast(ref_store, REF_STORE_WRITE, "init_db");
