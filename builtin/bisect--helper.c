@@ -274,8 +274,9 @@ static int check_and_set_terms(struct bisect_terms *terms, const char *cmd)
 	return 0;
 }
 
-static int mark_good(const char *refname, const struct object_id *oid,
-		     int flag, void *cb_data)
+static int mark_good(const char *UNUSED(refname),
+		     const struct object_id *UNUSED(oid),
+		     int UNUSED(flag), void *cb_data)
 {
 	int *m_good = (int *)cb_data;
 	*m_good = 0;

@@ -363,7 +363,8 @@ struct warn_if_dangling_data {
 	const char *msg_fmt;
 };
 
-static int warn_if_dangling_symref(const char *refname, const struct object_id *oid,
+static int warn_if_dangling_symref(const char *refname,
+				   const struct object_id *UNUSED(oid),
 				   int flags, void *cb_data)
 {
 	struct warn_if_dangling_data *d = cb_data;
