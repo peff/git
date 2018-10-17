@@ -260,7 +260,8 @@ static int refname_atom_parser_internal(struct refname_atom *atom, const char *a
 	return 0;
 }
 
-static int remote_ref_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int remote_ref_atom_parser(const struct ref_format *UNUSED(format),
+				  struct used_atom *atom,
 				  const char *arg, struct strbuf *err)
 {
 	struct string_list params = STRING_LIST_INIT_DUP;
@@ -307,7 +308,8 @@ static int remote_ref_atom_parser(const struct ref_format *format, struct used_a
 	return 0;
 }
 
-static int objecttype_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int objecttype_atom_parser(const struct ref_format *UNUSED(format),
+				  struct used_atom *atom,
 				  const char *arg, struct strbuf *err)
 {
 	if (arg)
@@ -319,7 +321,8 @@ static int objecttype_atom_parser(const struct ref_format *format, struct used_a
 	return 0;
 }
 
-static int objectsize_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int objectsize_atom_parser(const struct ref_format *UNUSED(format),
+				  struct used_atom *atom,
 				  const char *arg, struct strbuf *err)
 {
 	if (!arg) {
@@ -339,7 +342,8 @@ static int objectsize_atom_parser(const struct ref_format *format, struct used_a
 	return 0;
 }
 
-static int deltabase_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int deltabase_atom_parser(const struct ref_format *UNUSED(format),
+				 struct used_atom *atom,
 				 const char *arg, struct strbuf *err)
 {
 	if (arg)
@@ -351,7 +355,8 @@ static int deltabase_atom_parser(const struct ref_format *format, struct used_at
 	return 0;
 }
 
-static int body_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int body_atom_parser(const struct ref_format *UNUSED(format),
+			    struct used_atom *atom,
 			    const char *arg, struct strbuf *err)
 {
 	if (arg)
@@ -360,7 +365,8 @@ static int body_atom_parser(const struct ref_format *format, struct used_atom *a
 	return 0;
 }
 
-static int subject_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int subject_atom_parser(const struct ref_format *UNUSED(format),
+			       struct used_atom *atom,
 			       const char *arg, struct strbuf *err)
 {
 	if (!arg)
@@ -372,7 +378,8 @@ static int subject_atom_parser(const struct ref_format *format, struct used_atom
 	return 0;
 }
 
-static int trailers_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int trailers_atom_parser(const struct ref_format *UNUSED(format),
+				struct used_atom *atom,
 				const char *arg, struct strbuf *err)
 {
 	atom->u.contents.trailer_opts.no_divider = 1;
@@ -426,7 +433,8 @@ static int contents_atom_parser(const struct ref_format *format, struct used_ato
 	return 0;
 }
 
-static int oid_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int oid_atom_parser(const struct ref_format *UNUSED(format),
+			   struct used_atom *atom,
 			   const char *arg, struct strbuf *err)
 {
 	if (!arg)
@@ -445,7 +453,8 @@ static int oid_atom_parser(const struct ref_format *format, struct used_atom *at
 	return 0;
 }
 
-static int person_email_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int person_email_atom_parser(const struct ref_format *UNUSED(format),
+				    struct used_atom *atom,
 				    const char *arg, struct strbuf *err)
 {
 	if (!arg)
@@ -459,7 +468,8 @@ static int person_email_atom_parser(const struct ref_format *format, struct used
 	return 0;
 }
 
-static int refname_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int refname_atom_parser(const struct ref_format *UNUSED(format),
+			       struct used_atom *atom,
 			       const char *arg, struct strbuf *err)
 {
 	return refname_atom_parser_internal(&atom->u.refname, arg, atom->name, err);
@@ -476,7 +486,8 @@ static align_type parse_align_position(const char *s)
 	return -1;
 }
 
-static int align_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int align_atom_parser(const struct ref_format *UNUSED(format),
+			     struct used_atom *atom,
 			     const char *arg, struct strbuf *err)
 {
 	struct align *align = &atom->u.align;
@@ -528,7 +539,8 @@ static int align_atom_parser(const struct ref_format *format, struct used_atom *
 	return 0;
 }
 
-static int if_atom_parser(const struct ref_format *format, struct used_atom *atom,
+static int if_atom_parser(const struct ref_format *UNUSED(format),
+			  struct used_atom *atom,
 			  const char *arg, struct strbuf *err)
 {
 	if (!arg) {
@@ -543,8 +555,10 @@ static int if_atom_parser(const struct ref_format *format, struct used_atom *ato
 	return 0;
 }
 
-static int head_atom_parser(const struct ref_format *format, struct used_atom *atom,
-			    const char *arg, struct strbuf *unused_err)
+static int head_atom_parser(const struct ref_format *UNUSED(format),
+			    struct used_atom *atom,
+			    const char *UNUSED(arg),
+			    struct strbuf *UNUSED(err))
 {
 	atom->u.head = resolve_refdup("HEAD", RESOLVE_REF_READING, NULL, NULL);
 	return 0;
@@ -731,7 +745,7 @@ static void quote_formatting(struct strbuf *s, const char *str, int quote_style)
 }
 
 static int append_atom(struct atom_value *v, struct ref_formatting_state *state,
-		       struct strbuf *unused_err)
+		       struct strbuf *UNUSED(err))
 {
 	/*
 	 * Quote formatting is only done when the stack has a single
@@ -779,7 +793,7 @@ static void end_align_handler(struct ref_formatting_stack **stack)
 }
 
 static int align_atom_handler(struct atom_value *atomv, struct ref_formatting_state *state,
-			      struct strbuf *unused_err)
+			      struct strbuf *UNUSED(err))
 {
 	struct ref_formatting_stack *new_stack;
 
@@ -826,7 +840,7 @@ static void if_then_else_handler(struct ref_formatting_stack **stack)
 }
 
 static int if_atom_handler(struct atom_value *atomv, struct ref_formatting_state *state,
-			   struct strbuf *unused_err)
+			   struct strbuf *UNUSED(err))
 {
 	struct ref_formatting_stack *new_stack;
 	struct if_then_else *if_then_else = xcalloc(1,
@@ -852,7 +866,8 @@ static int is_empty(const char *s)
 	return 1;
 }
 
-static int then_atom_handler(struct atom_value *atomv, struct ref_formatting_state *state,
+static int then_atom_handler(struct atom_value *UNUSED(atomv),
+			     struct ref_formatting_state *state,
 			     struct strbuf *err)
 {
 	struct ref_formatting_stack *cur = state->stack;
@@ -884,7 +899,8 @@ static int then_atom_handler(struct atom_value *atomv, struct ref_formatting_sta
 	return 0;
 }
 
-static int else_atom_handler(struct atom_value *atomv, struct ref_formatting_state *state,
+static int else_atom_handler(struct atom_value *UNUSED(atomv),
+			     struct ref_formatting_state *state,
 			     struct strbuf *err)
 {
 	struct ref_formatting_stack *prev = state->stack;
@@ -905,7 +921,8 @@ static int else_atom_handler(struct atom_value *atomv, struct ref_formatting_sta
 	return 0;
 }
 
-static int end_atom_handler(struct atom_value *atomv, struct ref_formatting_state *state,
+static int end_atom_handler(struct atom_value *UNUSED(atomv),
+			    struct ref_formatting_state *state,
 			    struct strbuf *err)
 {
 	struct ref_formatting_stack *current = state->stack;
@@ -1714,7 +1731,7 @@ static void lazy_init_worktree_map(void)
 	populate_worktree_map(&(ref_to_worktree_map.map), ref_to_worktree_map.worktrees);
 }
 
-static char *get_worktree_path(const struct used_atom *atom, const struct ref_array_item *ref)
+static char *get_worktree_path(const struct used_atom *UNUSED(atom), const struct ref_array_item *ref)
 {
 	struct hashmap_entry entry, *e;
 	struct ref_to_worktree_entry *lookup_result;
