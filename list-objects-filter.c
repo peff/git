@@ -70,13 +70,13 @@ struct filter {
 };
 
 static enum list_objects_filter_result filter_blobs_none(
-	struct repository *r,
+	struct repository *UNUSED(r),
 	enum list_objects_filter_situation filter_situation,
 	struct object *obj,
-	const char *pathname,
-	const char *filename,
+	const char *UNUSED(pathname),
+	const char *UNUSED(filename),
 	struct oidset *omits,
-	void *filter_data_)
+	void *UNUSED(filter_data_))
 {
 	switch (filter_situation) {
 	default:
@@ -102,7 +102,7 @@ static enum list_objects_filter_result filter_blobs_none(
 }
 
 static void filter_blobs_none__init(
-	struct list_objects_filter_options *filter_options,
+	struct list_objects_filter_options *UNUSED(filter_options),
 	struct filter *filter)
 {
 	filter->filter_object_fn = filter_blobs_none;
@@ -149,11 +149,11 @@ static int filter_trees_update_omits(
 }
 
 static enum list_objects_filter_result filter_trees_depth(
-	struct repository *r,
+	struct repository *UNUSED(r),
 	enum list_objects_filter_situation filter_situation,
 	struct object *obj,
-	const char *pathname,
-	const char *filename,
+	const char *UNUSED(pathname),
+	const char *UNUSED(filename),
 	struct oidset *omits,
 	void *filter_data_)
 {
@@ -254,8 +254,8 @@ static enum list_objects_filter_result filter_blobs_limit(
 	struct repository *r,
 	enum list_objects_filter_situation filter_situation,
 	struct object *obj,
-	const char *pathname,
-	const char *filename,
+	const char *UNUSED(pathname),
+	const char *UNUSED(filename),
 	struct oidset *omits,
 	void *filter_data_)
 {
@@ -560,7 +560,7 @@ static enum list_objects_filter_result filter_combine(
 	struct object *obj,
 	const char *pathname,
 	const char *filename,
-	struct oidset *omits,
+	struct oidset *UNUSED(omits),
 	void *filter_data)
 {
 	struct combine_filter_data *d = filter_data;
