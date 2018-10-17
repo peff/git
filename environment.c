@@ -338,10 +338,10 @@ static void set_git_dir_1(const char *path)
 	setup_git_env(path);
 }
 
-static void update_relative_gitdir(const char *name,
+static void update_relative_gitdir(const char *UNUSED(name),
 				   const char *old_cwd,
 				   const char *new_cwd,
-				   void *data)
+				   void *UNUSED(data))
 {
 	char *path = reparent_relative_path(old_cwd, new_cwd, get_git_dir());
 	trace_printf_key(&trace_setup_key,

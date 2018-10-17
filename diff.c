@@ -945,7 +945,7 @@ static int cmp_in_block_with_wsd(const struct diff_options *o,
 static int moved_entry_cmp(const void *hashmap_cmp_fn_data,
 			   const struct hashmap_entry *eptr,
 			   const struct hashmap_entry *entry_or_key,
-			   const void *keydata)
+			   const void *UNUSED(keydata))
 {
 	const struct diff_options *diffopt = hashmap_cmp_fn_data;
 	const struct moved_entry *a, *b;
