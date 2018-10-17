@@ -476,18 +476,22 @@ static void free_pcre1_regexp(struct grep_pat *p)
 	pcre_free((void *)p->pcre1_tables);
 }
 #else /* !USE_LIBPCRE1 */
-static void compile_pcre1_regexp(struct grep_pat *p, const struct grep_opt *opt)
+static void compile_pcre1_regexp(struct grep_pat *UNUSED(p),
+				 const struct grep_opt *UNUSED(opt))
 {
 	die("cannot use Perl-compatible regexes when not compiled with USE_LIBPCRE");
 }
 
-static int pcre1match(struct grep_pat *p, const char *line, const char *eol,
-		regmatch_t *match, int eflags)
+static int pcre1match(struct grep_pat *UNUSED(p),
+		      const char *UNUSED(line),
+		      const char *UNUSED(eol),
+		      regmatch_t *UNUSED(match),
+		      int UNUSED(eflags))
 {
 	return 1;
 }
 
-static void free_pcre1_regexp(struct grep_pat *p)
+static void free_pcre1_regexp(struct grep_pat *UNUSED(p))
 {
 }
 #endif /* !USE_LIBPCRE1 */
