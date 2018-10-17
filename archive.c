@@ -136,8 +136,8 @@ static int check_attr_export_subst(const struct attr_check *check)
 }
 
 static int write_archive_entry(const struct object_id *oid, const char *base,
-		int baselen, const char *filename, unsigned mode, int stage,
-		void *context)
+		int baselen, const char *filename, unsigned mode,
+		int UNUSED(stage), void *context)
 {
 	static struct strbuf path = STRBUF_INIT;
 	struct archiver_context *c = context;
@@ -325,7 +325,8 @@ struct path_exists_context {
 
 static int reject_entry(const struct object_id *oid, struct strbuf *base,
 			const char *filename, unsigned mode,
-			int stage, void *context)
+			int UNUSED(stage),
+			void *context)
 {
 	int ret = -1;
 	struct path_exists_context *ctx = context;
