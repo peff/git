@@ -1472,7 +1472,7 @@ struct do_for_each_ref_help {
 	void *cb_data;
 };
 
-static int do_for_each_ref_helper(struct repository *r,
+static int do_for_each_ref_helper(struct repository *UNUSED(r),
 				  const char *refname,
 				  const struct object_id *oid,
 				  int flags,
