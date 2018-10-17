@@ -899,7 +899,7 @@ static int rm(int argc, const char **argv)
 	return result;
 }
 
-static void clear_push_info(void *util, const char *string)
+static void clear_push_info(void *util, const char *UNUSED(string))
 {
 	struct push_info *info = util;
 	free(info->dest);
