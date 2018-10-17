@@ -276,7 +276,9 @@ static void find_exact_matches(struct string_list *a, struct string_list *b)
 	hashmap_clear(&map);
 }
 
-static void diffsize_consume(void *data, char *line, unsigned long len)
+static void diffsize_consume(void *data,
+			     char *UNUSED(line),
+			     unsigned long UNUSED(len))
 {
 	(*(int *)data)++;
 }
@@ -467,7 +469,7 @@ static void patch_diff(const char *a, const char *b,
 	diff_flush(diffopt);
 }
 
-static struct strbuf *output_prefix_cb(struct diff_options *opt, void *data)
+static struct strbuf *output_prefix_cb(struct diff_options *UNUSED(opt), void *data)
 {
 	return data;
 }

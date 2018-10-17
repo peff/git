@@ -643,7 +643,7 @@ int index_differs_from(struct repository *r,
 	return (rev.diffopt.flags.has_changes != 0);
 }
 
-static struct strbuf *idiff_prefix_cb(struct diff_options *opt, void *data)
+static struct strbuf *idiff_prefix_cb(struct diff_options *UNUSED(opt), void *data)
 {
 	return data;
 }

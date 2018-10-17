@@ -421,7 +421,7 @@ static const char *anonymize_oid(const char *oid_hex)
 }
 
 static void show_filemodify(struct diff_queue_struct *q,
-			    struct diff_options *options, void *data)
+			    struct diff_options *UNUSED(options), void *data)
 {
 	int i;
 	struct string_list *changed = data;
