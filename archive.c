@@ -491,7 +491,7 @@ static void parse_treeish_arg(const char **argv,
 	ar_args->time = archive_time;
 }
 
-static void extra_file_info_clear(void *util, const char *str)
+static void extra_file_info_clear(void *util, const char *UNUSED(str))
 {
 	struct extra_file_info *info = util;
 	free(info->base);

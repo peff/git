@@ -321,7 +321,7 @@ static uint64_t estimate_repack_memory(struct packed_git *pack)
 	return os_cache + heap;
 }
 
-static int keep_one_pack(struct string_list_item *item, void *data)
+static int keep_one_pack(struct string_list_item *item, void *UNUSED(data))
 {
 	strvec_pushf(&repack, "--keep-pack=%s", basename(item->string));
 	return 0;
