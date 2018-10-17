@@ -525,7 +525,7 @@ static int show_text_ref(const char *name, const struct object_id *oid,
 	return 0;
 }
 
-static void get_info_refs(struct strbuf *hdr, char *arg)
+static void get_info_refs(struct strbuf *hdr, char *UNUSED(arg))
 {
 	const char *service_name = get_parameter("service");
 	struct strbuf buf = STRBUF_INIT;
@@ -579,7 +579,7 @@ static int show_head_ref(const char *refname, const struct object_id *oid,
 	return 0;
 }
 
-static void get_head(struct strbuf *hdr, char *arg)
+static void get_head(struct strbuf *hdr, char *UNUSED(arg))
 {
 	struct strbuf buf = STRBUF_INIT;
 
@@ -589,7 +589,7 @@ static void get_head(struct strbuf *hdr, char *arg)
 	strbuf_release(&buf);
 }
 
-static void get_info_packs(struct strbuf *hdr, char *arg)
+static void get_info_packs(struct strbuf *hdr, char *UNUSED(arg))
 {
 	size_t objdirlen = strlen(get_object_directory());
 	struct strbuf buf = STRBUF_INIT;
