@@ -449,7 +449,8 @@ static void show_object(struct object *object, const char *name, void *data_)
 	bitmap_set(data->base, bitmap_pos);
 }
 
-static void show_commit(struct commit *commit, void *data)
+static void show_commit(struct commit *UNUSED(commit),
+			void *UNUSED(data))
 {
 }
 
@@ -1240,7 +1241,8 @@ struct bitmap_test_data {
 	size_t seen;
 };
 
-static void test_show_object(struct object *object, const char *name,
+static void test_show_object(struct object *object,
+			     const char *UNUSED(name),
 			     void *data)
 {
 	struct bitmap_test_data *tdata = data;

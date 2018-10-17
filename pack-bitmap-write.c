@@ -154,14 +154,16 @@ static uint32_t find_object_pos(const struct object_id *oid)
 	return oe_in_pack_pos(writer.to_pack, entry);
 }
 
-static void show_object(struct object *object, const char *name, void *data)
+static void show_object(struct object *object,
+			const char *UNUSED(name),
+			void *data)
 {
 	struct bitmap *base = data;
 	bitmap_set(base, find_object_pos(&object->oid));
 	mark_as_seen(object);
 }
 
-static void show_commit(struct commit *commit, void *data)
+static void show_commit(struct commit *commit, void *UNUSED(data))
 {
 	mark_as_seen((struct object *)commit);
 }
