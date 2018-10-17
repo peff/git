@@ -1250,7 +1250,7 @@ int match_basename(const char *basename, int basenamelen,
 int match_pathname(const char *pathname, int pathlen,
 		   const char *base, int baselen,
 		   const char *pattern, int prefix, int patternlen,
-		   unsigned flags)
+		   unsigned UNUSED(flags))
 {
 	const char *name;
 	int namelen;
