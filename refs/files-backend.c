@@ -2118,8 +2118,8 @@ static int files_reflog_iterator_advance(struct ref_iterator *ref_iterator)
 	return ok;
 }
 
-static int files_reflog_iterator_peel(struct ref_iterator *ref_iterator,
-				   struct object_id *peeled)
+static int files_reflog_iterator_peel(struct ref_iterator *UNUSED(ref_iterator),
+				      struct object_id *UNUSED(peeled))
 {
 	BUG("ref_iterator_peel() called for reflog_iterator");
 }
@@ -2173,7 +2173,7 @@ static struct ref_iterator *reflog_iterator_begin(struct ref_store *ref_store,
 static enum iterator_selection reflog_iterator_select(
 	struct ref_iterator *iter_worktree,
 	struct ref_iterator *iter_common,
-	void *cb_data)
+	void *UNUSED(cb_data))
 {
 	if (iter_worktree) {
 		/*
