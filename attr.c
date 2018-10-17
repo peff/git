@@ -1008,7 +1008,7 @@ static int path_matches(const char *pathname, int pathlen,
 
 static int macroexpand_one(struct all_attrs_item *all_attrs, int nr, int rem);
 
-static int fill_one(const char *what, struct all_attrs_item *all_attrs,
+static int fill_one(const char *UNUSED(what), struct all_attrs_item *all_attrs,
 		    const struct match_attr *a, int rem)
 {
 	int i;
