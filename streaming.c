@@ -340,9 +340,9 @@ static struct stream_vtbl loose_vtbl = {
 
 static int open_istream_loose(struct git_istream *st,
 			      struct repository *r,
-			      struct object_info *oi,
+			      struct object_info *UNUSED(oi),
 			      const struct object_id *oid,
-			      enum object_type *type)
+			      enum object_type *UNUSED(type))
 {
 	st->u.loose.mapped = map_loose_object(r, oid, &st->u.loose.mapsize);
 	if (!st->u.loose.mapped)
@@ -443,10 +443,10 @@ static struct stream_vtbl pack_non_delta_vtbl = {
 };
 
 static int open_istream_pack_non_delta(struct git_istream *st,
-				       struct repository *r,
+				       struct repository *UNUSED(r),
 				       struct object_info *oi,
-				       const struct object_id *oid,
-				       enum object_type *type)
+				       const struct object_id *UNUSED(oid),
+				       enum object_type *UNUSED(type))
 {
 	struct pack_window *window;
 	enum object_type in_pack_type;
@@ -508,7 +508,7 @@ static struct stream_vtbl incore_vtbl = {
 
 static int open_istream_incore(struct git_istream *st,
 			       struct repository *r,
-			       struct object_info *oi,
+			       struct object_info *UNUSED(oi),
 			       const struct object_id *oid,
 			       enum object_type *type)
 {
