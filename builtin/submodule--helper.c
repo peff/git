@@ -2226,9 +2226,9 @@ static int update_clone_get_next_task(struct child_process *child,
 	return 0;
 }
 
-static int update_clone_start_failure(struct strbuf *err,
+static int update_clone_start_failure(struct strbuf *UNUSED(err),
 				      void *suc_cb,
-				      void *idx_task_cb)
+				      void *UNUSED(idx_task_cb))
 {
 	struct submodule_update_clone *suc = suc_cb;
 	suc->quickstop = 1;

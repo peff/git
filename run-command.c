@@ -1567,17 +1567,17 @@ struct parallel_processes {
 	struct strbuf buffered_output; /* of finished children */
 };
 
-static int default_start_failure(struct strbuf *out,
-				 void *pp_cb,
-				 void *pp_task_cb)
+static int default_start_failure(struct strbuf *UNUSED(out),
+				 void *UNUSED(pp_cb),
+				 void *UNUSED(pp_task_cb))
 {
 	return 0;
 }
 
-static int default_task_finished(int result,
-				 struct strbuf *out,
-				 void *pp_cb,
-				 void *pp_task_cb)
+static int default_task_finished(int UNUSED(result),
+				 struct strbuf *UNUSED(out),
+				 void *UNUSED(pp_cb),
+				 void *UNUSED(pp_task_cb))
 {
 	return 0;
 }
