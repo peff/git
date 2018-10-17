@@ -74,7 +74,8 @@ static int send_ref(const char *refname, const struct object_id *oid,
 	return 0;
 }
 
-static int ls_refs_config(const char *var, const char *value, void *data)
+static int ls_refs_config(const char *var, const char *value,
+			  void *UNUSED(data))
 {
 	/*
 	 * We only serve fetches over v2 for now, so respect only "uploadpack"

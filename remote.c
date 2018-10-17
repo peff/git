@@ -302,7 +302,7 @@ static void read_branches_file(struct remote *remote)
 	strbuf_release(&buf);
 }
 
-static int handle_config(const char *key, const char *value, void *cb)
+static int handle_config(const char *key, const char *value, void *UNUSED(cb))
 {
 	const char *name;
 	size_t namelen;
