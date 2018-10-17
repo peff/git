@@ -368,7 +368,7 @@ static void *get_tree_descriptor(struct repository *r,
 	return buf;
 }
 
-int cmd_merge_tree(int argc, const char **argv, const char *prefix)
+int cmd_merge_tree(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	struct repository *r = the_repository;
 	struct tree_desc t[3];

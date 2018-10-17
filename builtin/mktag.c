@@ -153,7 +153,7 @@ static int verify_tag(char *buffer, unsigned long size)
 	return 0;
 }
 
-int cmd_mktag(int argc, const char **argv, const char *prefix)
+int cmd_mktag(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	struct strbuf buf = STRBUF_INIT;
 	struct object_id result;
