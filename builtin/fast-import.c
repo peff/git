@@ -427,7 +427,7 @@ static void set_checkpoint_signal(void)
 
 #else
 
-static void checkpoint_signal(int signo)
+static void checkpoint_signal(int UNUSED(signo))
 {
 	checkpoint_requested = 1;
 }
