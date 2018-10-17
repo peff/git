@@ -157,7 +157,8 @@ static struct ref *get_refs_from_bundle(struct transport *transport,
 }
 
 static int fetch_refs_from_bundle(struct transport *transport,
-			       int nr_heads, struct ref **to_fetch)
+				  int UNUSED(nr_heads),
+				  struct ref **UNUSED(to_fetch))
 {
 	struct bundle_transport_data *data = transport->data;
 	int ret;
