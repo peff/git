@@ -728,7 +728,8 @@ int compare_commits_by_author_date(const void *a_, const void *b_,
 	return 0;
 }
 
-int compare_commits_by_gen_then_commit_date(const void *a_, const void *b_, void *unused)
+int compare_commits_by_gen_then_commit_date(const void *a_, const void *b_,
+					    void *UNUSED(unused))
 {
 	const struct commit *a = a_, *b = b_;
 	const uint32_t generation_a = commit_graph_generation(a),
@@ -748,7 +749,8 @@ int compare_commits_by_gen_then_commit_date(const void *a_, const void *b_, void
 	return 0;
 }
 
-int compare_commits_by_commit_date(const void *a_, const void *b_, void *unused)
+int compare_commits_by_commit_date(const void *a_, const void *b_,
+				   void *UNUSED(unused))
 {
 	const struct commit *a = a_, *b = b_;
 	/* newer commits with larger date first */
