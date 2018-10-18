@@ -131,7 +131,8 @@ static int add_recent_loose(const struct object_id *oid,
 }
 
 static int add_recent_packed(const struct object_id *oid,
-			     struct packed_git *p, uint32_t pos,
+			     struct packed_git *p,
+			     uint32_t UNUSED(pos),
 			     void *data)
 {
 	struct object *obj = lookup_object(the_repository, oid);

@@ -230,17 +230,17 @@ static void mark_unreachable_referents(const struct object_id *oid)
 }
 
 static int mark_loose_unreachable_referents(const struct object_id *oid,
-					    const char *path,
-					    void *data)
+					    const char *UNUSED(path),
+					    void *UNUSED(data))
 {
 	mark_unreachable_referents(oid);
 	return 0;
 }
 
 static int mark_packed_unreachable_referents(const struct object_id *oid,
-					     struct packed_git *pack,
-					     uint32_t pos,
-					     void *data)
+					     struct packed_git *UNUSED(pack),
+					     uint32_t UNUSED(pos),
+					     void *UNUSED(data))
 {
 	mark_unreachable_referents(oid);
 	return 0;
@@ -595,7 +595,8 @@ static void get_default_heads(void)
 	}
 }
 
-static int fsck_loose(const struct object_id *oid, const char *path, void *data)
+static int fsck_loose(const struct object_id *oid, const char *path,
+		      void *UNUSED(data))
 {
 	struct object *obj;
 	enum object_type type;
@@ -635,14 +636,16 @@ static int fsck_loose(const struct object_id *oid, const char *path, void *data)
 	return 0; /* keep checking other objects, even if we saw an error */
 }
 
-static int fsck_cruft(const char *basename, const char *path, void *data)
+static int fsck_cruft(const char *basename, const char *path,
+		      void *UNUSED(data))
 {
 	if (!starts_with(basename, "tmp_obj_"))
 		fprintf_ln(stderr, _("bad sha1 file: %s"), path);
 	return 0;
 }
 
-static int fsck_subdir(unsigned int nr, const char *path, void *progress)
+static int fsck_subdir(unsigned int nr, const char *UNUSED(path),
+		       void *progress)
 {
 	display_progress(progress, nr + 1);
 	return 0;
@@ -733,17 +736,17 @@ static void mark_object_for_connectivity(const struct object_id *oid)
 }
 
 static int mark_loose_for_connectivity(const struct object_id *oid,
-				       const char *path,
-				       void *data)
+				       const char *UNUSED(path),
+				       void *UNUSED(data))
 {
 	mark_object_for_connectivity(oid);
 	return 0;
 }
 
 static int mark_packed_for_connectivity(const struct object_id *oid,
-					struct packed_git *pack,
-					uint32_t pos,
-					void *data)
+					struct packed_git *UNUSED(pack),
+					uint32_t UNUSED(pos),
+					void *UNUSED(data))
 {
 	mark_object_for_connectivity(oid);
 	return 0;
