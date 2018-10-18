@@ -2,7 +2,7 @@
 #include "cache.h"
 #include "tree.h"
 
-int cmd__match_trees(int ac, const char **av)
+int cmd__match_trees(int UNUSED(ac), const char **av)
 {
 	struct object_id hash1, hash2, shifted;
 	struct tree *one, *two;
