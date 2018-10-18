@@ -56,7 +56,7 @@ static char *get_default_remote(void)
 	return ret;
 }
 
-static int print_default_remote(int argc, const char **argv,
+static int print_default_remote(int argc, const char **UNUSED(argv),
 				const char *UNUSED(prefix))
 {
 	char *remote;
