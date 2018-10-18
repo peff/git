@@ -725,7 +725,7 @@ static int do_unresolve(int ac, const char **av,
 	return err;
 }
 
-static int do_reupdate(int ac, const char **av,
+static int do_reupdate(int UNUSED(ac), const char **av,
 		       const char *prefix)
 {
 	/* Read HEAD and run update-index on paths that are
