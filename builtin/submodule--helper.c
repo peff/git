@@ -317,7 +317,7 @@ struct module_list {
 };
 #define MODULE_LIST_INIT { NULL, 0, 0 }
 
-static int module_list_compute(int argc, const char **argv,
+static int module_list_compute(int UNUSED(argc), const char **argv,
 			       const char *prefix,
 			       struct pathspec *pathspec,
 			       struct module_list *list)
