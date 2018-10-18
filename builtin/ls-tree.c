@@ -62,7 +62,8 @@ static int show_recursive(const char *base, int baselen, const char *pathname)
 }
 
 static int show_tree(const struct object_id *oid, struct strbuf *base,
-		const char *pathname, unsigned mode, int stage, void *context)
+		     const char *pathname, unsigned mode,
+		     int UNUSED(stage), void *UNUSED(context))
 {
 	int retval = 0;
 	int baselen;

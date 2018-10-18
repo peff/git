@@ -114,7 +114,8 @@ static int post_checkout_hook(struct commit *old_commit, struct commit *new_comm
 }
 
 static int update_some(const struct object_id *oid, struct strbuf *base,
-		const char *pathname, unsigned mode, int stage, void *context)
+		       const char *pathname, unsigned mode, int UNUSED(stage),
+		       void *UNUSED(context))
 {
 	int len;
 	struct cache_entry *ce;
