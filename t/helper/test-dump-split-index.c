@@ -3,7 +3,7 @@
 #include "split-index.h"
 #include "ewah/ewok.h"
 
-static void show_bit(size_t pos, void *data)
+static void show_bit(size_t pos, void *UNUSED(data))
 {
 	printf(" %d", (int)pos);
 }
