@@ -211,7 +211,8 @@ static int cmd_delete_reflog(struct ref_store *refs, const char **argv)
 	return refs_delete_reflog(refs, refname);
 }
 
-static int cmd_reflog_expire(struct ref_store *refs, const char **argv)
+static int cmd_reflog_expire(struct ref_store *UNUSED(refs),
+			     const char **UNUSED(argv))
 {
 	die("not supported yet");
 }
