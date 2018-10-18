@@ -379,7 +379,7 @@ static void print_path_1(const char *path)
 		printf("%s", path);
 }
 
-static char *anonymize_path_component(void *data)
+static char *anonymize_path_component(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
@@ -401,7 +401,7 @@ static void print_path(const char *path)
 	}
 }
 
-static char *generate_fake_oid(void *data)
+static char *generate_fake_oid(void *UNUSED(data))
 {
 	static uint32_t counter = 1; /* avoid null oid */
 	const unsigned hashsz = the_hash_algo->rawsz;
@@ -514,7 +514,7 @@ static const char *find_encoding(const char *begin, const char *end)
 	return bol;
 }
 
-static char *anonymize_ref_component(void *data)
+static char *anonymize_ref_component(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
@@ -554,13 +554,13 @@ static const char *anonymize_refname(const char *refname)
  * We do not even bother to cache commit messages, as they are unlikely
  * to be repeated verbatim, and it is not that interesting when they are.
  */
-static char *anonymize_commit_message(const char *old)
+static char *anonymize_commit_message(const char *UNUSED(old))
 {
 	static int counter;
 	return xstrfmt("subject %d\n\nbody\n", counter++);
 }
 
-static char *anonymize_ident(void *data)
+static char *anonymize_ident(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
@@ -744,7 +744,7 @@ static void handle_commit(struct commit *commit, struct rev_info *rev,
 	show_progress();
 }
 
-static char *anonymize_tag(void *data)
+static char *anonymize_tag(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
