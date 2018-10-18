@@ -14,11 +14,11 @@ static int option_strict = 1;
 
 static struct fsck_options fsck_options = FSCK_OPTIONS_STRICT;
 
-static int mktag_fsck_error_func(struct fsck_options *o,
-				 const struct object_id *oid,
-				 enum object_type object_type,
+static int mktag_fsck_error_func(struct fsck_options *UNUSED(o),
+				 const struct object_id *UNUSED(oid),
+				 enum object_type UNUSED(object_type),
 				 enum fsck_msg_type msg_type,
-				 enum fsck_msg_id msg_id,
+				 enum fsck_msg_id UNUSED(msg_id),
 				 const char *message)
 {
 	switch (msg_type) {

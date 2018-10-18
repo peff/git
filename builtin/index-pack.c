@@ -213,7 +213,8 @@ static void cleanup_thread(void)
 }
 
 static int mark_link(struct object *obj, enum object_type type,
-		     void *data, struct fsck_options *options)
+		     void *UNUSED(data),
+		     struct fsck_options *UNUSED(options))
 {
 	if (!obj)
 		return -1;

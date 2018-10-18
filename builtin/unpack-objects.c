@@ -188,7 +188,8 @@ static void write_cached_object(struct object *obj, struct obj_buffer *obj_buf)
  * Verify its reachability and validity recursively and write it out.
  */
 static int check_object(struct object *obj, enum object_type type,
-			void *data, struct fsck_options *options)
+			void *UNUSED(data),
+			struct fsck_options *UNUSED(options))
 {
 	struct obj_buffer *obj_buf;
 
