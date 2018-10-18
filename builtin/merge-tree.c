@@ -312,7 +312,9 @@ static void unresolved(const struct traverse_info *info, struct name_entry n[3])
  * The successful merge rules are the same as for the three-way merge
  * in git-read-tree.
  */
-static int threeway_callback(int n, unsigned long mask, unsigned long dirmask, struct name_entry *entry, struct traverse_info *info)
+static int threeway_callback(int UNUSED(n), unsigned long mask,
+			     unsigned long UNUSED(dirmask),
+			     struct name_entry *entry, struct traverse_info *info)
 {
 	/* Same in both? */
 	if (same_entry(entry+1, entry+2) || both_empty(entry+1, entry+2)) {
