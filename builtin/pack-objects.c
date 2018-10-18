@@ -3180,7 +3180,7 @@ static void add_objects_in_unpacked_packs(void)
 }
 
 static int add_loose_object(const struct object_id *oid, const char *path,
-			    void *data)
+			    void *UNUSED(data))
 {
 	enum object_type type = oid_object_info(the_repository, oid, NULL);
 
@@ -3312,13 +3312,13 @@ static int get_object_list_from_bitmap(struct rev_info *revs)
 }
 
 static void record_recent_object(struct object *obj,
-				 const char *name,
-				 void *data)
+				 const char *UNUSED(name),
+				 void *UNUSED(data))
 {
 	oid_array_append(&recent_objects, &obj->oid);
 }
 
-static void record_recent_commit(struct commit *commit, void *data)
+static void record_recent_commit(struct commit *commit, void *UNUSED(data))
 {
 	oid_array_append(&recent_objects, &commit->object.oid);
 }

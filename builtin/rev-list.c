@@ -238,7 +238,8 @@ static inline void finish_object__ma(struct object *obj)
 	}
 }
 
-static int finish_object(struct object *obj, const char *name, void *cb_data)
+static int finish_object(struct object *obj, const char *UNUSED(name),
+			 void *cb_data)
 {
 	struct rev_list_info *info = cb_data;
 	if (oid_object_info_extended(the_repository, &obj->oid, NULL, 0) < 0) {
