@@ -31,7 +31,7 @@ struct trace_key trace_perf_key = TRACE_KEY_INIT(PERFORMANCE);
 struct trace_key trace_setup_key = TRACE_KEY_INIT(SETUP);
 
 static size_t expand_trace_name(struct strbuf *out, const char *fmt,
-				void *data)
+				void *UNUSED(data))
 {
 	if (*fmt == 'p') {
 		strbuf_addf(out, "%lu", (unsigned long)getpid());

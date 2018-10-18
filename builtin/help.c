@@ -347,7 +347,7 @@ static int add_man_viewer_info(const char *var, const char *value)
 	return 0;
 }
 
-static int git_help_config(const char *var, const char *value, void *cb)
+static int git_help_config(const char *var, const char *value, void *UNUSED(cb))
 {
 	if (starts_with(var, "column."))
 		return git_column_config(var, value, "help", &colopts);
