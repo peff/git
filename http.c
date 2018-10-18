@@ -709,7 +709,7 @@ static void curl_dump_data(const char *text, unsigned char *ptr, size_t size)
 	strbuf_release(&out);
 }
 
-static int curl_trace(CURL *UNUSED(handle), curl_infotype type,
+static int curl_trace(CURL *handle, curl_infotype type,
 		      char *data, size_t size,
 		      void *UNUSED(userp))
 {

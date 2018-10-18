@@ -878,9 +878,11 @@ static enum parse_opt_result cacheinfo_callback(
 	return 0;
 }
 
-static int clear_callback(const struct option *opt,
+static int clear_callback(const struct option *UNUSED(opt),
 			  const char *arg, int unset)
 {
+	BUG_ON_OPT_NEG(unset);
+	BUG_ON_OPT_ARG(arg);
 	discard_cache();
 	return 0;
 }

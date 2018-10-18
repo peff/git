@@ -55,7 +55,7 @@ int cmd_ahead_behind(int argc, const char **argv, const char *prefix)
 		OPT_END()
 	};
 
-	argc = parse_options(argc, argv, NULL, ahead_behind_opts,
+	argc = parse_options(argc, argv, prefix, ahead_behind_opts,
 			     ahead_behind_usage, 0);
 
 	if (from_stdin) {

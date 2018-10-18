@@ -390,7 +390,7 @@ struct reachable_object_data {
 	struct object *obj;
 };
 
-static void check_object(struct object *obj, const char *name, void *vdata)
+static void check_object(struct object *obj, const char *UNUSED(name), void *vdata)
 {
 	struct reachable_object_data *data = vdata;
 	/*
