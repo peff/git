@@ -104,7 +104,7 @@ static int objerror(struct object *obj, const char *err)
 	return -1;
 }
 
-static int fsck_error_func(struct fsck_options *o,
+static int fsck_error_func(struct fsck_options *UNUSED(o),
 			   const struct object_id *oid,
 			   enum object_type object_type,
 			   int msg_type, const char *message)
@@ -130,7 +130,8 @@ static int fsck_error_func(struct fsck_options *o,
 
 static struct object_array pending;
 
-static int mark_object(struct object *obj, int type, void *data, struct fsck_options *options)
+static int mark_object(struct object *obj, int type, void *data,
+		       struct fsck_options *UNUSED(options))
 {
 	struct object *parent = data;
 
@@ -215,7 +216,9 @@ static int traverse_reachable(void)
 	return !!result;
 }
 
-static int mark_used(struct object *obj, int type, void *data, struct fsck_options *options)
+static int mark_used(struct object *obj, int UNUSED(type),
+		     void *UNUSED(data),
+		     struct fsck_options *UNUSED(options))
 {
 	if (!obj)
 		return 1;
