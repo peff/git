@@ -2,7 +2,7 @@
 #include "cache.h"
 #include "oid-array.h"
 
-static int print_oid(const struct object_id *oid, void *data)
+static int print_oid(const struct object_id *oid, void *UNUSED(data))
 {
 	puts(oid_to_hex(oid));
 	return 0;
