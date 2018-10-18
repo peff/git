@@ -611,7 +611,7 @@ static int show_tree_object(const struct object_id *UNUSED(oid),
 }
 
 static void show_setup_revisions_tweak(struct rev_info *rev,
-				       struct setup_revision_opt *opt)
+				       struct setup_revision_opt *UNUSED(opt))
 {
 	if (rev->first_parent_only)
 		diff_merges_default_to_first_parent(rev);
@@ -731,7 +731,7 @@ int cmd_log_reflog(int argc, const char **argv, const char *prefix)
 }
 
 static void log_setup_revisions_tweak(struct rev_info *rev,
-				      struct setup_revision_opt *opt)
+				      struct setup_revision_opt *UNUSED(opt))
 {
 	if (rev->diffopt.flags.default_follow_renames &&
 	    rev->prune_data.nr == 1)
