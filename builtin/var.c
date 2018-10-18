@@ -18,7 +18,7 @@ static const char *editor(int flag)
 	return pgm;
 }
 
-static const char *pager(int flag)
+static const char *pager(int UNUSED(flag))
 {
 	const char *pgm = git_pager(1);
 
