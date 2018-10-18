@@ -1,7 +1,7 @@
 #include "test-tool.h"
 #include "cache.h"
 
-int cmd__dump_fsmonitor(int ac, const char **av)
+int cmd__dump_fsmonitor(int UNUSED(ac), const char **UNUSED(av))
 {
 	struct index_state *istate = the_repository->index;
 	int i;
