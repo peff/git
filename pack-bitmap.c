@@ -1473,6 +1473,7 @@ static struct bitmap *find_commit_bitmap(struct bitmap_index *bitmap_git,
 	if (!add_commit_to_bitmap(bitmap_git, &result, commit)) {
 		struct include_data incdata;
 
+		incdata.bitmap_git = bitmap_git;
 		incdata.base = result = bitmap_new();
 		incdata.seen = NULL;
 
