@@ -92,11 +92,6 @@ for i in `Meta/topics`; do
 	fi
 
 	echo >&2 Merging $i...
-	if ! git rev-parse -q --verify "$i" >/dev/null; then
-		i=`git for-each-ref --format='%(refname:short)' refs/remotes |
-		   grep -m 1 "/$i\$"`
-		echo >&2 Local branch not found, using $i...
-	fi
 	if ! git $merge_config merge --no-edit --no-ff $i; then
 		if test -z "$noautorerere" && test -z "`git ls-files -u`"; then
 			echo >&2 Auto-committing rerere merge...
