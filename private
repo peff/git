@@ -39,19 +39,18 @@ shift
 done
 
 GIT_DIR=`git rev-parse --git-dir` || exit
-FIXUP_FILE=$GIT_DIR/private-fixup
+TODO_FILE=$GIT_DIR/private-todo
 
 if test "$cont" = t; then
 	if git symbolic-ref -q HEAD >/dev/null; then
 		echo >&2 "fatal: refusing to continue private build from branch"
 		exit 1
 	fi
-	if test -f "$GIT_DIR/MERGE_HEAD"; then
-		GIT_EDITOR=true git commit || exit
-	fi
-	fixup=$(cat "$FIXUP_FILE")
 else
-	>"$FIXUP_FILE"
+	if test -z "$force" && test -e "$TODO_FILE"; then
+		echo >&2 "$TODO_FILE already exists"
+		exit 1
+	fi
 	fixup=
 	extra=
 	tmp="$GIT_DIR/private-commits"
@@ -75,52 +74,79 @@ else
 
 	git checkout -q ${force:+-f} $upstream^0 || exit
 	echo "Meta/private --continue $options" >"$GIT_DIR/continue"
-	echo "$fixup" >"$FIXUP_FILE"
-fi
 
-for i in `Meta/topics`; do
-	case "$i" in
-	*-wip|*-stale)
-		echo >&2 "Skipping $i (wip)..."
-		continue
-		;;
-	esac
-
-	if test -z "`git rev-list -1 ^HEAD $i`"; then
-		echo >&2 "Skipping $i (already merged)..."
-		continue
-	fi
-
-	echo >&2 Merging $i...
-	if ! git $merge_config merge --no-edit --no-ff $i; then
-		if test -z "$noautorerere" && test -z "`git ls-files -u`"; then
-			echo >&2 Auto-committing rerere merge...
-			GIT_EDITOR=true git commit || exit 1
-		else
-			exit 1
-		fi
-	fi
-	for f in $fixup; do
-		case "$f" in
-		*:$i)
-			hash=${f%:$i}
-			echo >&2 "Applying fixup for $i ($hash)..."
-			git cherry-pick $hash || exit 1
+	for i in `Meta/topics`; do
+		case "$i" in
+		*-wip|*-stale)
+			echo >&2 "Skipping $i (wip)..."
+			continue
 			;;
 		esac
-	done
-	if test "$careful" -gt 0; then
-		make -j16 || exit 1
-		if test "$careful" -gt 1; then
-			make test || exit 1
+
+		echo "merge $i"
+		for f in $fixup; do
+			case "$f" in
+			*:$i)
+				hash=${f%:$i}
+				echo pick $hash
+			esac
+		done
+
+		if test "$careful" -gt 0; then
+			echo 'exec make -j16'
 		fi
-	elif test -n "$test_script" && test -e t/t${test_script}*.sh; then
-		(make -j16 && cd t && make t${test_script}*.sh) || exit 1
-	fi
-done
+		if test "$careful" -gt 1; then
+			echo 'exec make test'
+		elif test -n "$test_script" && test -e t/t${test_script}*.sh; then
+			echo "exec make -j16 && cd t && make t${test_script}*.sh"
+		fi
+	done >"$TODO_FILE"
+fi
+
+# failing not only involves exiting, but also cleaning up the todo list
+# (dropping entries done, but keeping ones we didn't get to yet).
+# Any arguments given to this function will be unshifted onto the front of the
+# list.
+fail () {
+	{
+		for i in "$@"; do
+			echo "$i"
+		done
+		cat ;# stdin is already coming from existing list
+	} >"$TODO_FILE".tmp
+	mv "$TODO_FILE".tmp "$TODO_FILE"
+	exit 1
+}
+
+while read cmd args; do
+	case "$cmd" in
+	merge)
+		echo >&2 "Merging $args..."
+		if ! git $merge_config merge --no-edit --no-ff $args; then
+			if test -z "$noautorerere" && test -z "`git ls-files -u`"; then
+				echo >&2 "Auto-committing rerere merge..."
+				git commit --no-edit || fail "resolve $args"
+			else
+				fail "resolve $args"
+			fi
+		fi
+		;;
+	resolve)
+		echo >&2 "Resolving $args..."
+		git commit --no-edit || fail "resolve $args"
+		;;
+	pick)
+		git --no-pager log --no-walk --format="Picking %s..." $args >&2
+		git cherry-pick $args || fail "resolve $args"
+		;;
+	exec)
+		eval "$args" || fail
+		;;
+	esac
+done <"$TODO_FILE"
 
 git branch -f private &&
 git checkout private || exit
-rm -f "$GIT_DIR/continue"
+rm -f "$GIT_DIR/continue" "$TODO_FILE"
 echo All branches merged successfully.
 exit 0
