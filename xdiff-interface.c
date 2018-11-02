@@ -115,9 +115,10 @@ int xdi_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp, xdemitconf_t co
 	return xdl_diff(&a, &b, xpp, xecfg, xecb);
 }
 
-void discard_hunk_line(void *priv,
-		       long ob, long on, long nb, long nn,
-		       const char *func, long funclen)
+void discard_hunk_line(void *UNUSED(priv),
+		       long UNUSED(ob), long UNUSED(on),
+		       long UNUSED(nb), long UNUSED(nn),
+		       const char *UNUSED(func), long UNUSED(funclen))
 {
 }
 
