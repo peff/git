@@ -2,6 +2,10 @@
 
 WORKTREE_ROOT=.git/tmp-ci
 
+if test $# = 0 && ps a | grep -q "sh Meta/ci"; then
+	set -- --status
+fi
+
 if test "$1" = "--status"; then
 	git test run -k --dry-run @{u}.. 2>/dev/null |
 	while read tree line; do
