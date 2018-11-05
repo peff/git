@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 WORKTREE_ROOT=.git/tmp-ci
 
@@ -23,6 +23,16 @@ if test "$1" = "--status"; then
 		esac
 	done
 	echo
+	exit 0
+fi
+
+if test "$1" = "-v"; then
+	paste -d' ' <(
+		git test run -k --dry-run @{u}.. 2>/dev/null | awk '{print $2}'
+	) <(
+		git test run -k --dry-run @{u}.. 2>/dev/null | cut -d^ -f1 |
+			git log --color --stdin --no-walk=unsorted --oneline
+	)
 	exit 0
 fi
 
