@@ -133,7 +133,8 @@ while read cmd args; do
 		;;
 	resolve)
 		echo >&2 "Resolving $args..."
-		git commit --no-edit || fail "resolve $args"
+		git diff-index --quiet HEAD ||
+			git commit --no-edit || fail "resolve $args"
 		;;
 	pick)
 		git --no-pager log --no-walk --format="Picking %s..." $args >&2
