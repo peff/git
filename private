@@ -9,6 +9,7 @@ noautorerere=
 careful=0
 test_script=
 options=
+interactive=
 while test $# -gt 0; do
 case "$1" in
 --continue)
@@ -30,6 +31,9 @@ case "$1" in
 	shift
 	test_script="$1"
 	options="$options -t $1"
+	;;
+-i)
+	interactive=t
 	;;
 *)
 	echo >&2 "unknown option: $1"
@@ -101,6 +105,15 @@ else
 			echo "exec make -j16 && cd t && make t${test_script}*.sh"
 		fi
 	done >"$TODO_FILE"
+fi
+
+if test -n "$interactive"; then
+	${EDITOR:-vi} "$TODO_FILE"
+	if ! test -s "$TODO_FILE"; then
+		echo >&2 "Aborting due to empty todo file..."
+		rm -f "$TODO_FILE"
+		exit 1
+	fi
 fi
 
 # failing not only involves exiting, but also cleaning up the todo list
