@@ -88,7 +88,7 @@ else
 			case "$f" in
 			*:$i)
 				hash=${f%:$i}
-				echo pick $hash
+				git log -1 --format="pick %h %s" $hash
 			esac
 		done
 
@@ -137,8 +137,8 @@ while read cmd args; do
 			git commit --no-edit || fail "resolve $args"
 		;;
 	pick)
-		git --no-pager log --no-walk --format="Picking %s..." $args >&2
-		git cherry-pick $args || fail "resolve $args"
+		echo >&2 "Picking $args..."
+		git cherry-pick ${args%% *} || fail "resolve $args"
 		;;
 	exec)
 		eval "$args" || fail
