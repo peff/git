@@ -4,7 +4,7 @@
 #include "repository.h"
 #include "object-store.h"
 
-int cmd__read_graph(int argc, const char **argv)
+int cmd__read_graph(int UNUSED(argc), const char **UNUSED(argv))
 {
 	struct commit_graph *graph = NULL;
 	struct object_directory *odb;
