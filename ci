@@ -75,22 +75,22 @@ test_one() {
 		# fine. "known-bad" is a failure, but one we already
 		# knew about, and so we avoid triggering the failure
 		# actions.
-		! git test run -t "$1" "$branch@{u}..$branch" |
+		! git test run "$@" "$branch@{u}..$branch" |
 		grep ' bad$'
 	)
 }
 
 handle_outcome() {
-	script=$(git config --get-all "test.$1.on$2" 2>/dev/null)
+	script=$(git config --get-all "test.on$1" 2>/dev/null)
 	eval "$script"
 }
 
 while true; do
 	echo "==> $(date)"
-	if test_one "$test"; then
-		handle_outcome "$test" success
+	if test_one "$@"; then
+		handle_outcome success
 	else
-		handle_outcome "$test" failure
+		handle_outcome failure
 	fi
 
 	gitdir=$(git rev-parse --git-dir)
