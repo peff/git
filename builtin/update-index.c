@@ -851,7 +851,7 @@ static int parse_new_style_cacheinfo(const char *arg,
 }
 
 static enum parse_opt_result cacheinfo_callback(
-	struct parse_opt_ctx_t *ctx, const struct option *opt,
+	struct parse_opt_ctx_t *ctx, const struct option *UNUSED(opt),
 	const char *arg, int unset)
 {
 	struct object_id oid;
