@@ -5195,7 +5195,8 @@ void todo_list_add_exec_commands(struct todo_list *todo_list,
 	todo_list->alloc = alloc;
 }
 
-static void todo_list_to_strbuf(struct repository *r, struct todo_list *todo_list,
+static void todo_list_to_strbuf(struct repository *UNUSED(r),
+				struct todo_list *todo_list,
 				struct strbuf *buf, int num, unsigned flags)
 {
 	struct todo_item *item;
