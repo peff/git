@@ -569,6 +569,17 @@ static unsigned long max_tree_name(void)
 	return limit;
 }
 
+static unsigned long max_tree_entries(void)
+{
+	static int checked_config;
+	static unsigned long limit = (1 << 20); /* 1M */
+
+	if (!checked_config)
+		git_config_get_ulong("fsck.maxtreentries", &limit);
+
+	return limit;
+}
+
 static int fsck_tree(const struct object_id *tree_oid,
 		     const char *buffer, unsigned long size,
 		     struct fsck_options *options)
@@ -585,6 +596,7 @@ static int fsck_tree(const struct object_id *tree_oid,
 	int has_dup_entries = 0;
 	int not_properly_sorted = 0;
 	int has_large_names = 0;
+	unsigned long nr_entries = 0;
 	struct tree_desc desc;
 	unsigned o_mode;
 	const char *o_name;
@@ -606,6 +618,7 @@ static int fsck_tree(const struct object_id *tree_oid,
 		const struct object_id *entry_oid;
 
 		entry_oid = tree_entry_extract(&desc, &name, &mode);
+		nr_entries++;
 
 		has_null_sha1 |= is_null_oid(entry_oid);
 		has_full_path |= !!strchr(name, '/');
@@ -756,6 +769,10 @@ static int fsck_tree(const struct object_id *tree_oid,
 		retval += report(options, tree_oid, OBJ_TREE,
 				 FSCK_MSG_LARGE_NAMES,
 				 "contains excessively large names");
+	if (nr_entries > max_tree_entries())
+		retval += report(options, tree_oid, OBJ_TREE,
+				 FSCK_MSG_TOO_MANY_ENTRIES,
+				 "contains an excessive number of entries");
 	return retval;
 }
 
