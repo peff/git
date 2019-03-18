@@ -19,7 +19,7 @@ int read_tree_at(struct repository *r,
 	struct tree_desc desc;
 	struct name_entry entry;
 	struct object_id oid;
-	int len, oldlen = base->len;
+	size_t len, oldlen = base->len;
 	enum interesting retval = entry_not_interesting;
 
 	if (parse_tree(tree))

@@ -1672,7 +1672,7 @@ static void pbase_tree_put(struct pbase_tree_cache *cache)
 	free(cache);
 }
 
-static int name_cmp_len(const char *name)
+static size_t name_cmp_len(const char *name)
 {
 	int i;
 	for (i = 0; name[i] && name[i] != '\n' && name[i] != '/'; i++)
@@ -1682,7 +1682,7 @@ static int name_cmp_len(const char *name)
 
 static void add_pbase_object(struct tree_desc *tree,
 			     const char *name,
-			     int cmplen,
+			     size_t cmplen,
 			     const char *fullname)
 {
 	struct name_entry entry;
@@ -1707,7 +1707,7 @@ static void add_pbase_object(struct tree_desc *tree,
 			struct tree_desc sub;
 			struct pbase_tree_cache *tree;
 			const char *down = name+cmplen+1;
-			int downlen = name_cmp_len(down);
+			size_t downlen = name_cmp_len(down);
 
 			tree = pbase_tree_get(&entry.oid);
 			if (!tree)
@@ -1759,7 +1759,7 @@ static int check_pbase_path(unsigned hash)
 static void add_preferred_base_object(const char *name)
 {
 	struct pbase_tree *it;
-	int cmplen;
+	size_t cmplen;
 	unsigned hash = pack_name_hash(name);
 
 	if (!num_preferred_base || check_pbase_path(hash))
