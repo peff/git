@@ -479,8 +479,8 @@ int ie_modified(struct index_state *istate,
 	return 0;
 }
 
-static int cache_name_stage_compare(const char *name1, int len1, int stage1,
-				    const char *name2, int len2, int stage2)
+static int cache_name_stage_compare(const char *name1, size_t len1, int stage1,
+				    const char *name2, size_t len2, int stage2)
 {
 	int cmp;
 

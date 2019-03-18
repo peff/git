@@ -16,7 +16,7 @@
 static int decode_tree_entry(struct tree_desc *desc, const char *buf, unsigned long size, struct strbuf *err)
 {
 	const char *path;
-	unsigned int len;
+	size_t len;
 	uint16_t mode;
 	const unsigned hashsz = desc->algo->rawsz;
 
@@ -260,7 +260,7 @@ struct tree_desc_x {
 	struct tree_desc_skip *skip;
 };
 
-static int check_entry_match(const char *a, int a_len, const char *b, int b_len)
+static int check_entry_match(const char *a, size_t a_len, const char *b, size_t b_len)
 {
 	/*
 	 * The caller wants to pick *a* from a tree or nothing.
@@ -327,10 +327,10 @@ static int check_entry_match(const char *a, int a_len, const char *b, int b_len)
 static void extended_entry_extract(struct tree_desc_x *t,
 				   struct name_entry *a,
 				   const char *first,
-				   int first_len)
+				   size_t first_len)
 {
 	const char *path;
-	int len;
+	size_t len;
 	struct tree_desc probe;
 	struct tree_desc_skip *skip;
 
@@ -472,9 +472,9 @@ int traverse_trees(struct index_state *istate,
 		int trees_used;
 		unsigned long mask, dirmask;
 		const char *first = NULL;
-		int first_len = 0;
+		size_t first_len = 0;
 		struct name_entry *e = NULL;
-		int len;
+		size_t len;
 
 		for (i = 0; i < n; i++) {
 			e = entry + i;
@@ -571,7 +571,8 @@ static int find_tree_entry(struct repository *r, struct tree_desc *t,
 	while (t->size) {
 		const char *entry;
 		struct object_id oid;
-		int entrylen, cmp;
+		size_t entrylen;
+		int cmp;
 
 		oidcpy(&oid, tree_entry_extract(t, &entry, mode));
 		entrylen = tree_entry_len(&t->entry);
@@ -836,8 +837,8 @@ done:
 }
 
 static int match_entry(const struct pathspec_item *item,
-		       const struct name_entry *entry, int pathlen,
-		       const char *match, int matchlen,
+		       const struct name_entry *entry, size_t pathlen,
+		       const char *match, size_t matchlen,
 		       enum interesting *never_interesting)
 {
 	int m = -1; /* signals that we haven't called strncmp() */
@@ -928,10 +929,11 @@ static int match_entry(const struct pathspec_item *item,
 
 /* :(icase)-aware string compare */
 static int basecmp(const struct pathspec_item *item,
-		   const char *base, const char *match, int len)
+		   const char *base, const char *match, size_t len)
 {
 	if (item->magic & PATHSPEC_ICASE) {
-		int ret, n = len > item->prefix ? item->prefix : len;
+		int ret;
+		size_t n = len > item->prefix ? item->prefix : len;
 		ret = strncmp(base, match, n);
 		if (ret)
 			return ret;
@@ -944,7 +946,7 @@ static int basecmp(const struct pathspec_item *item,
 
 static int match_dir_prefix(const struct pathspec_item *item,
 			    const char *base,
-			    const char *match, int matchlen)
+			    const char *match, size_t matchlen)
 {
 	if (basecmp(item, base, match, matchlen))
 		return 0;
@@ -1023,7 +1025,7 @@ static enum interesting do_match(struct index_state *istate,
 				 int exclude)
 {
 	int i;
-	int pathlen, baselen = base->len;
+	size_t pathlen, baselen = base->len;
 	enum interesting never_interesting = ps->has_wildcard ?
 		entry_not_interesting : all_entries_not_interesting;
 
