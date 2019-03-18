@@ -208,7 +208,7 @@ static void emit_path(struct combine_diff_path ***tail,
 	unsigned short mode;
 	const char *path;
 	const struct object_id *oid;
-	int pathlen;
+	size_t pathlen;
 	int old_baselen = base->len;
 	int i, isdir, recurse = 0, emitthis = 1;
 
