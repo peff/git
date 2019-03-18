@@ -16,7 +16,7 @@ struct repository;
 struct name_entry {
 	struct object_id oid;
 	const char *path;
-	int pathlen;
+	size_t pathlen;
 	unsigned int mode;
 };
 
@@ -61,7 +61,7 @@ static inline const struct object_id *tree_entry_extract(struct tree_desc *desc,
  * memory structure of a tree entry to avoid the overhead of using a
  * generic strlen().
  */
-static inline int tree_entry_len(const struct name_entry *ne)
+static inline size_t tree_entry_len(const struct name_entry *ne)
 {
 	return ne->pathlen;
 }
