@@ -558,6 +558,17 @@ static int verify_ordered(unsigned mode1, const char *name1,
 	return c1 < c2 ? 0 : TREE_UNORDERED;
 }
 
+static unsigned long max_tree_name(void)
+{
+	static int checked_config;
+	static unsigned long limit = 4096;
+
+	if (!checked_config)
+		git_config_get_ulong("fsck.maxtreename", &limit);
+
+	return limit;
+}
+
 static int fsck_tree(const struct object_id *tree_oid,
 		     const char *buffer, unsigned long size,
 		     struct fsck_options *options)
@@ -573,6 +584,7 @@ static int fsck_tree(const struct object_id *tree_oid,
 	int has_bad_modes = 0;
 	int has_dup_entries = 0;
 	int not_properly_sorted = 0;
+	int has_large_names = 0;
 	struct tree_desc desc;
 	unsigned o_mode;
 	const char *o_name;
@@ -602,6 +614,7 @@ static int fsck_tree(const struct object_id *tree_oid,
 		has_dotdot |= !strcmp(name, "..");
 		has_dotgit |= is_hfs_dotgit(name) || is_ntfs_dotgit(name);
 		has_zero_pad |= *(char *)desc.buffer == '0';
+		has_large_names |= tree_entry_len(&desc.entry) > max_tree_name();
 
 		if (is_hfs_dotgitmodules(name) || is_ntfs_dotgitmodules(name)) {
 			if (!S_ISLNK(mode))
@@ -739,6 +752,10 @@ static int fsck_tree(const struct object_id *tree_oid,
 		retval += report(options, tree_oid, OBJ_TREE,
 				 FSCK_MSG_TREE_NOT_SORTED,
 				 "not properly sorted");
+	if (has_large_names)
+		retval += report(options, tree_oid, OBJ_TREE,
+				 FSCK_MSG_LARGE_NAMES,
+				 "contains excessively large names");
 	return retval;
 }
 
