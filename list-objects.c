@@ -99,6 +99,32 @@ static void process_tree(struct traversal_context *ctx,
 			 struct strbuf *base,
 			 const char *name);
 
+/*
+ * The depth of the tree down to its farthest leaf node.
+ */
+static struct decoration tree_depths = { "tree depths" };
+static int max_allowed_depth = 7;
+
+static void store_tree_depth(struct tree *tree, unsigned long depth)
+{
+	add_decoration(&tree_depths, &tree->object,
+		       (void *)(uintptr_t)depth);
+}
+
+static unsigned long get_tree_depth(struct tree *tree)
+{
+	void *ret = lookup_decoration(&tree_depths, &tree->object);
+
+	/*
+	 * We might have skipped this tree due to a partial clone. XXX Or it
+	 * may have been marked UNINTERESTING???
+	 */
+	if (!ret)
+		return 0;
+
+	return (unsigned long)(uintptr_t)ret;
+}
+
 static void process_tree_contents(struct traversal_context *ctx,
 				  struct tree *tree,
 				  struct strbuf *base)
@@ -107,6 +133,7 @@ static void process_tree_contents(struct traversal_context *ctx,
 	struct name_entry entry;
 	enum interesting match = ctx->revs->diffopt.pathspec.nr == 0 ?
 		all_entries_interesting : entry_not_interesting;
+	unsigned long max_depth = 0;
 
 	init_tree_desc(&desc, tree->buffer, tree->size);
 
@@ -123,13 +150,20 @@ static void process_tree_contents(struct traversal_context *ctx,
 
 		if (S_ISDIR(entry.mode)) {
 			struct tree *t = lookup_tree(ctx->revs->repo, &entry.oid);
+			unsigned long depth;
+
 			if (!t) {
 				die(_("entry '%s' in tree %s has tree mode, "
 				      "but is not a tree"),
 				    entry.path, oid_to_hex(&tree->object.oid));
 			}
+
 			t->object.flags |= NOT_USER_GIVEN;
 			process_tree(ctx, t, base, entry.path);
+
+			depth = get_tree_depth(t);
+			if (max_depth < depth)
+				max_depth = depth;
 		}
 		else if (S_ISGITLINK(entry.mode))
 			process_gitlink(ctx, entry.oid.hash,
@@ -145,6 +179,11 @@ static void process_tree_contents(struct traversal_context *ctx,
 			process_blob(ctx, b, base, entry.path);
 		}
 	}
+
+	if (max_depth == max_allowed_depth)
+		die("tree %s exceeds maximum allowed depth",
+		    oid_to_hex(&tree->object.oid));
+	store_tree_depth(tree, max_depth + 1);
 }
 
 static void process_tree(struct traversal_context *ctx,
