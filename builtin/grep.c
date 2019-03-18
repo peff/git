@@ -636,7 +636,7 @@ static int grep_tree(struct grep_opt *opt, const struct pathspec *pathspec,
 	}
 
 	while (tree_entry(tree, &entry)) {
-		int te_len = tree_entry_len(&entry);
+		size_t te_len = tree_entry_len(&entry);
 
 		if (match != all_entries_interesting) {
 			strbuf_addstr(&name, base->buf + tn_len);

@@ -965,7 +965,7 @@ static int do_compare_entry_piecewise(const struct cache_entry *ce,
 				      const char *name, size_t namelen,
 				      unsigned mode)
 {
-	int pathlen, ce_len;
+	size_t pathlen, ce_len;
 	const char *ce_name;
 
 	if (info->prev) {
@@ -993,7 +993,7 @@ static int do_compare_entry(const struct cache_entry *ce,
 			    const char *name, size_t namelen,
 			    unsigned mode)
 {
-	int pathlen, ce_len;
+	size_t pathlen, ce_len;
 	const char *ce_name;
 	int cmp;
 	unsigned ce_mode;
@@ -1278,12 +1278,13 @@ static int find_cache_pos(struct traverse_info *info,
 	int pos;
 	struct unpack_trees_options *o = info->data;
 	struct index_state *index = o->src_index;
-	int pfxlen = info->pathlen;
+	size_t pfxlen = info->pathlen;
 
 	for (pos = o->internal.cache_bottom; pos < index->cache_nr; pos++) {
 		const struct cache_entry *ce = index->cache[pos];
 		const char *ce_name, *ce_slash;
-		int cmp, ce_len;
+		int cmp;
+		size_t ce_len;
 
 		if (ce->ce_flags & CE_UNPACKED) {
 			/*

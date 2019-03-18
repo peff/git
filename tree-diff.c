@@ -154,7 +154,7 @@ static int emit_diff_first_parent_only(struct diff_options *opt, struct combine_
  * p->parent[] remains uninitialized.
  */
 static struct combine_diff_path *path_appendnew(struct combine_diff_path *last,
-	int nparent, const struct strbuf *base, const char *path, int pathlen,
+	int nparent, const struct strbuf *base, const char *path, size_t pathlen,
 	unsigned mode, const struct object_id *oid)
 {
 	struct combine_diff_path *p;
@@ -207,7 +207,7 @@ static struct combine_diff_path *emit_path(struct combine_diff_path *p,
 	unsigned short mode;
 	const char *path;
 	const struct object_id *oid;
-	int pathlen;
+	size_t pathlen;
 	int old_baselen = base->len;
 	int i, isdir, recurse = 0, emitthis = 1;
 
