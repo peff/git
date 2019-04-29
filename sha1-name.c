@@ -395,7 +395,7 @@ static int collect_ambiguous(const struct object_id *oid, void *data)
 	return 0;
 }
 
-static int repo_collect_ambiguous(struct repository *r,
+static int repo_collect_ambiguous(struct repository *UNUSED(r),
 				  const struct object_id *oid,
 				  void *data)
 {
@@ -573,7 +573,7 @@ static int extend_abbrev_len(const struct object_id *oid, void *cb_data)
 	return 0;
 }
 
-static int repo_extend_abbrev_len(struct repository *r,
+static int repo_extend_abbrev_len(struct repository *UNUSED(r),
 				  const struct object_id *oid,
 				  void *cb_data)
 {
