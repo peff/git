@@ -82,7 +82,7 @@ static void fn_version_fl(const char *file, int line)
 }
 
 static void fn_start_fl(const char *file, int line,
-			uint64_t us_elapsed_absolute, const char **argv)
+			uint64_t UNUSED(us_elapsed_absolute), const char **argv)
 {
 	struct strbuf buf_payload = STRBUF_INIT;
 
