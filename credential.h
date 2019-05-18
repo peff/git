@@ -301,4 +301,10 @@ int credential_from_url_gently(struct credential *, const char *url, int quiet);
 int credential_match(const struct credential *want,
 		     const struct credential *have, int match_password);
 
+/*
+ * Return true if feeding "url" to the credential system would trigger one
+ * or more helpers.
+ */
+int url_has_credential_helper(const char *url);
+
 #endif /* CREDENTIAL_H */

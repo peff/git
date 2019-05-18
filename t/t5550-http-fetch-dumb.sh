@@ -115,7 +115,7 @@ test_expect_success 'username is retained in URL, password is not' '
 	! grep pass url
 '
 
-test_expect_failure 'fetch of password-URL clone uses stored auth' '
+test_expect_success 'fetch of password-URL clone uses stored auth' '
 	set_askpass wrong &&
 	git -C clone-auth-none fetch &&
 	expect_askpass none
