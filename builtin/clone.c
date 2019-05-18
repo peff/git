@@ -967,6 +967,13 @@ static int path_exists(const char *path)
 	return !stat(path, &sb);
 }
 
+static const char sanitized_url_advice[] = N_(
+"The URL you provided to Git contains a password. It will be\n"
+"used to clone the repository, but to avoid accidental disclosure\n"
+"the password will not be recorded. Further fetches from the remote\n"
+"may require you to provide the password interactively.\n"
+);
+
 int cmd_clone(int argc, const char **argv, const char *prefix)
 {
 	int is_bundle = 0, is_local;
@@ -1197,8 +1204,12 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 		strbuf_addf(&branch_top, "refs/remotes/%s/", remote_name);
 	}
 
+	if (display_repo && strcmp(repo, display_repo)) {
+		warning(_("omitting password while storing URL in on-disk config"));
+		advise(_(sanitized_url_advice));
+	}
 	strbuf_addf(&key, "remote.%s.url", remote_name);
-	git_config_set(key.buf, repo);
+	git_config_set(key.buf, display_repo ? display_repo : repo);
 	strbuf_reset(&key);
 
 	if (option_no_tags) {
@@ -1218,7 +1229,13 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 	refspec_appendf(&remote->fetch, "+%s*:%s*", src_ref_prefix,
 			branch_top.buf);
 
-	transport = transport_get(remote, remote->url[0]);
+	/*
+	 * Override remote->url here, since that will be the sanitized version
+	 * we wrote to the config. If there was a password, we need to use the
+	 * version that has it (and if there isn't, the two are identical
+	 * anyway).
+	 */
+	transport = transport_get(remote, repo);
 	transport_set_verbosity(transport, option_verbosity, option_progress);
 	transport->family = family;
 
