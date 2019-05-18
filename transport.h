@@ -331,13 +331,22 @@ int transport_fetch_object_info(struct transport *transport,
 void transport_unlock_pack(struct transport *transport, unsigned int flags);
 
 int transport_disconnect(struct transport *transport);
-char *transport_anonymize_url(const char *url);
 void transport_take_over(struct transport *transport,
 			 struct child_process *child);
 
 int transport_connect(struct transport *transport,
 		      enum git_connect_service service,
 		      const char *exec, int fd[2]);
+
+/*
+ * Strip password and optionally username from a URL and return
+ * it in a newly allocated string (even if nothing was stripped).
+ */
+char *transport_strip_url(const char *url, int strip_username);
+static inline char *transport_anonymize_url(const char *url)
+{
+	return transport_strip_url(url, 1);
+}
 
 /* Transport methods defined outside transport.c */
 int transport_helper_init(struct transport *transport, const char *name);
