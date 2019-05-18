@@ -1634,11 +1634,7 @@ int transport_disconnect(struct transport *transport)
 	return ret;
 }
 
-/*
- * Strip username (and password) from a URL and return
- * it in a newly allocated string.
- */
-char *transport_anonymize_url(const char *url)
+char *transport_strip_url(const char *url, int strip_user)
 {
 	char *scheme_prefix, *anon_part;
 	size_t anon_len, prefix_len = 0;
@@ -1647,7 +1643,10 @@ char *transport_anonymize_url(const char *url)
 	if (url_is_local_not_ssh(url) || !anon_part)
 		goto literal_copy;
 
-	anon_len = strlen(++anon_part);
+	anon_len = strlen(anon_part);
+	if (strip_user)
+		anon_part++;
+
 	scheme_prefix = strstr(url, "://");
 	if (!scheme_prefix) {
 		if (!strchr(anon_part, ':'))
@@ -1672,7 +1671,15 @@ char *transport_anonymize_url(const char *url)
 		cp = strchr(scheme_prefix + 3, '/');
 		if (cp && cp < anon_part)
 			goto literal_copy;
-		prefix_len = scheme_prefix - url + 3;
+
+		if (strip_user)
+			prefix_len = scheme_prefix - url + 3;
+		else {
+			cp = strchr(scheme_prefix + 3, ':');
+			if (cp && cp > anon_part)
+				goto literal_copy; /* username only */
+			prefix_len = cp - url;
+		}
 	}
 	return xstrfmt("%.*s%.*s", (int)prefix_len, url,
 		       (int)anon_len, anon_part);
