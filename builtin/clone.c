@@ -44,6 +44,7 @@
 #include "hook.h"
 #include "bundle.h"
 #include "bundle-uri.h"
+#include "credential.h"
 
 /*
  * Overall FIXMEs:
@@ -960,8 +961,14 @@ static int path_exists(const char *path)
 static const char sanitized_url_advice[] = N_(
 "The URL you provided to Git contains a password. It will be\n"
 "used to clone the repository, but to avoid accidental disclosure\n"
-"the password will not be recorded. Further fetches from the remote\n"
-"may require you to provide the password interactively.\n"
+"the password will not be recorded in the repository config.\n"
+"Since you have no credential helper configured, the \"store\" helper\n"
+"has been enabled for this repository, and will provide the password\n"
+"for further fetches.\n"
+"\n"
+"Note that the password is still stored in plaintext in the filesystem;\n"
+"consider configuring a more secure helper. See \"git help gitcredentials\"\n"
+"and \"git help git-credential-store\" for details.\n"
 );
 
 int cmd_clone(int argc,
@@ -1295,7 +1302,13 @@ int cmd_clone(int argc,
 
 	if (display_repo && strcmp(repo, display_repo)) {
 		warning(_("omitting password while storing URL in on-disk config"));
-		advise(_(sanitized_url_advice));
+		if (!url_has_credential_helper(display_repo)) {
+			strbuf_addf(&key, "credential.%s.helper",
+				    display_repo);
+			git_config_set(key.buf, "store");
+			strbuf_reset(&key);
+			advise(_(sanitized_url_advice));
+		}
 	}
 	strbuf_addf(&key, "remote.%s.url", remote_name);
 	git_config_set(key.buf, display_repo ? display_repo : repo);

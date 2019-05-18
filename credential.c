@@ -694,3 +694,16 @@ void credential_from_url(struct credential *c, const char *url)
 	if (credential_from_url_gently(c, url, 0) < 0)
 		die(_("credential url cannot be parsed: %s"), url);
 }
+
+int url_has_credential_helper(const char *url)
+{
+	struct credential c = CREDENTIAL_INIT;
+	int ret;
+
+	credential_from_url(&c, url);
+	credential_apply_config(&c);
+	ret = c.helpers.nr > 0;
+
+	credential_clear(&c);
+	return ret;
+}
