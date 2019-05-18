@@ -109,6 +109,18 @@ test_expect_success 'http auth can use user/pass in URL' '
 	expect_askpass none
 '
 
+test_expect_success 'username is retained in URL, password is not' '
+	git -C clone-auth-none config remote.origin.url >url &&
+	grep user url &&
+	! grep pass url
+'
+
+test_expect_failure 'fetch of password-URL clone uses stored auth' '
+	set_askpass wrong &&
+	git -C clone-auth-none fetch &&
+	expect_askpass none
+'
+
 test_expect_success 'http auth can use just user in URL' '
 	set_askpass wrong pass@host &&
 	git clone "$HTTPD_URL_USER/auth/dumb/repo.git" clone-auth-pass &&
