@@ -45,7 +45,7 @@ test -z "$test" && test=default
 
 enter_worktree() {
 	test -d "$1" ||
-	git worktree add --detach "$1" ||
+	git worktree add --detach -f "$1" ||
 	return 1
 
 	test -e "$1/config.mak" ||
