@@ -13,6 +13,8 @@
 #include "repository.h"
 #include "object-store.h"
 #include "list-objects-filter-options.h"
+#include "blob.h"
+#include "prio-queue.h"
 
 /*
  * An entry on the bitmap index, representing the bitmap for a given
@@ -430,180 +432,22 @@ static int ext_index_add_object(struct bitmap_index *bitmap_git,
 	return bitmap_pos + bitmap_git->pack->num_objects;
 }
 
-struct bitmap_show_data {
-	struct bitmap_index *bitmap_git;
-	struct bitmap *base;
-};
-
-static void show_object(struct object *object, const char *name, void *data_)
+static int add_commit_to_bitmap(struct bitmap_index *bitmap_git,
+				struct bitmap **base, struct commit *commit)
 {
-	struct bitmap_show_data *data = data_;
-	int bitmap_pos;
+	khiter_t pos = kh_get_oid_map(bitmap_git->bitmaps, commit->object.oid);
+	if (pos < kh_end(bitmap_git->bitmaps)) {
+		struct stored_bitmap *st = kh_value(bitmap_git->bitmaps, pos);
+		struct ewah_bitmap *or_with = lookup_stored_bitmap(st);
 
-	bitmap_pos = bitmap_position(data->bitmap_git, &object->oid);
+		if (*base == NULL)
+			*base = ewah_to_bitmap(or_with);
+		else
+			bitmap_or_ewah(*base, or_with);
 
-	if (bitmap_pos < 0)
-		bitmap_pos = ext_index_add_object(data->bitmap_git, object,
-						  name);
-
-	bitmap_set(data->base, bitmap_pos);
-}
-
-static void show_commit(struct commit *commit, void *data)
-{
-}
-
-static int add_to_include_set(struct bitmap_index *bitmap_git,
-			      struct include_data *data,
-			      const struct object_id *oid,
-			      int bitmap_pos)
-{
-	khiter_t hash_pos;
-
-	if (data->seen && bitmap_get(data->seen, bitmap_pos))
-		return 0;
-
-	if (bitmap_get(data->base, bitmap_pos))
-		return 0;
-
-	hash_pos = kh_get_oid_map(bitmap_git->bitmaps, *oid);
-	if (hash_pos < kh_end(bitmap_git->bitmaps)) {
-		struct stored_bitmap *st = kh_value(bitmap_git->bitmaps, hash_pos);
-		bitmap_or_ewah(data->base, lookup_stored_bitmap(st));
-		return 0;
+		return 1;
 	}
-
-	bitmap_set(data->base, bitmap_pos);
-	return 1;
-}
-
-static int should_include(struct commit *commit, void *_data)
-{
-	struct include_data *data = _data;
-	int bitmap_pos;
-
-	bitmap_pos = bitmap_position(data->bitmap_git, &commit->object.oid);
-	if (bitmap_pos < 0)
-		bitmap_pos = ext_index_add_object(data->bitmap_git,
-						  (struct object *)commit,
-						  NULL);
-
-	if (!add_to_include_set(data->bitmap_git, data, &commit->object.oid,
-				bitmap_pos)) {
-		struct commit_list *parent = commit->parents;
-
-		while (parent) {
-			parent->item->object.flags |= SEEN;
-			parent = parent->next;
-		}
-
-		return 0;
-	}
-
-	return 1;
-}
-
-static struct bitmap *find_objects(struct bitmap_index *bitmap_git,
-				   struct rev_info *revs,
-				   struct object_list *roots,
-				   struct bitmap *seen)
-{
-	struct bitmap *base = NULL;
-	int needs_walk = 0;
-
-	struct object_list *not_mapped = NULL;
-
-	/*
-	 * Go through all the roots for the walk. The ones that have bitmaps
-	 * on the bitmap index will be `or`ed together to form an initial
-	 * global reachability analysis.
-	 *
-	 * The ones without bitmaps in the index will be stored in the
-	 * `not_mapped_list` for further processing.
-	 */
-	while (roots) {
-		struct object *object = roots->item;
-		roots = roots->next;
-
-		if (object->type == OBJ_COMMIT) {
-			khiter_t pos = kh_get_oid_map(bitmap_git->bitmaps, object->oid);
-
-			if (pos < kh_end(bitmap_git->bitmaps)) {
-				struct stored_bitmap *st = kh_value(bitmap_git->bitmaps, pos);
-				struct ewah_bitmap *or_with = lookup_stored_bitmap(st);
-
-				if (base == NULL)
-					base = ewah_to_bitmap(or_with);
-				else
-					bitmap_or_ewah(base, or_with);
-
-				object->flags |= SEEN;
-				continue;
-			}
-		}
-
-		object_list_insert(object, &not_mapped);
-	}
-
-	/*
-	 * Best case scenario: We found bitmaps for all the roots,
-	 * so the resulting `or` bitmap has the full reachability analysis
-	 */
-	if (not_mapped == NULL)
-		return base;
-
-	roots = not_mapped;
-
-	/*
-	 * Let's iterate through all the roots that don't have bitmaps to
-	 * check if we can determine them to be reachable from the existing
-	 * global bitmap.
-	 *
-	 * If we cannot find them in the existing global bitmap, we'll need
-	 * to push them to an actual walk and run it until we can confirm
-	 * they are reachable
-	 */
-	while (roots) {
-		struct object *object = roots->item;
-		int pos;
-
-		roots = roots->next;
-		pos = bitmap_position(bitmap_git, &object->oid);
-
-		if (pos < 0 || base == NULL || !bitmap_get(base, pos)) {
-			object->flags &= ~UNINTERESTING;
-			add_pending_object(revs, object, "");
-			needs_walk = 1;
-		} else {
-			object->flags |= SEEN;
-		}
-	}
-
-	if (needs_walk) {
-		struct include_data incdata;
-		struct bitmap_show_data show_data;
-
-		if (base == NULL)
-			base = bitmap_new();
-
-		incdata.bitmap_git = bitmap_git;
-		incdata.base = base;
-		incdata.seen = seen;
-
-		revs->include_check = should_include;
-		revs->include_check_data = &incdata;
-
-		if (prepare_revision_walk(revs))
-			die("revision walk setup failed");
-
-		show_data.bitmap_git = bitmap_git;
-		show_data.base = base;
-
-		traverse_commit_list(revs, show_commit, show_object,
-				     &show_data);
-	}
-
-	return base;
+	return 0;
 }
 
 static void show_extended_objects(struct bitmap_index *bitmap_git,
@@ -701,18 +545,114 @@ static void show_objects_for_type(
 	}
 }
 
-static int in_bitmapped_pack(struct bitmap_index *bitmap_git,
-			     struct object_list *roots)
-{
-	while (roots) {
-		struct object *object = roots->item;
-		roots = roots->next;
+static void add_object_to_bitmap(struct bitmap_index *bitmap_git,
+				 struct object *obj,
+				 struct bitmap *bitmap,
+				 struct bitmap *seen,
+				 int ignore_missing);
 
-		if (find_pack_entry_one(object->oid.hash, bitmap_git->pack) > 0)
-			return 1;
+static void add_tag_to_bitmap(struct bitmap_index *bitmap_git,
+			      struct tag *tag,
+			      struct bitmap *bitmap,
+			      struct bitmap *seen,
+			      int ignore_missing)
+{
+	if (parse_tag(tag) < 0 || !tag->tagged) {
+		if (ignore_missing)
+			return;
+		die("unable to parse tag %s", oid_to_hex(&tag->object.oid));
+	}
+	add_object_to_bitmap(bitmap_git, tag->tagged, bitmap, seen,
+			     ignore_missing);
+}
+
+static void add_tree_to_bitmap(struct bitmap_index *bitmap_git,
+			       struct tree *tree,
+			       struct bitmap *bitmap,
+			       struct bitmap *seen,
+			       int ignore_missing)
+{
+	struct tree_desc desc;
+	struct name_entry entry;
+
+	if (parse_tree(tree) < 0) {
+		if (ignore_missing)
+			return;
+		die("unable to parse tree %s", oid_to_hex(&tree->object.oid));
 	}
 
-	return 0;
+	init_tree_desc(&desc, tree->buffer, tree->size);
+	while (tree_entry(&desc, &entry)) {
+		if (S_ISDIR(entry.mode)) {
+			struct tree *t = lookup_tree(the_repository, &entry.oid);
+			if (!t) {
+				die(_("entry '%s' in tree %s has tree mode, "
+				      "but is not a tree"),
+				    entry.path, oid_to_hex(&tree->object.oid));
+			}
+			add_object_to_bitmap(bitmap_git, &t->object,
+					     bitmap, seen, ignore_missing);
+		} else if (!S_ISGITLINK(entry.mode)) {
+			struct blob *b = lookup_blob(the_repository, &entry.oid);
+			if (!b) {
+				die(_("entry '%s' in tree %s has blob mode, "
+				      "but is not a blob"),
+				    entry.path, oid_to_hex(&tree->object.oid));
+			}
+			add_object_to_bitmap(bitmap_git, &b->object,
+					     bitmap, seen, ignore_missing);
+		}
+	}
+
+	free_tree_buffer(tree);
+}
+
+static void add_object_to_bitmap(struct bitmap_index *bitmap_git,
+				 struct object *obj,
+				 struct bitmap *bitmap,
+				 struct bitmap *seen,
+				 int ignore_missing)
+{
+	int pos = bitmap_position(bitmap_git, &obj->oid);
+
+	if (pos < 0)
+		pos = ext_index_add_object(bitmap_git, obj, NULL);
+
+	if (bitmap_get(bitmap, pos))
+		return; /* already there */
+
+	if (seen && bitmap_get(seen, pos))
+		return; /* seen in other bitmap; not worth digging further */
+
+	bitmap_set(bitmap, pos);
+
+	if (obj->type == OBJ_BLOB)
+		return;
+	else if (obj->type == OBJ_TAG)
+		add_tag_to_bitmap(bitmap_git, (struct tag *)obj,
+				  bitmap, seen, ignore_missing);
+	else if (obj->type == OBJ_TREE)
+		add_tree_to_bitmap(bitmap_git, (struct tree *)obj,
+				   bitmap, seen, ignore_missing);
+	else
+		BUG("unexpected object type: %d", obj->type);
+}
+
+static void add_objects_to_bitmap(struct bitmap_index *bitmap_git,
+				  struct object_list **list,
+				  struct bitmap *bitmap,
+				  struct bitmap *seen,
+				  int ignore_missing)
+{
+	while (*list) {
+		struct object_list *cur = *list;
+
+		add_object_to_bitmap(bitmap_git, cur->item,
+				     bitmap, seen, ignore_missing);
+
+		*list = cur->next;
+		free(cur);
+	}
 }
 
 static struct bitmap *find_tip_blobs(struct bitmap_index *bitmap_git,
@@ -891,6 +831,8 @@ struct bitmap_index *prepare_bitmap_walk(struct rev_info *revs,
 {
 	unsigned int i;
 
+	struct prio_queue commits = { compare_commits_by_commit_date };
+
 	struct object_list *wants = NULL;
 	struct object_list *haves = NULL;
 
@@ -933,23 +875,15 @@ struct bitmap_index *prepare_bitmap_walk(struct rev_info *revs,
 			object = parse_object_or_die(get_tagged_oid(tag), NULL);
 		}
 
-		if (object->flags & UNINTERESTING)
-			object_list_insert(object, &haves);
-		else
-			object_list_insert(object, &wants);
+		if (object->type == OBJ_COMMIT)
+			prio_queue_put(&commits, object);
+		else {
+			if (object->flags & UNINTERESTING)
+				object_list_insert(object, &haves);
+			else
+				object_list_insert(object, &wants);
+		}
 	}
-
-	/*
-	 * if we have a HAVES list, but none of those haves is contained
-	 * in the packfile that has a bitmap, we don't have anything to
-	 * optimize here
-	 */
-	if (haves && !in_bitmapped_pack(bitmap_git, haves))
-		goto cleanup;
-
-	/* if we don't want anything, we're done here */
-	if (!wants)
-		goto cleanup;
 
 	/*
 	 * now we're going to use bitmaps, so load the actual bitmap entries
@@ -961,20 +895,74 @@ struct bitmap_index *prepare_bitmap_walk(struct rev_info *revs,
 
 	object_array_clear(&revs->pending);
 
-	if (haves) {
-		revs->ignore_missing_links = 1;
-		haves_bitmap = find_objects(bitmap_git, revs, haves, NULL);
-		reset_revision_walk();
-		revs->ignore_missing_links = 0;
+	haves_bitmap = bitmap_new();
+	wants_bitmap = bitmap_new();
 
-		if (haves_bitmap == NULL)
-			BUG("failed to perform bitmap walk");
+	/*
+	 * First traverse the relevant commits as we would for a normal
+	 * traversal.
+	 */
+	while (commits.nr) {
+		struct commit *commit = prio_queue_get(&commits);
+		struct bitmap **dst_bitmap;
+		int pos;
+		struct commit_list *parent;
+
+		if (commit->object.flags & UNINTERESTING)
+			dst_bitmap = &haves_bitmap;
+		else
+			dst_bitmap = &wants_bitmap;
+
+		pos = bitmap_position(bitmap_git, &commit->object.oid);
+		if (pos >= 0 && *dst_bitmap && bitmap_get(*dst_bitmap, pos))
+			continue; /* already covered */
+
+		if (add_commit_to_bitmap(bitmap_git, dst_bitmap, commit))
+			continue; /* skip adding parents, they're covered */
+
+
+		/* otherwise mark ourselves and queue dependent objects */
+		if (pos < 0)
+			pos = ext_index_add_object(bitmap_git, &commit->object, NULL);
+		bitmap_set(*dst_bitmap, pos);
+		if (parse_commit(commit)) {
+			if (commit->object.flags & UNINTERESTING)
+				continue;
+			die("unable to parse commit %s",
+			    oid_to_hex(&commit->object.oid));
+		}
+		if (commit->object.flags & UNINTERESTING) {
+			/*
+			 * If an uninteresting commit is in the "wants" bitmap,
+			 * then our tree is worth exploring. This means we may
+			 * miss some trees in the "haves" that are not
+			 * ancestors of "wants" (or that are, but we missed
+			 * because of out-of-order timestamps).
+			 */
+			if (wants_bitmap && bitmap_get(wants_bitmap, pos))
+				object_list_insert(&get_commit_tree(commit)->object,
+						   &haves);
+		} else {
+			/*
+			 * "wants" must always be explored
+			 */
+			object_list_insert(&get_commit_tree(commit)->object,
+					   &wants);
+		}
+
+		for (parent = commit->parents; parent; parent = parent->next) {
+			if (commit->object.flags & UNINTERESTING)
+				parent->item->object.flags |= UNINTERESTING;
+			prio_queue_put(&commits, parent->item);
+		}
 	}
 
-	wants_bitmap = find_objects(bitmap_git, revs, wants, haves_bitmap);
-
-	if (!wants_bitmap)
-		BUG("failed to perform bitmap walk");
+	/*
+	 * At this point we've processed all of the commits, and queued items
+	 * in "haves" and "wants" that need to be marked.
+	 */
+	add_objects_to_bitmap(bitmap_git, &haves, haves_bitmap, NULL, 1);
+	add_objects_to_bitmap(bitmap_git, &wants, wants_bitmap, haves_bitmap, 0);
 
 	if (haves_bitmap)
 		bitmap_and_not(wants_bitmap, haves_bitmap);
