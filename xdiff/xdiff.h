@@ -114,11 +114,6 @@ typedef struct s_xdemitconf {
 	xdl_emit_hunk_consume_func_t hunk_func;
 } xdemitconf_t;
 
-typedef struct s_bdiffparam {
-	long bsize;
-} bdiffparam_t;
-
-
 #define xdl_malloc(x) xmalloc(x)
 #define xdl_calloc(n, sz) xcalloc(n, sz)
 #define xdl_free(ptr) free(ptr)
