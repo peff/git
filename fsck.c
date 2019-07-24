@@ -22,6 +22,8 @@
 static struct oidset gitmodules_found = OIDSET_INIT;
 static struct oidset gitmodules_done = OIDSET_INIT;
 
+static ssize_t max_tree_entry_len = 4096;
+
 #define FSCK_FATAL -1
 #define FSCK_INFO -2
 
@@ -77,6 +79,7 @@ static struct oidset gitmodules_done = OIDSET_INIT;
 	FUNC(NULL_SHA1, WARN) \
 	FUNC(ZERO_PADDED_FILEMODE, WARN) \
 	FUNC(NUL_IN_COMMIT, WARN) \
+	FUNC(LARGE_PATHNAME, WARN) \
 	/* infos (reported as warnings, but ignored by default) */ \
 	FUNC(GITMODULES_PARSE, INFO) \
 	FUNC(BAD_TAG_NAME, INFO) \
@@ -203,10 +206,23 @@ int is_valid_msg_type(const char *msg_id, const char *msg_type)
 void fsck_set_msg_type(struct fsck_options *options,
 		const char *msg_id, const char *msg_type)
 {
+	char *to_free = NULL;
 	int id = parse_msg_id(msg_id), type;
 
 	if (id < 0)
 		die("Unhandled message id: %s", msg_id);
+
+	if (id == FSCK_MSG_LARGE_PATHNAME) {
+		const char *colon = strchr(msg_type, ':');
+		if (colon) {
+			msg_type = to_free = xmemdupz(msg_type, colon - msg_type);
+			colon++;
+			if (!git_parse_ssize_t(colon, &max_tree_entry_len))
+				die(_("unable to parse max tree entry len: %s"),
+				    colon);
+		}
+	}
+
 	type = parse_msg_type(msg_type);
 
 	if (type != FSCK_ERROR && msg_id_info[id].msg_type == FSCK_FATAL)
@@ -222,6 +238,8 @@ void fsck_set_msg_type(struct fsck_options *options,
 	}
 
 	options->msg_type[id] = type;
+
+	free(to_free);
 }
 
 void fsck_set_msg_types(struct fsck_options *options, const char *values)
@@ -648,6 +666,7 @@ static int fsck_tree(const struct object_id *oid,
 	int has_bad_modes = 0;
 	int has_dup_entries = 0;
 	int not_properly_sorted = 0;
+	int has_large_name = 0;
 	struct tree_desc desc;
 	unsigned o_mode;
 	const char *o_name;
@@ -675,6 +694,7 @@ static int fsck_tree(const struct object_id *oid,
 		has_dotdot |= !strcmp(name, "..");
 		has_dotgit |= is_hfs_dotgit(name) || is_ntfs_dotgit(name);
 		has_zero_pad |= *(char *)desc.buffer == '0';
+		has_large_name |= tree_entry_len(&desc.entry) > max_tree_entry_len;
 
 		if (is_hfs_dotgitmodules(name) || is_ntfs_dotgitmodules(name)) {
 			if (!S_ISLNK(mode))
@@ -770,6 +790,10 @@ static int fsck_tree(const struct object_id *oid,
 		retval += report(options, oid, OBJ_TREE, FSCK_MSG_DUPLICATE_ENTRIES, "contains duplicate file entries");
 	if (not_properly_sorted)
 		retval += report(options, oid, OBJ_TREE, FSCK_MSG_TREE_NOT_SORTED, "not properly sorted");
+	if (has_large_name)
+		retval += report(options, oid, OBJ_TREE,
+				 FSCK_MSG_LARGE_PATHNAME,
+				 "contains excessively large pathname");
 	return retval;
 }
 
