@@ -154,7 +154,7 @@ while read cmd args; do
 		git cherry-pick ${args%% *} || fail "resolve $args"
 		;;
 	exec)
-		eval "$args" || fail
+		eval "($args)" || fail
 		;;
 	esac
 done <"$TODO_FILE"
