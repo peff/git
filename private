@@ -101,8 +101,8 @@ else
 		fi
 		if test "$careful" -gt 1; then
 			echo 'exec make test'
-		elif test -n "$test_script" && test -e t/t${test_script}*.sh; then
-			echo "exec make -j16 && cd t && make t${test_script}*.sh"
+		elif test -n "$test_script"; then
+			echo "exec test ! -e t/t${test_script}*.sh || { make -j16 && cd t && make t${test_script}*.sh; }"
 		fi
 	done >"$TODO_FILE"
 fi
