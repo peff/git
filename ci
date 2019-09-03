@@ -40,9 +40,6 @@ if test "$1" = "--daemon"; then
 	shift
 fi
 
-test=$1
-test -z "$test" && test=default
-
 enter_worktree() {
 	test -d "$1" ||
 	git worktree add --detach -f "$1" ||
