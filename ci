@@ -4,29 +4,7 @@ WORKTREE_ROOT=.git/tmp-ci
 
 test $# = 0 && set -- --status
 
-if test "$1" = "--status"; then
-	git test run -k --dry-run @{u}.. 2>/dev/null |
-	while read tree line; do
-		case "$line" in
-		known-good)
-			printf 'G'
-			;;
-		known-bad)
-			printf 'B'
-			;;
-		unknown)
-			printf '.'
-			;;
-		*)
-			printf '?'
-			;;
-		esac
-	done
-	echo
-	exit 0
-fi
-
-if test "$1" = "-v"; then
+if test "$1" = "-v" || test "$1" = "--status"; then
 	paste -d' ' <(
 		git test run -k --dry-run @{u}.. 2>/dev/null | awk '{print $2}'
 	) <(
