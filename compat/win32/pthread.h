@@ -13,12 +13,18 @@
 
 #include <windows.h>
 
+#if defined(__GNUC__)
+#define UNUSED(var) UNUSED_##var __attribute__((unused))
+#else
+#define UNUSED(var) UNUSED_##var
+#endif
+
 /*
  * Defines that adapt Windows API threads to pthreads API
  */
 #define pthread_mutex_t CRITICAL_SECTION
 
-static inline int return_0(int i) {
+static inline int return_0(int UNUSED(i)) {
 	return 0;
 }
 #define pthread_mutex_init(a,b) return_0((InitializeCriticalSection((a)), 0))
@@ -72,6 +78,7 @@ static inline void NORETURN pthread_exit(void *ret)
 typedef DWORD pthread_key_t;
 static inline int pthread_key_create(pthread_key_t *keyp, void (*destructor)(void *value))
 {
+	(void)destructor;
 	return (*keyp = TlsAlloc()) == TLS_OUT_OF_INDEXES ? EAGAIN : 0;
 }
 

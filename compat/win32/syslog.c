@@ -2,7 +2,7 @@
 
 static HANDLE ms_eventlog;
 
-void openlog(const char *ident, int logopt, int facility)
+void openlog(const char *ident, int UNUSED(logopt), int UNUSED(facility))
 {
 	if (ms_eventlog)
 		return;
