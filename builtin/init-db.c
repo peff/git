@@ -510,7 +510,7 @@ static int guess_repository_type(const char *git_dir)
 static int shared_callback(const struct option *opt, const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
-	*((int *) opt->value.voidp) = (arg) ? git_config_perm("arg", arg) : PERM_GROUP;
+	*opt->value.intp = (arg) ? git_config_perm("arg", arg) : PERM_GROUP;
 	return 0;
 }
 

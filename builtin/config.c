@@ -81,7 +81,7 @@ static int option_parse_type(const struct option *opt, const char *arg,
 	int new_type, *to_type;
 
 	if (unset) {
-		*((int *) opt->value.voidp) = 0;
+		*opt->value.intp = 0;
 		return 0;
 	}
 

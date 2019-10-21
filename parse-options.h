@@ -133,6 +133,7 @@ struct option {
 	const char *long_name;
 	union {
 		void *voidp;
+		int *intp;
 	} value;
 	const char *argh;
 	const char *help;
@@ -144,27 +145,27 @@ struct option {
 	intptr_t extra;
 };
 
-#define OPT_BIT_F(s, l, v, h, b, f) { OPTION_BIT, (s), (l), { .voidp = (v) }, NULL, (h), \
+#define OPT_BIT_F(s, l, v, h, b, f) { OPTION_BIT, (s), (l), { .intp = (v) }, NULL, (h), \
 				      PARSE_OPT_NOARG|(f), NULL, (b) }
-#define OPT_COUNTUP_F(s, l, v, h, f) { OPTION_COUNTUP, (s), (l), { .voidp = (v) }, NULL, \
+#define OPT_COUNTUP_F(s, l, v, h, f) { OPTION_COUNTUP, (s), (l), { .intp = (v) }, NULL, \
 				       (h), PARSE_OPT_NOARG|(f) }
-#define OPT_SET_INT_F(s, l, v, h, i, f) { OPTION_SET_INT, (s), (l), { .voidp = (v) }, NULL, \
+#define OPT_SET_INT_F(s, l, v, h, i, f) { OPTION_SET_INT, (s), (l), { .intp = (v) }, NULL, \
 					  (h), PARSE_OPT_NOARG | (f), NULL, (i) }
 #define OPT_BOOL_F(s, l, v, h, f)   OPT_SET_INT_F(s, l, v, h, 1, f)
 #define OPT_CALLBACK_F(s, l, v, a, h, f, cb)			\
 	{ OPTION_CALLBACK, (s), (l), { .voidp = (v) }, (a), (h), (f), (cb) }
 #define OPT_STRING_F(s, l, v, a, h, f)   { OPTION_STRING,  (s), (l), { .voidp = (v) }, (a), (h), (f) }
-#define OPT_INTEGER_F(s, l, v, h, f)     { OPTION_INTEGER, (s), (l), { .voidp = (v) }, N_("n"), (h), (f) }
+#define OPT_INTEGER_F(s, l, v, h, f)     { OPTION_INTEGER, (s), (l), { .intp = (v) }, N_("n"), (h), (f) }
 
 #define OPT_END()                   { OPTION_END }
 #define OPT_ARGUMENT(l, v, h)       { OPTION_ARGUMENT, 0, (l), { .voidp = (v) }, NULL, \
 				      (h), PARSE_OPT_NOARG, NULL, 1 }
 #define OPT_GROUP(h)                { OPTION_GROUP, 0, NULL, { .voidp = NULL }, NULL, (h) }
 #define OPT_BIT(s, l, v, h, b)      OPT_BIT_F(s, l, v, h, b, 0)
-#define OPT_BITOP(s, l, v, h, set, clear) { OPTION_BITOP, (s), (l), { .voidp = (v) }, NULL, (h), \
+#define OPT_BITOP(s, l, v, h, set, clear) { OPTION_BITOP, (s), (l), { .intp = (v) }, NULL, (h), \
 					    PARSE_OPT_NOARG|PARSE_OPT_NONEG, NULL, \
 					    (set), NULL, (clear) }
-#define OPT_NEGBIT(s, l, v, h, b)   { OPTION_NEGBIT, (s), (l), { .voidp = (v) }, NULL, \
+#define OPT_NEGBIT(s, l, v, h, b)   { OPTION_NEGBIT, (s), (l), { .intp = (v) }, NULL, \
 				      (h), PARSE_OPT_NOARG, NULL, (b) }
 #define OPT_COUNTUP(s, l, v, h)     OPT_COUNTUP_F(s, l, v, h, 0)
 #define OPT_SET_INT(s, l, v, h, i)  OPT_SET_INT_F(s, l, v, h, i, 0)

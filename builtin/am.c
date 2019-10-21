@@ -2162,7 +2162,7 @@ static int show_patch(struct am_state *state, enum show_patch_type sub_mode)
  */
 static int parse_opt_patchformat(const struct option *opt, const char *arg, int unset)
 {
-	int *opt_value = opt->value.voidp;
+	int *opt_value = opt->value.intp;
 
 	if (unset)
 		*opt_value = PATCH_FORMAT_UNKNOWN;

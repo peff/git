@@ -884,7 +884,7 @@ static enum parse_opt_result stdin_cacheinfo_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *nul_term_line = opt->value.voidp;
+	int *nul_term_line = opt->value.intp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -900,7 +900,7 @@ static enum parse_opt_result stdin_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *read_from_stdin = opt->value.voidp;
+	int *read_from_stdin = opt->value.intp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -915,7 +915,7 @@ static enum parse_opt_result unresolve_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *has_errors = opt->value.voidp;
+	int *has_errors = opt->value.intp;
 	const char *prefix = startup_info->prefix;
 
 	BUG_ON_OPT_NEG(unset);
@@ -936,7 +936,7 @@ static enum parse_opt_result reupdate_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *has_errors = opt->value.voidp;
+	int *has_errors = opt->value.intp;
 	const char *prefix = startup_info->prefix;
 
 	BUG_ON_OPT_NEG(unset);

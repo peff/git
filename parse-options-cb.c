@@ -28,7 +28,7 @@ int parse_opt_abbrev_cb(const struct option *opt, const char *arg, int unset)
 		else if (v > the_hash_algo->hexsz)
 			v = the_hash_algo->hexsz;
 	}
-	*(int *)(opt->value.voidp) = v;
+	*opt->value.intp = v;
 	return 0;
 }
 
@@ -53,14 +53,14 @@ int parse_opt_color_flag_cb(const struct option *opt, const char *arg,
 	if (value < 0)
 		return error(_("option `%s' expects \"always\", \"auto\", or \"never\""),
 			     opt->long_name);
-	*(int *)opt->value.voidp = value;
+	*opt->value.intp = value;
 	return 0;
 }
 
 int parse_opt_verbosity_cb(const struct option *opt, const char *arg,
 			   int unset)
 {
-	int *target = opt->value.voidp;
+	int *target = opt->value.intp;
 
 	BUG_ON_OPT_ARG(arg);
 
@@ -153,7 +153,7 @@ int parse_opt_object_id(const struct option *opt, const char *arg, int unset)
 
 int parse_opt_tertiary(const struct option *opt, const char *arg, int unset)
 {
-	int *target = opt->value.voidp;
+	int *target = opt->value.intp;
 
 	BUG_ON_OPT_ARG(arg);
 

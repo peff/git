@@ -4957,7 +4957,7 @@ static int diff_opt_binary(const struct option *opt,
 static int diff_opt_break_rewrites(const struct option *opt,
 				   const char *arg, int unset)
 {
-	int *break_opt = opt->value.voidp;
+	int *break_opt = opt->value.intp;
 	int opt1, opt2;
 
 	BUG_ON_OPT_NEG(unset);

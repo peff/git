@@ -27,7 +27,7 @@ int cmd_write_tree(int argc, const char **argv, const char *cmd_prefix)
 			WRITE_TREE_MISSING_OK),
 		OPT_STRING(0, "prefix", &tree_prefix, N_("<prefix>/"),
 			   N_("write tree object for a subdirectory <prefix>")),
-		{ OPTION_BIT, 0, "ignore-cache-tree", { .voidp = &flags }, NULL,
+		{ OPTION_BIT, 0, "ignore-cache-tree", { .intp = &flags }, NULL,
 		  N_("only useful for debugging"),
 		  PARSE_OPT_HIDDEN | PARSE_OPT_NOARG, NULL,
 		  WRITE_TREE_IGNORE_CACHE_TREE },

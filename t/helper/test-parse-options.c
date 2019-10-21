@@ -31,14 +31,14 @@ static int length_callback(const struct option *opt, const char *arg, int unset)
 	if (unset)
 		return 1; /* do not support unset */
 
-	*(int *)opt->value.voidp = strlen(arg);
+	*opt->value.intp = strlen(arg);
 	return 0;
 }
 
 static int number_callback(const struct option *opt, const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
-	*(int *)opt->value.voidp = strtol(arg, NULL, 10);
+	*opt->value.intp = strtol(arg, NULL, 10);
 	return 0;
 }
 

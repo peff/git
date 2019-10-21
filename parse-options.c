@@ -63,7 +63,7 @@ static enum parse_opt_result opt_command_mode_error(
 		if (that == opt ||
 		    !(that->flags & PARSE_OPT_CMDMODE) ||
 		    that->value.voidp != opt->value.voidp ||
-		    that->defval != *(int *)opt->value.voidp)
+		    that->defval != *opt->value.intp)
 			continue;
 
 		if (that->long_name)
@@ -100,7 +100,7 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 	 * is not a grave error, so let it pass.
 	 */
 	if ((opt->flags & PARSE_OPT_CMDMODE) &&
-	    *(int *)opt->value.voidp && *(int *)opt->value.voidp != opt->defval)
+	    opt->value.intp && opt->value.intp != opt->defval)
 		return opt_command_mode_error(opt, all_opts, flags);
 
 	switch (opt->type) {
@@ -109,33 +109,33 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 
 	case OPTION_BIT:
 		if (unset)
-			*(int *)opt->value.voidp &= ~opt->defval;
+			*opt->value.intp &= ~opt->defval;
 		else
-			*(int *)opt->value.voidp |= opt->defval;
+			*opt->value.intp |= opt->defval;
 		return 0;
 
 	case OPTION_NEGBIT:
 		if (unset)
-			*(int *)opt->value.voidp |= opt->defval;
+			*opt->value.intp |= opt->defval;
 		else
-			*(int *)opt->value.voidp &= ~opt->defval;
+			*opt->value.intp &= ~opt->defval;
 		return 0;
 
 	case OPTION_BITOP:
 		if (unset)
 			BUG("BITOP can't have unset form");
-		*(int *)opt->value.voidp &= ~opt->extra;
-		*(int *)opt->value.voidp |= opt->defval;
+		*opt->value.intp &= ~opt->extra;
+		*opt->value.intp |= opt->defval;
 		return 0;
 
 	case OPTION_COUNTUP:
-		if (*(int *)opt->value.voidp < 0)
-			*(int *)opt->value.voidp = 0;
-		*(int *)opt->value.voidp = unset ? 0 : *(int *)opt->value.voidp + 1;
+		if (*opt->value.intp < 0)
+			*opt->value.intp = 0;
+		*opt->value.intp = unset ? 0 : *opt->value.intp + 1;
 		return 0;
 
 	case OPTION_SET_INT:
-		*(int *)opt->value.voidp = unset ? 0 : opt->defval;
+		*opt->value.intp = unset ? 0 : opt->defval;
 		return 0;
 
 	case OPTION_STRING:
@@ -184,11 +184,11 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 	}
 	case OPTION_INTEGER:
 		if (unset) {
-			*(int *)opt->value.voidp = 0;
+			*opt->value.intp = 0;
 			return 0;
 		}
 		if (opt->flags & PARSE_OPT_OPTARG && !p->opt) {
-			*(int *)opt->value.voidp = opt->defval;
+			*opt->value.intp = opt->defval;
 			return 0;
 		}
 		if (get_arg(p, opt, flags, &arg))
@@ -196,7 +196,7 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 		if (!*arg)
 			return error(_("%s expects a numerical value"),
 				     optname(opt, flags));
-		*(int *)opt->value.voidp = strtol(arg, (char **)&s, 10);
+		*opt->value.intp = strtol(arg, (char **)&s, 10);
 		if (*s)
 			return error(_("%s expects a numerical value"),
 				     optname(opt, flags));
@@ -319,7 +319,7 @@ again:
 			if (*rest)
 				continue;
 			if (options->value.voidp)
-				*(int *)options->value.voidp = options->defval;
+				*options->value.intp = options->defval;
 			p->out[p->cpidx++] = arg - 2;
 			return PARSE_OPT_DONE;
 		}
