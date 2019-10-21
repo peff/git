@@ -48,7 +48,7 @@ static int parse_parent_arg_callback(const struct option *opt,
 		const char *arg, int unset)
 {
 	struct object_id oid;
-	struct commit_list **parents = opt->value;
+	struct commit_list **parents = opt->value.voidp;
 
 	BUG_ON_OPT_NEG_NOARG(unset, arg);
 
@@ -63,7 +63,7 @@ static int parse_parent_arg_callback(const struct option *opt,
 static int parse_message_arg_callback(const struct option *opt,
 		const char *arg, int unset)
 {
-	struct strbuf *buf = opt->value;
+	struct strbuf *buf = opt->value.voidp;
 
 	BUG_ON_OPT_NEG_NOARG(unset, arg);
 
@@ -79,7 +79,7 @@ static int parse_file_arg_callback(const struct option *opt,
 		const char *arg, int unset)
 {
 	int fd;
-	struct strbuf *buf = opt->value;
+	struct strbuf *buf = opt->value.voidp;
 
 	BUG_ON_OPT_NEG_NOARG(unset, arg);
 

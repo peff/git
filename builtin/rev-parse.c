@@ -370,7 +370,7 @@ static int try_parent_shorthands(const char *arg)
 
 static int parseopt_dump(const struct option *o, const char *arg, int unset)
 {
-	struct strbuf *parsed = o->value;
+	struct strbuf *parsed = o->value.voidp;
 	if (unset)
 		strbuf_addf(parsed, " --no-%s", o->long_name);
 	else if (o->short_name && (o->long_name == NULL || !stuck_long))
@@ -470,7 +470,7 @@ static int cmd_parseopt(int argc, const char **argv, const char *prefix)
 
 		o->type = OPTION_CALLBACK;
 		o->help = xstrdup(skipspaces(help+1));
-		o->value = &parsed;
+		o->value.voidp = &parsed;
 		o->flags = PARSE_OPT_NOARG;
 		o->callback = &parseopt_dump;
 

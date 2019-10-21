@@ -54,7 +54,7 @@ static enum rebase_type parse_config_rebase(const char *key, const char *value,
  */
 static int parse_opt_rebase(const struct option *opt, const char *arg, int unset)
 {
-	enum rebase_type *value = opt->value;
+	enum rebase_type *value = opt->value.voidp;
 
 	if (arg)
 		*value = parse_config_rebase("--rebase", arg, 0);

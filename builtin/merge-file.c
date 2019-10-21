@@ -13,7 +13,7 @@ static const char *const merge_file_usage[] = {
 static int label_cb(const struct option *opt, const char *arg, int unset)
 {
 	static int label_count = 0;
-	const char **names = (const char **)opt->value;
+	const char **names = (const char **)opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 

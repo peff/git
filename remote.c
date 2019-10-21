@@ -2363,7 +2363,7 @@ static int parse_push_cas_option(struct push_cas_option *cas, const char *arg, i
 
 int parseopt_push_cas_option(const struct option *opt, const char *arg, int unset)
 {
-	return parse_push_cas_option(opt->value, arg, unset);
+	return parse_push_cas_option(opt->value.voidp, arg, unset);
 }
 
 int is_empty_cas(const struct push_cas_option *cas)

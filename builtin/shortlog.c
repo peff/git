@@ -280,7 +280,7 @@ static const char wrap_arg_usage[] = "-w[<width>[,<indent1>[,<indent2>]]]";
 
 static int parse_wrap_args(const struct option *opt, const char *arg, int unset)
 {
-	struct shortlog *log = opt->value;
+	struct shortlog *log = opt->value.voidp;
 
 	log->wrap_lines = !unset;
 	if (unset)

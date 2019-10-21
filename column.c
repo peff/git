@@ -340,7 +340,7 @@ int git_column_config(const char *var, const char *value,
 int parseopt_column_callback(const struct option *opt,
 			     const char *arg, int unset)
 {
-	unsigned int *colopts = opt->value;
+	unsigned int *colopts = opt->value.voidp;
 	*colopts |= COL_PARSEOPT;
 	*colopts &= ~COL_ENABLE_MASK;
 	if (unset)		/* --no-column == never */

@@ -2575,13 +2575,13 @@ int parse_opt_ref_sorting(const struct option *opt, const char *arg, int unset)
 	 */
 	BUG_ON_OPT_NEG(unset);
 
-	parse_ref_sorting(opt->value, arg);
+	parse_ref_sorting(opt->value.voidp, arg);
 	return 0;
 }
 
 int parse_opt_merge_filter(const struct option *opt, const char *arg, int unset)
 {
-	struct ref_filter *rf = opt->value;
+	struct ref_filter *rf = opt->value.voidp;
 	struct object_id oid;
 	struct commit *merge_commit;
 

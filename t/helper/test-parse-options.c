@@ -31,14 +31,14 @@ static int length_callback(const struct option *opt, const char *arg, int unset)
 	if (unset)
 		return 1; /* do not support unset */
 
-	*(int *)opt->value = strlen(arg);
+	*(int *)opt->value.voidp = strlen(arg);
 	return 0;
 }
 
 static int number_callback(const struct option *opt, const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
-	*(int *)opt->value = strtol(arg, NULL, 10);
+	*(int *)opt->value.voidp = strtol(arg, NULL, 10);
 	return 0;
 }
 
@@ -52,7 +52,7 @@ static int collect_expect(const struct option *opt, const char *arg, int unset)
 	if (!arg || unset)
 		die("malformed --expect option");
 
-	expect = (struct string_list *)opt->value;
+	expect = (struct string_list *)opt->value.voidp;
 	colon = strchr(arg, ':');
 	if (!colon)
 		die("malformed --expect option, lacking a colon");
@@ -110,7 +110,7 @@ int cmd__parse_options(int argc, const char **argv)
 	struct option options[] = {
 		OPT_BOOL(0, "yes", &boolean, "get a boolean"),
 		OPT_BOOL('D', "no-doubt", &boolean, "begins with 'no-'"),
-		{ OPTION_SET_INT, 'B', "no-fear", &boolean, NULL,
+		{ OPTION_SET_INT, 'B', "no-fear", { .voidp = &boolean }, NULL,
 		  "be brave", PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, 1 },
 		OPT_COUNTUP('b', "boolean", &boolean, "increment by one"),
 		OPT_BIT('4', "or4", &boolean,
@@ -137,11 +137,11 @@ int cmd__parse_options(int argc, const char **argv)
 		OPT_ARGUMENT("quux", NULL, "means --quux"),
 		OPT_NUMBER_CALLBACK(&integer, "set integer to NUM",
 			number_callback),
-		{ OPTION_COUNTUP, '+', NULL, &boolean, NULL, "same as -b",
+		{ OPTION_COUNTUP, '+', NULL, { .voidp = &boolean }, NULL, "same as -b",
 		  PARSE_OPT_NOARG | PARSE_OPT_NONEG | PARSE_OPT_NODASH },
-		{ OPTION_COUNTUP, 0, "ambiguous", &ambiguous, NULL,
+		{ OPTION_COUNTUP, 0, "ambiguous", { .voidp = &ambiguous }, NULL,
 		  "positive ambiguity", PARSE_OPT_NOARG | PARSE_OPT_NONEG },
-		{ OPTION_COUNTUP, 0, "no-ambiguous", &ambiguous, NULL,
+		{ OPTION_COUNTUP, 0, "no-ambiguous", { .voidp = &ambiguous }, NULL,
 		  "negative ambiguity", PARSE_OPT_NOARG | PARSE_OPT_NONEG },
 		OPT_GROUP("Standard options"),
 		OPT__ABBREV(&abbrev),

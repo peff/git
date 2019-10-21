@@ -28,7 +28,7 @@ int parse_opt_abbrev_cb(const struct option *opt, const char *arg, int unset)
 		else if (v > the_hash_algo->hexsz)
 			v = the_hash_algo->hexsz;
 	}
-	*(int *)(opt->value) = v;
+	*(int *)(opt->value.voidp) = v;
 	return 0;
 }
 
@@ -37,7 +37,7 @@ int parse_opt_expiry_date_cb(const struct option *opt, const char *arg,
 {
 	if (unset)
 		arg = "never";
-	if (parse_expiry_date(arg, (timestamp_t *)opt->value))
+	if (parse_expiry_date(arg, (timestamp_t *)opt->value.voidp))
 		die(_("malformed expiration date '%s'"), arg);
 	return 0;
 }
@@ -53,14 +53,14 @@ int parse_opt_color_flag_cb(const struct option *opt, const char *arg,
 	if (value < 0)
 		return error(_("option `%s' expects \"always\", \"auto\", or \"never\""),
 			     opt->long_name);
-	*(int *)opt->value = value;
+	*(int *)opt->value.voidp = value;
 	return 0;
 }
 
 int parse_opt_verbosity_cb(const struct option *opt, const char *arg,
 			   int unset)
 {
-	int *target = opt->value;
+	int *target = opt->value.voidp;
 
 	BUG_ON_OPT_ARG(arg);
 
@@ -95,7 +95,7 @@ int parse_opt_commits(const struct option *opt, const char *arg, int unset)
 	commit = lookup_commit_reference(the_repository, &oid);
 	if (!commit)
 		return error("no such commit %s", arg);
-	commit_list_insert(commit, opt->value);
+	commit_list_insert(commit, opt->value.voidp);
 	return 0;
 }
 
@@ -103,7 +103,7 @@ int parse_opt_commit(const struct option *opt, const char *arg, int unset)
 {
 	struct object_id oid;
 	struct commit *commit;
-	struct commit **target = opt->value;
+	struct commit **target = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -123,21 +123,21 @@ int parse_opt_object_name(const struct option *opt, const char *arg, int unset)
 	struct object_id oid;
 
 	if (unset) {
-		oid_array_clear(opt->value);
+		oid_array_clear(opt->value.voidp);
 		return 0;
 	}
 	if (!arg)
 		return -1;
 	if (get_oid(arg, &oid))
 		return error(_("malformed object name '%s'"), arg);
-	oid_array_append(opt->value, &oid);
+	oid_array_append(opt->value.voidp, &oid);
 	return 0;
 }
 
 int parse_opt_object_id(const struct option *opt, const char *arg, int unset)
 {
 	struct object_id oid;
-	struct object_id *target = opt->value;
+	struct object_id *target = opt->value.voidp;
 
 	if (unset) {
 		oidcpy(target, null_oid());
@@ -153,7 +153,7 @@ int parse_opt_object_id(const struct option *opt, const char *arg, int unset)
 
 int parse_opt_tertiary(const struct option *opt, const char *arg, int unset)
 {
-	int *target = opt->value;
+	int *target = opt->value.voidp;
 
 	BUG_ON_OPT_ARG(arg);
 
@@ -193,7 +193,7 @@ struct option *parse_options_concat(const struct option *a,
 
 int parse_opt_string_list(const struct option *opt, const char *arg, int unset)
 {
-	struct string_list *v = opt->value;
+	struct string_list *v = opt->value.voidp;
 
 	if (unset) {
 		string_list_clear(v, 0);
@@ -263,7 +263,7 @@ static int recreate_opt(struct strbuf *sb, const struct option *opt,
 int parse_opt_passthru(const struct option *opt, const char *arg, int unset)
 {
 	static struct strbuf sb = STRBUF_INIT;
-	char **opt_value = opt->value;
+	char **opt_value = opt->value.voidp;
 
 	if (recreate_opt(&sb, opt, arg, unset) < 0)
 		return -1;
@@ -284,7 +284,7 @@ int parse_opt_passthru(const struct option *opt, const char *arg, int unset)
 int parse_opt_passthru_argv(const struct option *opt, const char *arg, int unset)
 {
 	static struct strbuf sb = STRBUF_INIT;
-	struct strvec *opt_value = opt->value;
+	struct strvec *opt_value = opt->value.voidp;
 
 	if (recreate_opt(&sb, opt, arg, unset) < 0)
 		return -1;

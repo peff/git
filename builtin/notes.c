@@ -213,7 +213,7 @@ static void write_note_data(struct note_data *d, struct object_id *oid)
 
 static int parse_msg_arg(const struct option *opt, const char *arg, int unset)
 {
-	struct note_data *d = opt->value;
+	struct note_data *d = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -229,7 +229,7 @@ static int parse_msg_arg(const struct option *opt, const char *arg, int unset)
 
 static int parse_file_arg(const struct option *opt, const char *arg, int unset)
 {
-	struct note_data *d = opt->value;
+	struct note_data *d = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -248,7 +248,7 @@ static int parse_file_arg(const struct option *opt, const char *arg, int unset)
 
 static int parse_reuse_arg(const struct option *opt, const char *arg, int unset)
 {
-	struct note_data *d = opt->value;
+	struct note_data *d = opt->value.voidp;
 	char *buf;
 	struct object_id object;
 	enum object_type type;
@@ -276,7 +276,7 @@ static int parse_reuse_arg(const struct option *opt, const char *arg, int unset)
 
 static int parse_reedit_arg(const struct option *opt, const char *arg, int unset)
 {
-	struct note_data *d = opt->value;
+	struct note_data *d = opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	d->use_editor = 1;
 	return parse_reuse_arg(opt, arg, unset);

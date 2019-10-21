@@ -188,7 +188,7 @@ static struct option builtin_fetch_options[] = {
 	OPT_SET_INT_F(0, "unshallow", &unshallow,
 		      N_("convert to a complete repository"),
 		      1, PARSE_OPT_NONEG),
-	{ OPTION_STRING, 0, "submodule-prefix", &submodule_prefix, N_("dir"),
+	{ OPTION_STRING, 0, "submodule-prefix", { .voidp = &submodule_prefix }, N_("dir"),
 		   N_("prepend this to submodule path output"), PARSE_OPT_HIDDEN },
 	OPT_CALLBACK_F(0, "recurse-submodules-default",
 		   &recurse_submodules_default, N_("on-demand"),

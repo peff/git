@@ -70,7 +70,7 @@ static int fixed_value;
 #define TYPE_BOOL_OR_STR	7
 
 #define OPT_CALLBACK_VALUE(s, l, v, h, i) \
-	{ OPTION_CALLBACK, (s), (l), (v), NULL, (h), PARSE_OPT_NOARG | \
+	{ OPTION_CALLBACK, (s), (l), { .voidp = (v) }, NULL, (h), PARSE_OPT_NOARG | \
 	PARSE_OPT_NONEG, option_parse_type, (i) }
 
 static NORETURN void usage_builtin_config(void);
@@ -81,7 +81,7 @@ static int option_parse_type(const struct option *opt, const char *arg,
 	int new_type, *to_type;
 
 	if (unset) {
-		*((int *) opt->value) = 0;
+		*((int *) opt->value.voidp) = 0;
 		return 0;
 	}
 
@@ -109,7 +109,7 @@ static int option_parse_type(const struct option *opt, const char *arg,
 			die(_("unrecognized --type argument, %s"), arg);
 	}
 
-	to_type = opt->value;
+	to_type = opt->value.voidp;
 	if (*to_type && *to_type != new_type) {
 		/*
 		 * Complain when there is a new type not equal to the old type.

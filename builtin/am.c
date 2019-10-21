@@ -2162,7 +2162,7 @@ static int show_patch(struct am_state *state, enum show_patch_type sub_mode)
  */
 static int parse_opt_patchformat(const struct option *opt, const char *arg, int unset)
 {
-	int *opt_value = opt->value;
+	int *opt_value = opt->value.voidp;
 
 	if (unset)
 		*opt_value = PATCH_FORMAT_UNKNOWN;
@@ -2202,7 +2202,7 @@ struct resume_mode {
 
 static int parse_opt_show_current_patch(const struct option *opt, const char *arg, int unset)
 {
-	int *opt_value = opt->value;
+	int *opt_value = opt->value.voidp;
 	struct resume_mode *resume = container_of(opt_value, struct resume_mode, mode);
 
 	/*
@@ -2340,7 +2340,7 @@ int cmd_am(int argc, const char **argv, const char *prefix)
 		OPT_CMDMODE(0, "quit", &resume.mode,
 			N_("abort the patching operation but keep HEAD where it is"),
 			RESUME_QUIT),
-		{ OPTION_CALLBACK, 0, "show-current-patch", &resume.mode,
+		{ OPTION_CALLBACK, 0, "show-current-patch", { .voidp = &resume.mode },
 		  "(diff|raw)",
 		  N_("show the patch being applied"),
 		  PARSE_OPT_CMDMODE | PARSE_OPT_OPTARG | PARSE_OPT_NONEG | PARSE_OPT_LITERAL_ARGHELP,
@@ -2351,7 +2351,7 @@ int cmd_am(int argc, const char **argv, const char *prefix)
 		OPT_BOOL(0, "ignore-date", &state.ignore_date,
 			N_("use current timestamp for author date")),
 		OPT_RERERE_AUTOUPDATE(&state.allow_rerere_autoupdate),
-		{ OPTION_STRING, 'S', "gpg-sign", &state.sign_commit, N_("key-id"),
+		{ OPTION_STRING, 'S', "gpg-sign", { .voidp = &state.sign_commit }, N_("key-id"),
 		  N_("GPG-sign commits"),
 		  PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 		OPT_HIDDEN_BOOL(0, "rebasing", &state.rebasing,

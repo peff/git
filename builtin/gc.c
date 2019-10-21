@@ -547,7 +547,7 @@ int cmd_gc(int argc, const char **argv, const char *prefix)
 
 	struct option builtin_gc_options[] = {
 		OPT__QUIET(&quiet, N_("suppress progress reporting")),
-		{ OPTION_STRING, 0, "prune", &prune_expire, N_("date"),
+		{ OPTION_STRING, 0, "prune", { .voidp = &prune_expire }, N_("date"),
 			N_("prune unreferenced objects"),
 			PARSE_OPT_OPTARG, NULL, (intptr_t)prune_expire },
 		OPT_BOOL(0, "aggressive", &aggressive, N_("be more thorough (increased runtime)")),

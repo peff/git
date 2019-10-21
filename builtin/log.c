@@ -119,7 +119,7 @@ static int decorate_callback(const struct option *opt, const char *arg, int unse
 
 static int log_line_range_callback(const struct option *option, const char *arg, int unset)
 {
-	struct line_opt_callback_data *data = option->value;
+	struct line_opt_callback_data *data = option->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -1297,7 +1297,7 @@ static int keep_callback(const struct option *opt, const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
-	((struct rev_info *)opt->value)->total = -1;
+	((struct rev_info *)opt->value.voidp)->total = -1;
 	keep_subject = 1;
 	return 0;
 }
@@ -1309,7 +1309,7 @@ static int subject_prefix_callback(const struct option *opt, const char *arg,
 {
 	BUG_ON_OPT_NEG(unset);
 	subject_prefix = 1;
-	((struct rev_info *)opt->value)->subject_prefix = arg;
+	((struct rev_info *)opt->value.voidp)->subject_prefix = arg;
 	return 0;
 }
 
@@ -1326,7 +1326,7 @@ static int numbered_callback(const struct option *opt, const char *arg,
 			     int unset)
 {
 	BUG_ON_OPT_ARG(arg);
-	*(int *)opt->value = numbered_cmdline_opt = unset ? 0 : 1;
+	*(int *)opt->value.voidp = numbered_cmdline_opt = unset ? 0 : 1;
 	if (unset)
 		auto_number =  0;
 	return 0;
@@ -1342,7 +1342,7 @@ static int no_numbered_callback(const struct option *opt, const char *arg,
 static int output_directory_callback(const struct option *opt, const char *arg,
 			      int unset)
 {
-	const char **dir = (const char **)opt->value;
+	const char **dir = (const char **)opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	if (*dir)
 		die(_("two output directories?"));
@@ -1352,7 +1352,7 @@ static int output_directory_callback(const struct option *opt, const char *arg,
 
 static int thread_callback(const struct option *opt, const char *arg, int unset)
 {
-	enum thread_level *thread = (enum thread_level *)opt->value;
+	enum thread_level *thread = (enum thread_level *)opt->value.voidp;
 	if (unset)
 		*thread = THREAD_UNSET;
 	else if (!arg || !strcmp(arg, "shallow"))
@@ -1370,7 +1370,7 @@ static int thread_callback(const struct option *opt, const char *arg, int unset)
 
 static int attach_callback(const struct option *opt, const char *arg, int unset)
 {
-	struct rev_info *rev = (struct rev_info *)opt->value;
+	struct rev_info *rev = (struct rev_info *)opt->value.voidp;
 	if (unset)
 		rev->mime_boundary = NULL;
 	else if (arg)
@@ -1383,7 +1383,7 @@ static int attach_callback(const struct option *opt, const char *arg, int unset)
 
 static int inline_callback(const struct option *opt, const char *arg, int unset)
 {
-	struct rev_info *rev = (struct rev_info *)opt->value;
+	struct rev_info *rev = (struct rev_info *)opt->value.voidp;
 	if (unset)
 		rev->mime_boundary = NULL;
 	else if (arg)
@@ -1426,7 +1426,7 @@ static int cc_callback(const struct option *opt, const char *arg, int unset)
 
 static int from_callback(const struct option *opt, const char *arg, int unset)
 {
-	char **from = opt->value;
+	char **from = opt->value.voidp;
 
 	free(*from);
 

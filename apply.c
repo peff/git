@@ -4807,7 +4807,7 @@ end:
 static int apply_option_parse_exclude(const struct option *opt,
 				      const char *arg, int unset)
 {
-	struct apply_state *state = opt->value;
+	struct apply_state *state = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -4818,7 +4818,7 @@ static int apply_option_parse_exclude(const struct option *opt,
 static int apply_option_parse_include(const struct option *opt,
 				      const char *arg, int unset)
 {
-	struct apply_state *state = opt->value;
+	struct apply_state *state = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -4831,7 +4831,7 @@ static int apply_option_parse_p(const struct option *opt,
 				const char *arg,
 				int unset)
 {
-	struct apply_state *state = opt->value;
+	struct apply_state *state = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -4843,7 +4843,7 @@ static int apply_option_parse_p(const struct option *opt,
 static int apply_option_parse_space_change(const struct option *opt,
 					   const char *arg, int unset)
 {
-	struct apply_state *state = opt->value;
+	struct apply_state *state = opt->value.voidp;
 
 	BUG_ON_OPT_ARG(arg);
 
@@ -4857,7 +4857,7 @@ static int apply_option_parse_space_change(const struct option *opt,
 static int apply_option_parse_whitespace(const struct option *opt,
 					 const char *arg, int unset)
 {
-	struct apply_state *state = opt->value;
+	struct apply_state *state = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -4870,7 +4870,7 @@ static int apply_option_parse_whitespace(const struct option *opt,
 static int apply_option_parse_directory(const struct option *opt,
 					const char *arg, int unset)
 {
-	struct apply_state *state = opt->value;
+	struct apply_state *state = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 

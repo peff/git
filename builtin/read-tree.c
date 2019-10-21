@@ -58,7 +58,7 @@ static int exclude_per_directory_cb(const struct option *opt, const char *arg,
 
 	BUG_ON_OPT_NEG(unset);
 
-	opts = (struct unpack_trees_options *)opt->value;
+	opts = (struct unpack_trees_options *)opt->value.voidp;
 
 	if (opts->dir)
 		die("more than one --exclude-per-directory given.");
@@ -135,7 +135,7 @@ int cmd_read_tree(int argc, const char **argv, const char *cmd_prefix)
 			 N_("3-way merge in presence of adds and removes")),
 		OPT_BOOL(0, "reset", &opts.reset,
 			 N_("same as -m, but discard unmerged entries")),
-		{ OPTION_STRING, 0, "prefix", &opts.prefix, N_("<subdirectory>/"),
+		{ OPTION_STRING, 0, "prefix", { .voidp = &opts.prefix }, N_("<subdirectory>/"),
 		  N_("read the tree into the index under <subdirectory>/"),
 		  PARSE_OPT_NONEG },
 		OPT_BOOL('u', NULL, &opts.update,

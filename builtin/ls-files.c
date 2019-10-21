@@ -567,7 +567,7 @@ static const char * const ls_files_usage[] = {
 static int option_parse_exclude(const struct option *opt,
 				const char *arg, int unset)
 {
-	struct string_list *exclude_list = opt->value;
+	struct string_list *exclude_list = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -580,7 +580,7 @@ static int option_parse_exclude(const struct option *opt,
 static int option_parse_exclude_from(const struct option *opt,
 				     const char *arg, int unset)
 {
-	struct dir_struct *dir = opt->value;
+	struct dir_struct *dir = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -593,7 +593,7 @@ static int option_parse_exclude_from(const struct option *opt,
 static int option_parse_exclude_standard(const struct option *opt,
 					 const char *arg, int unset)
 {
-	struct dir_struct *dir = opt->value;
+	struct dir_struct *dir = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);

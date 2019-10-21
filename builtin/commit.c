@@ -143,7 +143,7 @@ static int opt_pass_trailer(const struct option *opt, const char *arg, int unset
 
 static int opt_parse_porcelain(const struct option *opt, const char *arg, int unset)
 {
-	enum wt_status_format *value = (enum wt_status_format *)opt->value;
+	enum wt_status_format *value = (enum wt_status_format *)opt->value.voidp;
 	if (unset)
 		*value = STATUS_FORMAT_NONE;
 	else if (!arg)
@@ -160,7 +160,7 @@ static int opt_parse_porcelain(const struct option *opt, const char *arg, int un
 
 static int opt_parse_m(const struct option *opt, const char *arg, int unset)
 {
-	struct strbuf *buf = opt->value;
+	struct strbuf *buf = opt->value.voidp;
 	if (unset) {
 		have_option_m = 0;
 		strbuf_setlen(buf, 0);
@@ -176,7 +176,7 @@ static int opt_parse_m(const struct option *opt, const char *arg, int unset)
 
 static int opt_parse_rename_score(const struct option *opt, const char *arg, int unset)
 {
-	const char **value = opt->value;
+	const char **value = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -1488,15 +1488,15 @@ int cmd_status(int argc, const char **argv, const char *prefix)
 			    STATUS_FORMAT_LONG),
 		OPT_BOOL('z', "null", &s.null_termination,
 			 N_("terminate entries with NUL")),
-		{ OPTION_STRING, 'u', "untracked-files", &untracked_files_arg,
+		{ OPTION_STRING, 'u', "untracked-files", { .voidp = &untracked_files_arg },
 		  N_("mode"),
 		  N_("show untracked files, optional modes: all, normal, no. (Default: all)"),
 		  PARSE_OPT_OPTARG, NULL, (intptr_t)"all" },
-		{ OPTION_STRING, 0, "ignored", &ignored_arg,
+		{ OPTION_STRING, 0, "ignored", { .voidp = &ignored_arg },
 		  N_("mode"),
 		  N_("show ignored files, optional modes: traditional, matching, no. (Default: traditional)"),
 		  PARSE_OPT_OPTARG, NULL, (intptr_t)"traditional" },
-		{ OPTION_STRING, 0, "ignore-submodules", &ignore_submodule_arg, N_("when"),
+		{ OPTION_STRING, 0, "ignore-submodules", { .voidp = &ignore_submodule_arg }, N_("when"),
 		  N_("ignore changes to submodules, optional when: all, dirty, untracked. (Default: all)"),
 		  PARSE_OPT_OPTARG, NULL, (intptr_t)"all" },
 		OPT_COLUMN(0, "column", &s.colopts, N_("list untracked files in columns")),
@@ -1627,7 +1627,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 		OPT_BOOL('e', "edit", &edit_flag, N_("force edit of commit")),
 		OPT_CLEANUP(&cleanup_arg),
 		OPT_BOOL(0, "status", &include_status, N_("include status in commit message template")),
-		{ OPTION_STRING, 'S', "gpg-sign", &sign_commit, N_("key-id"),
+		{ OPTION_STRING, 'S', "gpg-sign", { .voidp = &sign_commit }, N_("key-id"),
 		  N_("GPG sign commit"), PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 		/* end commit message options */
 
@@ -1653,7 +1653,7 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 			 N_("terminate entries with NUL")),
 		OPT_BOOL(0, "amend", &amend, N_("amend previous commit")),
 		OPT_BOOL(0, "no-post-rewrite", &no_post_rewrite, N_("bypass post-rewrite hook")),
-		{ OPTION_STRING, 'u', "untracked-files", &untracked_files_arg, N_("mode"), N_("show untracked files, optional modes: all, normal, no. (Default: all)"), PARSE_OPT_OPTARG, NULL, (intptr_t)"all" },
+		{ OPTION_STRING, 'u', "untracked-files", { .voidp = &untracked_files_arg }, N_("mode"), N_("show untracked files, optional modes: all, normal, no. (Default: all)"), PARSE_OPT_OPTARG, NULL, (intptr_t)"all" },
 		OPT_PATHSPEC_FROM_FILE(&pathspec_from_file),
 		OPT_PATHSPEC_FILE_NUL(&pathspec_file_nul),
 		/* end commit contents options */

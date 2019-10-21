@@ -535,7 +535,7 @@ int cmd_name_rev(int argc, const char **argv, const char *prefix)
 			   N_("show abbreviated commit object as fallback")),
 		{
 			/* A Hidden OPT_BOOL */
-			OPTION_SET_INT, 0, "peel-tag", &peel_tag, NULL,
+			OPTION_SET_INT, 0, "peel-tag", { .voidp = &peel_tag }, NULL,
 			N_("dereference tags in the input (internal use)"),
 			PARSE_OPT_NOARG | PARSE_OPT_HIDDEN, NULL, 1,
 		},

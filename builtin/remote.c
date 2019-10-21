@@ -133,7 +133,7 @@ N_("--mirror is dangerous and deprecated; please\n"
 
 static int parse_mirror_opt(const struct option *opt, const char *arg, int not)
 {
-	unsigned *mirror = opt->value;
+	unsigned *mirror = opt->value.voidp;
 	if (not)
 		*mirror = MIRROR_NONE;
 	else if (!arg) {

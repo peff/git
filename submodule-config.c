@@ -315,10 +315,10 @@ int option_fetch_parse_recurse_submodules(const struct option *opt,
 {
 	int *v;
 
-	if (!opt->value)
+	if (!opt->value.voidp)
 		return -1;
 
-	v = opt->value;
+	v = opt->value.voidp;
 
 	if (unset) {
 		*v = RECURSE_SUBMODULES_OFF;

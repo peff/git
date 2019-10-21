@@ -45,7 +45,7 @@ static const char * const *revert_or_cherry_pick_usage(struct replay_opts *opts)
 static int option_parse_x(const struct option *opt,
 			  const char *arg, int unset)
 {
-	struct replay_opts **opts_ptr = opt->value;
+	struct replay_opts **opts_ptr = opt->value.voidp;
 	struct replay_opts *opts = *opts_ptr;
 
 	if (unset)
@@ -59,7 +59,7 @@ static int option_parse_x(const struct option *opt,
 static int option_parse_m(const struct option *opt,
 			  const char *arg, int unset)
 {
-	struct replay_opts *replay = opt->value;
+	struct replay_opts *replay = opt->value.voidp;
 	char *end;
 
 	if (unset) {
@@ -114,7 +114,7 @@ static int run_sequencer(int argc, const char **argv, struct replay_opts *opts)
 		OPT_STRING(0, "strategy", &opts->strategy, N_("strategy"), N_("merge strategy")),
 		OPT_CALLBACK('X', "strategy-option", &opts, N_("option"),
 			N_("option for merge strategy"), option_parse_x),
-		{ OPTION_STRING, 'S', "gpg-sign", &opts->gpg_sign, N_("key-id"),
+		{ OPTION_STRING, 'S', "gpg-sign", { .voidp = &opts->gpg_sign }, N_("key-id"),
 		  N_("GPG sign commit"), PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 		OPT_END()
 	};

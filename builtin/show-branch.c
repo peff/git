@@ -602,7 +602,7 @@ static int parse_reflog_param(const struct option *opt, const char *arg,
 			      int unset)
 {
 	char *ep;
-	const char **base = (const char **)opt->value;
+	const char **base = (const char **)opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	if (!arg)
 		arg = "";
@@ -647,7 +647,7 @@ int cmd_show_branch(int ac, const char **av, const char *prefix)
 			 N_("show remote-tracking branches")),
 		OPT__COLOR(&showbranch_use_color,
 			    N_("color '*!+-' corresponding to the branch")),
-		{ OPTION_INTEGER, 0, "more", &extra, N_("n"),
+		{ OPTION_INTEGER, 0, "more", { .voidp = &extra }, N_("n"),
 			    N_("show <n> more commits after the common ancestor"),
 			    PARSE_OPT_OPTARG, NULL, (intptr_t)1 },
 		OPT_SET_INT(0, "list", &extra, N_("synonym to more=-1"), -1),

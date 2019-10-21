@@ -797,7 +797,7 @@ static int refresh_callback(const struct option *opt,
 {
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
-	return refresh(opt->value, 0);
+	return refresh(opt->value.voidp, 0);
 }
 
 static int really_refresh_callback(const struct option *opt,
@@ -805,13 +805,13 @@ static int really_refresh_callback(const struct option *opt,
 {
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
-	return refresh(opt->value, REFRESH_REALLY);
+	return refresh(opt->value.voidp, REFRESH_REALLY);
 }
 
 static int chmod_callback(const struct option *opt,
 				const char *arg, int unset)
 {
-	char *flip = opt->value;
+	char *flip = opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	if ((arg[0] != '-' && arg[0] != '+') || arg[1] != 'x' || arg[2])
 		return error("option 'chmod' expects \"+x\" or \"-x\"");
@@ -884,7 +884,7 @@ static enum parse_opt_result stdin_cacheinfo_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *nul_term_line = opt->value;
+	int *nul_term_line = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -900,7 +900,7 @@ static enum parse_opt_result stdin_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *read_from_stdin = opt->value;
+	int *read_from_stdin = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -915,7 +915,7 @@ static enum parse_opt_result unresolve_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *has_errors = opt->value;
+	int *has_errors = opt->value.voidp;
 	const char *prefix = startup_info->prefix;
 
 	BUG_ON_OPT_NEG(unset);
@@ -936,7 +936,7 @@ static enum parse_opt_result reupdate_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
 {
-	int *has_errors = opt->value;
+	int *has_errors = opt->value.voidp;
 	const char *prefix = startup_info->prefix;
 
 	BUG_ON_OPT_NEG(unset);
@@ -1009,13 +1009,13 @@ int cmd_update_index(int argc, const char **argv, const char *prefix)
 		{OPTION_SET_INT, 0, "assume-unchanged", &mark_valid_only, NULL,
 			N_("mark files as \"not changing\""),
 			PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, MARK_FLAG},
-		{OPTION_SET_INT, 0, "no-assume-unchanged", &mark_valid_only, NULL,
+		{OPTION_SET_INT, 0, "no-assume-unchanged", { .voidp = &mark_valid_only }, NULL,
 			N_("clear assumed-unchanged bit"),
 			PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, UNMARK_FLAG},
-		{OPTION_SET_INT, 0, "skip-worktree", &mark_skip_worktree_only, NULL,
+		{OPTION_SET_INT, 0, "skip-worktree", { .voidp = &mark_skip_worktree_only }, NULL,
 			N_("mark files as \"index-only\""),
 			PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, MARK_FLAG},
-		{OPTION_SET_INT, 0, "no-skip-worktree", &mark_skip_worktree_only, NULL,
+		{OPTION_SET_INT, 0, "no-skip-worktree", { .voidp = &mark_skip_worktree_only }, NULL,
 			N_("clear skip-worktree bit"),
 			PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, UNMARK_FLAG},
 		OPT_BOOL(0, "ignore-skip-worktree-entries", &ignore_skip_worktree_entries,
@@ -1026,19 +1026,19 @@ int cmd_update_index(int argc, const char **argv, const char *prefix)
 			N_("remove named paths even if present in worktree"), 1),
 		OPT_BOOL('z', NULL, &nul_term_line,
 			 N_("with --stdin: input lines are terminated by null bytes")),
-		{OPTION_LOWLEVEL_CALLBACK, 0, "stdin", &read_from_stdin, NULL,
+		{OPTION_LOWLEVEL_CALLBACK, 0, "stdin", { .voidp = &read_from_stdin }, NULL,
 			N_("read list of paths to be updated from standard input"),
 			PARSE_OPT_NONEG | PARSE_OPT_NOARG,
 			NULL, 0, stdin_callback},
-		{OPTION_LOWLEVEL_CALLBACK, 0, "index-info", &nul_term_line, NULL,
+		{OPTION_LOWLEVEL_CALLBACK, 0, "index-info", { .voidp = &nul_term_line }, NULL,
 			N_("add entries from standard input to the index"),
 			PARSE_OPT_NONEG | PARSE_OPT_NOARG,
 			NULL, 0, stdin_cacheinfo_callback},
-		{OPTION_LOWLEVEL_CALLBACK, 0, "unresolve", &has_errors, NULL,
+		{OPTION_LOWLEVEL_CALLBACK, 0, "unresolve", { .voidp = &has_errors }, NULL,
 			N_("repopulate stages #2 and #3 for the listed paths"),
 			PARSE_OPT_NONEG | PARSE_OPT_NOARG,
 			NULL, 0, unresolve_callback},
-		{OPTION_LOWLEVEL_CALLBACK, 'g', "again", &has_errors, NULL,
+		{OPTION_LOWLEVEL_CALLBACK, 'g', "again", { .voidp = &has_errors }, NULL,
 			N_("only update entries that differ from HEAD"),
 			PARSE_OPT_NONEG | PARSE_OPT_NOARG,
 			NULL, 0, reupdate_callback},
@@ -1065,10 +1065,10 @@ int cmd_update_index(int argc, const char **argv, const char *prefix)
 			N_("write out the index even if is not flagged as changed"), 1),
 		OPT_BOOL(0, "fsmonitor", &fsmonitor,
 			N_("enable or disable file system monitor")),
-		{OPTION_SET_INT, 0, "fsmonitor-valid", &mark_fsmonitor_only, NULL,
+		{OPTION_SET_INT, 0, "fsmonitor-valid", { .voidp = &mark_fsmonitor_only }, NULL,
 			N_("mark files as fsmonitor valid"),
 			PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, MARK_FLAG},
-		{OPTION_SET_INT, 0, "no-fsmonitor-valid", &mark_fsmonitor_only, NULL,
+		{OPTION_SET_INT, 0, "no-fsmonitor-valid", { .voidp = &mark_fsmonitor_only }, NULL,
 			N_("clear fsmonitor valid bit"),
 			PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, UNMARK_FLAG},
 		OPT_END()

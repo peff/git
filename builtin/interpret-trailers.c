@@ -54,7 +54,7 @@ static void new_trailers_clear(struct list_head *trailers)
 static int option_parse_trailer(const struct option *opt,
 				   const char *arg, int unset)
 {
-	struct list_head *trailers = opt->value;
+	struct list_head *trailers = opt->value.voidp;
 	struct new_trailer_item *item;
 
 	if (unset) {
@@ -77,7 +77,7 @@ static int option_parse_trailer(const struct option *opt,
 static int parse_opt_parse(const struct option *opt, const char *arg,
 			   int unset)
 {
-	struct process_trailer_options *v = opt->value;
+	struct process_trailer_options *v = opt->value.voidp;
 	v->only_trailers = 1;
 	v->only_input = 1;
 	v->unfold = 1;

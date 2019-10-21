@@ -78,11 +78,11 @@ static int recurse_submodules_cb(const struct option *opt,
 				 const char *arg, int unset)
 {
 	if (unset)
-		string_list_clear((struct string_list *)opt->value, 0);
+		string_list_clear((struct string_list *)opt->value.voidp, 0);
 	else if (arg)
-		string_list_append((struct string_list *)opt->value, arg);
+		string_list_append((struct string_list *)opt->value.voidp, arg);
 	else
-		string_list_append((struct string_list *)opt->value,
+		string_list_append((struct string_list *)opt->value.voidp,
 				   (const char *)opt->defval);
 
 	return 0;
@@ -107,7 +107,7 @@ static struct option builtin_clone_options[] = {
 		    N_("don't use local hardlinks, always copy")),
 	OPT_BOOL('s', "shared", &option_shared,
 		    N_("setup as shared repository")),
-	{ OPTION_CALLBACK, 0, "recurse-submodules", &option_recurse_submodules,
+	{ OPTION_CALLBACK, 0, "recurse-submodules", { .voidp = &option_recurse_submodules },
 	  N_("pathspec"), N_("initialize submodules in the clone"),
 	  PARSE_OPT_OPTARG, recurse_submodules_cb, (intptr_t)"." },
 	OPT_ALIAS(0, "recursive", "recurse-submodules"),

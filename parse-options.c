@@ -62,8 +62,8 @@ static enum parse_opt_result opt_command_mode_error(
 	for (that = all_opts; that->type != OPTION_END; that++) {
 		if (that == opt ||
 		    !(that->flags & PARSE_OPT_CMDMODE) ||
-		    that->value != opt->value ||
-		    that->defval != *(int *)opt->value)
+		    that->value.voidp != opt->value.voidp ||
+		    that->defval != *(int *)opt->value.voidp)
 			continue;
 
 		if (that->long_name)
@@ -100,7 +100,7 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 	 * is not a grave error, so let it pass.
 	 */
 	if ((opt->flags & PARSE_OPT_CMDMODE) &&
-	    *(int *)opt->value && *(int *)opt->value != opt->defval)
+	    *(int *)opt->value.voidp && *(int *)opt->value.voidp != opt->defval)
 		return opt_command_mode_error(opt, all_opts, flags);
 
 	switch (opt->type) {
@@ -109,55 +109,55 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 
 	case OPTION_BIT:
 		if (unset)
-			*(int *)opt->value &= ~opt->defval;
+			*(int *)opt->value.voidp &= ~opt->defval;
 		else
-			*(int *)opt->value |= opt->defval;
+			*(int *)opt->value.voidp |= opt->defval;
 		return 0;
 
 	case OPTION_NEGBIT:
 		if (unset)
-			*(int *)opt->value |= opt->defval;
+			*(int *)opt->value.voidp |= opt->defval;
 		else
-			*(int *)opt->value &= ~opt->defval;
+			*(int *)opt->value.voidp &= ~opt->defval;
 		return 0;
 
 	case OPTION_BITOP:
 		if (unset)
 			BUG("BITOP can't have unset form");
-		*(int *)opt->value &= ~opt->extra;
-		*(int *)opt->value |= opt->defval;
+		*(int *)opt->value.voidp &= ~opt->extra;
+		*(int *)opt->value.voidp |= opt->defval;
 		return 0;
 
 	case OPTION_COUNTUP:
-		if (*(int *)opt->value < 0)
-			*(int *)opt->value = 0;
-		*(int *)opt->value = unset ? 0 : *(int *)opt->value + 1;
+		if (*(int *)opt->value.voidp < 0)
+			*(int *)opt->value.voidp = 0;
+		*(int *)opt->value.voidp = unset ? 0 : *(int *)opt->value.voidp + 1;
 		return 0;
 
 	case OPTION_SET_INT:
-		*(int *)opt->value = unset ? 0 : opt->defval;
+		*(int *)opt->value.voidp = unset ? 0 : opt->defval;
 		return 0;
 
 	case OPTION_STRING:
 		if (unset)
-			*(const char **)opt->value = NULL;
+			*(const char **)opt->value.voidp = NULL;
 		else if (opt->flags & PARSE_OPT_OPTARG && !p->opt)
-			*(const char **)opt->value = (const char *)opt->defval;
+			*(const char **)opt->value.voidp = (const char *)opt->defval;
 		else
-			return get_arg(p, opt, flags, (const char **)opt->value);
+			return get_arg(p, opt, flags, (const char **)opt->value.voidp);
 		return 0;
 
 	case OPTION_FILENAME:
 		err = 0;
 		if (unset)
-			*(const char **)opt->value = NULL;
+			*(const char **)opt->value.voidp = NULL;
 		else if (opt->flags & PARSE_OPT_OPTARG && !p->opt)
-			*(const char **)opt->value = (const char *)opt->defval;
+			*(const char **)opt->value.voidp = (const char *)opt->defval;
 		else
-			err = get_arg(p, opt, flags, (const char **)opt->value);
+			err = get_arg(p, opt, flags, (const char **)opt->value.voidp);
 
 		if (!err)
-			fix_filename(p->prefix, (const char **)opt->value);
+			fix_filename(p->prefix, (const char **)opt->value.voidp);
 		return err;
 
 	case OPTION_CALLBACK:
@@ -184,11 +184,11 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 	}
 	case OPTION_INTEGER:
 		if (unset) {
-			*(int *)opt->value = 0;
+			*(int *)opt->value.voidp = 0;
 			return 0;
 		}
 		if (opt->flags & PARSE_OPT_OPTARG && !p->opt) {
-			*(int *)opt->value = opt->defval;
+			*(int *)opt->value.voidp = opt->defval;
 			return 0;
 		}
 		if (get_arg(p, opt, flags, &arg))
@@ -196,7 +196,7 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 		if (!*arg)
 			return error(_("%s expects a numerical value"),
 				     optname(opt, flags));
-		*(int *)opt->value = strtol(arg, (char **)&s, 10);
+		*(int *)opt->value.voidp = strtol(arg, (char **)&s, 10);
 		if (*s)
 			return error(_("%s expects a numerical value"),
 				     optname(opt, flags));
@@ -204,16 +204,16 @@ static enum parse_opt_result get_value(struct parse_opt_ctx_t *p,
 
 	case OPTION_MAGNITUDE:
 		if (unset) {
-			*(unsigned long *)opt->value = 0;
+			*(unsigned long *)opt->value.voidp = 0;
 			return 0;
 		}
 		if (opt->flags & PARSE_OPT_OPTARG && !p->opt) {
-			*(unsigned long *)opt->value = opt->defval;
+			*(unsigned long *)opt->value.voidp = opt->defval;
 			return 0;
 		}
 		if (get_arg(p, opt, flags, &arg))
 			return -1;
-		if (!git_parse_ulong(arg, opt->value))
+		if (!git_parse_ulong(arg, opt->value.voidp))
 			return error(_("%s expects a non-negative integer value"
 				       " with an optional k/m/g suffix"),
 				     optname(opt, flags));
@@ -318,8 +318,8 @@ again:
 					     optname(options, flags));
 			if (*rest)
 				continue;
-			if (options->value)
-				*(int *)options->value = options->defval;
+			if (options->value.voidp)
+				*(int *)options->value.voidp = options->defval;
 			p->out[p->cpidx++] = arg - 2;
 			return PARSE_OPT_DONE;
 		}
@@ -661,7 +661,7 @@ static struct option *preprocess_options(struct parse_opt_ctx_t *ctx,
 
 		short_name = newopt[i].short_name;
 		long_name = newopt[i].long_name;
-		source = newopt[i].value;
+		source = newopt[i].value.voidp;
 
 		if (!long_name)
 			BUG("An alias must have long option name");
@@ -986,7 +986,7 @@ static int usage_with_options_internal(struct parse_opt_ctx_t *ctx,
 		if (opts->type == OPTION_ALIAS) {
 			fprintf(outfile, "%*s", pad + USAGE_GAP, "");
 			fprintf_ln(outfile, _("alias of --%s"),
-				   (const char *)opts->value);
+				   (const char *)opts->value.voidp);
 			continue;
 		}
 		fprintf(outfile, "%*s%s\n", pad + USAGE_GAP, "", _(opts->help));

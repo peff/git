@@ -726,7 +726,7 @@ static int grep_directory(struct grep_opt *opt, const struct pathspec *pathspec,
 static int context_callback(const struct option *opt, const char *arg,
 			    int unset)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct grep_opt *grep_opt = opt->value.voidp;
 	int value;
 	const char *endp;
 
@@ -745,7 +745,7 @@ static int context_callback(const struct option *opt, const char *arg,
 
 static int file_callback(const struct option *opt, const char *arg, int unset)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct grep_opt *grep_opt = opt->value.voidp;
 	int from_stdin;
 	FILE *patterns;
 	int lno = 0;
@@ -773,7 +773,7 @@ static int file_callback(const struct option *opt, const char *arg, int unset)
 
 static int not_callback(const struct option *opt, const char *arg, int unset)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct grep_opt *grep_opt = opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
 	append_grep_pattern(grep_opt, "--not", "command line", 0, GREP_NOT);
@@ -782,7 +782,7 @@ static int not_callback(const struct option *opt, const char *arg, int unset)
 
 static int and_callback(const struct option *opt, const char *arg, int unset)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct grep_opt *grep_opt = opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
 	append_grep_pattern(grep_opt, "--and", "command line", 0, GREP_AND);
@@ -791,7 +791,7 @@ static int and_callback(const struct option *opt, const char *arg, int unset)
 
 static int open_callback(const struct option *opt, const char *arg, int unset)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct grep_opt *grep_opt = opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
 	append_grep_pattern(grep_opt, "(", "command line", 0, GREP_OPEN_PAREN);
@@ -800,7 +800,7 @@ static int open_callback(const struct option *opt, const char *arg, int unset)
 
 static int close_callback(const struct option *opt, const char *arg, int unset)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct grep_opt *grep_opt = opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
 	append_grep_pattern(grep_opt, ")", "command line", 0, GREP_CLOSE_PAREN);
@@ -810,7 +810,7 @@ static int close_callback(const struct option *opt, const char *arg, int unset)
 static int pattern_callback(const struct option *opt, const char *arg,
 			    int unset)
 {
-	struct grep_opt *grep_opt = opt->value;
+	struct grep_opt *grep_opt = opt->value.voidp;
 	BUG_ON_OPT_NEG(unset);
 	append_grep_pattern(grep_opt, arg, "-e option", 0, GREP_PATTERN);
 	return 0;
@@ -860,7 +860,7 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 			 N_("process binary files with textconv filters")),
 		OPT_SET_INT('r', "recursive", &opt.max_depth,
 			    N_("search in subdirectories (default)"), -1),
-		{ OPTION_INTEGER, 0, "max-depth", &opt.max_depth, N_("depth"),
+		{ OPTION_INTEGER, 0, "max-depth", { .voidp = &opt.max_depth }, N_("depth"),
 			N_("descend at most <depth> levels"), PARSE_OPT_NONEG,
 			NULL, 1 },
 		OPT_GROUP(""),
@@ -940,7 +940,7 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 		OPT_BOOL(0, "all-match", &opt.all_match,
 			N_("show only matches from files that match all patterns")),
 		OPT_GROUP(""),
-		{ OPTION_STRING, 'O', "open-files-in-pager", &show_in_pager,
+		{ OPTION_STRING, 'O', "open-files-in-pager", { .voidp = &show_in_pager },
 			N_("pager"), N_("show matching files in the pager"),
 			PARSE_OPT_OPTARG | PARSE_OPT_NOCOMPLETE,
 			NULL, (intptr_t)default_pager },

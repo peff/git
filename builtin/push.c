@@ -437,7 +437,7 @@ static int do_push(int flags,
 static int option_parse_recurse_submodules(const struct option *opt,
 				   const char *arg, int unset)
 {
-	int *recurse_submodules = opt->value;
+	int *recurse_submodules = opt->value.voidp;
 
 	if (unset)
 		*recurse_submodules = RECURSE_SUBMODULES_OFF;

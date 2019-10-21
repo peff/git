@@ -467,7 +467,7 @@ static void imply_merge(struct rebase_options *opts, const char *option);
 static int parse_opt_keep_empty(const struct option *opt, const char *arg,
 				int unset)
 {
-	struct rebase_options *opts = opt->value;
+	struct rebase_options *opts = opt->value.voidp;
 
 	BUG_ON_OPT_ARG(arg);
 
@@ -488,6 +488,7 @@ int cmd_rebase__interactive(int argc, const char **argv, const char *prefix)
 	struct object_id squash_onto = *null_oid();
 	enum action command = ACTION_NONE;
 	struct option options[] = {
+#if 0
 		OPT_NEGBIT(0, "ff", &opts.flags, N_("allow fast-forward"),
 			   REBASE_FORCE),
 		OPT_CALLBACK_F('k', "keep-empty", &options, NULL,
@@ -523,18 +524,18 @@ int cmd_rebase__interactive(int argc, const char **argv, const char *prefix)
 			N_("rearrange fixup/squash lines"), ACTION_REARRANGE_SQUASH),
 		OPT_CMDMODE(0, "add-exec-commands", &command,
 			N_("insert exec commands in todo list"), ACTION_ADD_EXEC),
-		{ OPTION_CALLBACK, 0, "onto", &opts.onto, N_("onto"), N_("onto"),
+		{ OPTION_CALLBACK, 0, "onto", { .voidp = &opts.onto }, N_("onto"), N_("onto"),
 		  PARSE_OPT_NONEG, parse_opt_commit, 0 },
-		{ OPTION_CALLBACK, 0, "restrict-revision", &opts.restrict_revision,
+		{ OPTION_CALLBACK, 0, "restrict-revision", { .voidp = &opts.restrict_revision },
 		  N_("restrict-revision"), N_("restrict revision"),
 		  PARSE_OPT_NONEG, parse_opt_commit, 0 },
-		{ OPTION_CALLBACK, 0, "squash-onto", &squash_onto, N_("squash-onto"),
+		{ OPTION_CALLBACK, 0, "squash-onto", { .voidp = &squash_onto }, N_("squash-onto"),
 		  N_("squash onto"), PARSE_OPT_NONEG, parse_opt_object_id, 0 },
-		{ OPTION_CALLBACK, 0, "upstream", &opts.upstream, N_("upstream"),
+		{ OPTION_CALLBACK, 0, "upstream", { .voidp = &opts.upstream }, N_("upstream"),
 		  N_("the upstream commit"), PARSE_OPT_NONEG, parse_opt_commit,
 		  0 },
 		OPT_STRING(0, "head-name", &opts.head_name, N_("head-name"), N_("head name")),
-		{ OPTION_STRING, 'S', "gpg-sign", &opts.gpg_sign_opt, N_("key-id"),
+		{ OPTION_STRING, 'S', "gpg-sign", { .voidp = &opts.gpg_sign_opt }, N_("key-id"),
 			N_("GPG-sign commits"),
 			PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 		OPT_STRING(0, "strategy", &opts.strategy, N_("strategy"),
@@ -546,6 +547,7 @@ int cmd_rebase__interactive(int argc, const char **argv, const char *prefix)
 		OPT_STRING(0, "onto-name", &opts.onto_name, N_("onto-name"), N_("onto name")),
 		OPT_STRING(0, "cmd", &opts.cmd, N_("cmd"), N_("the command to run")),
 		OPT_RERERE_AUTOUPDATE(&opts.allow_rerere_autoupdate),
+#endif
 		OPT_BOOL(0, "reschedule-failed-exec", &opts.reschedule_failed_exec,
 			 N_("automatically re-schedule any `exec` that fails")),
 		OPT_END()
@@ -1171,7 +1173,7 @@ done:
 
 static int parse_opt_am(const struct option *opt, const char *arg, int unset)
 {
-	struct rebase_options *opts = opt->value;
+	struct rebase_options *opts = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -1184,7 +1186,7 @@ static int parse_opt_am(const struct option *opt, const char *arg, int unset)
 /* -i followed by -m is still -i */
 static int parse_opt_merge(const struct option *opt, const char *arg, int unset)
 {
-	struct rebase_options *opts = opt->value;
+	struct rebase_options *opts = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -1199,7 +1201,7 @@ static int parse_opt_merge(const struct option *opt, const char *arg, int unset)
 static int parse_opt_interactive(const struct option *opt, const char *arg,
 				 int unset)
 {
-	struct rebase_options *opts = opt->value;
+	struct rebase_options *opts = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -1224,7 +1226,7 @@ static enum empty_type parse_empty_value(const char *value)
 
 static int parse_opt_empty(const struct option *opt, const char *arg, int unset)
 {
-	struct rebase_options *options = opt->value;
+	struct rebase_options *options = opt->value.voidp;
 	enum empty_type value = parse_empty_value(arg);
 
 	BUG_ON_OPT_NEG(unset);
@@ -1327,7 +1329,7 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 		OPT_BIT('v', "verbose", &options.flags,
 			N_("display a diffstat of what changed upstream"),
 			REBASE_NO_QUIET | REBASE_VERBOSE | REBASE_DIFFSTAT),
-		{OPTION_NEGBIT, 'n', "no-stat", &options.flags, NULL,
+		{OPTION_NEGBIT, 'n', "no-stat", { .voidp = &options.flags }, NULL,
 			N_("do not show diffstat of what changed upstream"),
 			PARSE_OPT_NOARG, NULL, REBASE_DIFFSTAT },
 		OPT_BOOL(0, "signoff", &options.signoff,
@@ -1392,7 +1394,7 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 		OPT_BOOL(0, "autosquash", &options.autosquash,
 			 N_("move commits that begin with "
 			    "squash!/fixup! under -i")),
-		{ OPTION_STRING, 'S', "gpg-sign", &gpg_sign, N_("key-id"),
+		{ OPTION_STRING, 'S', "gpg-sign", { .voidp = &gpg_sign }, N_("key-id"),
 			N_("GPG-sign commits"),
 			PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 		OPT_AUTOSTASH(&options.autostash),
@@ -1403,7 +1405,7 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 			   &options.allow_empty_message,
 			   N_("allow rebasing commits with empty messages"),
 			   PARSE_OPT_HIDDEN),
-		{OPTION_STRING, 'r', "rebase-merges", &rebase_merges,
+		{OPTION_STRING, 'r', "rebase-merges", { .voidp = &rebase_merges },
 			N_("mode"),
 			N_("try to rebase merges instead of skipping them"),
 			PARSE_OPT_OPTARG, NULL, (intptr_t)""},

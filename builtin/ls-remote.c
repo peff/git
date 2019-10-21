@@ -60,7 +60,7 @@ int cmd_ls_remote(int argc, const char **argv, const char *prefix)
 		OPT__QUIET(&quiet, N_("do not print remote URL")),
 		OPT_STRING(0, "upload-pack", &uploadpack, N_("exec"),
 			   N_("path of git-upload-pack on the remote host")),
-		{ OPTION_STRING, 0, "exec", &uploadpack, N_("exec"),
+		{ OPTION_STRING, 0, "exec", { .voidp = &uploadpack }, N_("exec"),
 			   N_("path of git-upload-pack on the remote host"),
 			   PARSE_OPT_HIDDEN },
 		OPT_BIT('t', "tags", &flags, N_("limit to tags"), REF_TAGS),

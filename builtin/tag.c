@@ -397,7 +397,7 @@ struct msg_arg {
 
 static int parse_msg_arg(const struct option *opt, const char *arg, int unset)
 {
-	struct msg_arg *msg = opt->value;
+	struct msg_arg *msg = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -444,7 +444,7 @@ int cmd_tag(int argc, const char **argv, const char *prefix)
 	int edit_flag = 0;
 	struct option options[] = {
 		OPT_CMDMODE('l', "list", &cmdmode, N_("list tag names"), 'l'),
-		{ OPTION_INTEGER, 'n', NULL, &filter.lines, N_("n"),
+		{ OPTION_INTEGER, 'n', NULL, { .voidp = &filter.lines }, N_("n"),
 				N_("print <n> lines of each tag message"),
 				PARSE_OPT_OPTARG, NULL, 1 },
 		OPT_CMDMODE('d', "delete", &cmdmode, N_("delete tags"), 'd'),
@@ -474,7 +474,7 @@ int cmd_tag(int argc, const char **argv, const char *prefix)
 		OPT_NO_MERGED(&filter, N_("print only tags that are not merged")),
 		OPT_REF_SORT(sorting_tail),
 		{
-			OPTION_CALLBACK, 0, "points-at", &filter.points_at, N_("object"),
+			OPTION_CALLBACK, 0, "points-at", { .voidp = &filter.points_at }, N_("object"),
 			N_("print only tags of the object"), PARSE_OPT_LASTARG_DEFAULT,
 			parse_opt_object_name, (intptr_t) "HEAD"
 		},

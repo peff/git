@@ -758,7 +758,7 @@ static int git_blame_config(const char *var, const char *value, void *cb)
 
 static int blame_copy_callback(const struct option *option, const char *arg, int unset)
 {
-	int *opt = option->value;
+	int *opt = option->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 
@@ -782,7 +782,7 @@ static int blame_copy_callback(const struct option *option, const char *arg, int
 
 static int blame_move_callback(const struct option *option, const char *arg, int unset)
 {
-	int *opt = option->value;
+	int *opt = option->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 

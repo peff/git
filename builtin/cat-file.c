@@ -612,7 +612,7 @@ static int batch_option_callback(const struct option *opt,
 				 const char *arg,
 				 int unset)
 {
-	struct batch_options *bo = opt->value;
+	struct batch_options *bo = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 

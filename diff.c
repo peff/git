@@ -4740,7 +4740,7 @@ int parse_long_opt(const char *opt, const char **argv,
 
 static int diff_opt_stat(const struct option *opt, const char *value, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 	int width = options->stat_width;
 	int name_width = options->stat_name_width;
 	int graph_width = options->stat_graph_width;
@@ -4845,7 +4845,7 @@ unsigned diff_filter_bit(char status)
 static int diff_opt_diff_filter(const struct option *option,
 				const char *optarg, int unset)
 {
-	struct diff_options *opt = option->value;
+	struct diff_options *opt = option->value.voidp;
 	int i, optch;
 
 	BUG_ON_OPT_NEG(unset);
@@ -4898,7 +4898,7 @@ static void enable_patch_output(int *fmt)
 static int diff_opt_ws_error_highlight(const struct option *option,
 				       const char *arg, int unset)
 {
-	struct diff_options *opt = option->value;
+	struct diff_options *opt = option->value.voidp;
 	int val = parse_ws_error_highlight(arg);
 
 	BUG_ON_OPT_NEG(unset);
@@ -4912,7 +4912,7 @@ static int diff_opt_ws_error_highlight(const struct option *option,
 static int diff_opt_find_object(const struct option *option,
 				const char *arg, int unset)
 {
-	struct diff_options *opt = option->value;
+	struct diff_options *opt = option->value.voidp;
 	struct object_id oid;
 
 	BUG_ON_OPT_NEG(unset);
@@ -4932,7 +4932,7 @@ static int diff_opt_find_object(const struct option *option,
 static int diff_opt_anchored(const struct option *opt,
 			     const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	options->xdl_opts = DIFF_WITH_ALG(options, PATIENCE_DIFF);
@@ -4945,7 +4945,7 @@ static int diff_opt_anchored(const struct option *opt,
 static int diff_opt_binary(const struct option *opt,
 			   const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(arg);
@@ -4957,7 +4957,7 @@ static int diff_opt_binary(const struct option *opt,
 static int diff_opt_break_rewrites(const struct option *opt,
 				   const char *arg, int unset)
 {
-	int *break_opt = opt->value;
+	int *break_opt = opt->value.voidp;
 	int opt1, opt2;
 
 	BUG_ON_OPT_NEG(unset);
@@ -4981,7 +4981,7 @@ static int diff_opt_break_rewrites(const struct option *opt,
 static int diff_opt_char(const struct option *opt,
 			 const char *arg, int unset)
 {
-	char *value = opt->value;
+	char *value = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (arg[1])
@@ -4994,7 +4994,7 @@ static int diff_opt_char(const struct option *opt,
 static int diff_opt_color_moved(const struct option *opt,
 				const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	if (unset) {
 		options->color_moved = COLOR_MOVED_NO;
@@ -5015,7 +5015,7 @@ static int diff_opt_color_moved(const struct option *opt,
 static int diff_opt_color_moved_ws(const struct option *opt,
 				   const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 	unsigned cm;
 
 	if (unset) {
@@ -5033,7 +5033,7 @@ static int diff_opt_color_moved_ws(const struct option *opt,
 static int diff_opt_color_words(const struct option *opt,
 				const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	options->use_color = 1;
@@ -5045,7 +5045,7 @@ static int diff_opt_color_words(const struct option *opt,
 static int diff_opt_compact_summary(const struct option *opt,
 				    const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_ARG(arg);
 	if (unset) {
@@ -5060,7 +5060,7 @@ static int diff_opt_compact_summary(const struct option *opt,
 static int diff_opt_diff_algorithm(const struct option *opt,
 				   const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 	long value = parse_algorithm_value(arg);
 
 	BUG_ON_OPT_NEG(unset);
@@ -5078,7 +5078,7 @@ static int diff_opt_diff_algorithm(const struct option *opt,
 static int diff_opt_dirstat(const struct option *opt,
 			    const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (!strcmp(opt->long_name, "cumulative")) {
@@ -5094,7 +5094,7 @@ static int diff_opt_dirstat(const struct option *opt,
 static int diff_opt_find_copies(const struct option *opt,
 				const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (!arg)
@@ -5114,7 +5114,7 @@ static int diff_opt_find_copies(const struct option *opt,
 static int diff_opt_find_renames(const struct option *opt,
 				 const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (!arg)
@@ -5130,7 +5130,7 @@ static int diff_opt_find_renames(const struct option *opt,
 static int diff_opt_follow(const struct option *opt,
 			   const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_ARG(arg);
 	if (unset) {
@@ -5145,7 +5145,7 @@ static int diff_opt_follow(const struct option *opt,
 static int diff_opt_ignore_submodules(const struct option *opt,
 				      const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (!arg)
@@ -5158,7 +5158,7 @@ static int diff_opt_ignore_submodules(const struct option *opt,
 static int diff_opt_line_prefix(const struct option *opt,
 				const char *optarg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	options->line_prefix = optarg;
@@ -5170,7 +5170,7 @@ static int diff_opt_line_prefix(const struct option *opt,
 static int diff_opt_no_prefix(const struct option *opt,
 			      const char *optarg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	BUG_ON_OPT_ARG(optarg);
@@ -5183,7 +5183,7 @@ static enum parse_opt_result diff_opt_output(struct parse_opt_ctx_t *ctx,
 					     const struct option *opt,
 					     const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 	char *path;
 
 	BUG_ON_OPT_NEG(unset);
@@ -5199,7 +5199,7 @@ static enum parse_opt_result diff_opt_output(struct parse_opt_ctx_t *ctx,
 static int diff_opt_patience(const struct option *opt,
 			     const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 	int i;
 
 	BUG_ON_OPT_NEG(unset);
@@ -5235,7 +5235,7 @@ static int diff_opt_ignore_regex(const struct option *opt,
 static int diff_opt_pickaxe_regex(const struct option *opt,
 				  const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	options->pickaxe = arg;
@@ -5246,7 +5246,7 @@ static int diff_opt_pickaxe_regex(const struct option *opt,
 static int diff_opt_pickaxe_string(const struct option *opt,
 				   const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	options->pickaxe = arg;
@@ -5257,7 +5257,7 @@ static int diff_opt_pickaxe_string(const struct option *opt,
 static int diff_opt_relative(const struct option *opt,
 			     const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	options->flags.relative_name = !unset;
 	if (arg)
@@ -5268,7 +5268,7 @@ static int diff_opt_relative(const struct option *opt,
 static int diff_opt_submodule(const struct option *opt,
 			      const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (!arg)
@@ -5282,7 +5282,7 @@ static int diff_opt_submodule(const struct option *opt,
 static int diff_opt_textconv(const struct option *opt,
 			     const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_ARG(arg);
 	if (unset) {
@@ -5297,7 +5297,7 @@ static int diff_opt_textconv(const struct option *opt,
 static int diff_opt_unified(const struct option *opt,
 			    const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 	char *s;
 
 	BUG_ON_OPT_NEG(unset);
@@ -5315,7 +5315,7 @@ static int diff_opt_unified(const struct option *opt,
 static int diff_opt_word_diff(const struct option *opt,
 			      const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (arg) {
@@ -5341,7 +5341,7 @@ static int diff_opt_word_diff(const struct option *opt,
 static int diff_opt_word_diff_regex(const struct option *opt,
 				    const char *arg, int unset)
 {
-	struct diff_options *options = opt->value;
+	struct diff_options *options = opt->value.voidp;
 
 	BUG_ON_OPT_NEG(unset);
 	if (options->word_diff == DIFF_WORDS_NONE)
@@ -5626,7 +5626,7 @@ static void prep_parse_options(struct diff_options *options)
 		OPT_CALLBACK_F(0, "diff-filter", options, N_("[(A|C|D|M|R|T|U|X|B)...[*]]"),
 			       N_("select files by diff type"),
 			       PARSE_OPT_NONEG, diff_opt_diff_filter),
-		{ OPTION_CALLBACK, 0, "output", options, N_("<file>"),
+		{ OPTION_CALLBACK, 0, "output", { .voidp = options}, N_("<file>"),
 		  N_("Output to a specific file"),
 		  PARSE_OPT_NONEG, NULL, 0, diff_opt_output },
 

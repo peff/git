@@ -112,7 +112,7 @@ static enum commit_msg_cleanup_mode cleanup_mode;
 static int option_parse_message(const struct option *opt,
 				const char *arg, int unset)
 {
-	struct strbuf *buf = opt->value;
+	struct strbuf *buf = opt->value.voidp;
 
 	if (unset)
 		strbuf_setlen(buf, 0);
@@ -129,7 +129,7 @@ static enum parse_opt_result option_read_message(struct parse_opt_ctx_t *ctx,
 						 const char *arg_not_used,
 						 int unset)
 {
-	struct strbuf *buf = opt->value;
+	struct strbuf *buf = opt->value.voidp;
 	const char *arg;
 
 	BUG_ON_OPT_ARG(arg_not_used);
@@ -258,7 +258,7 @@ static struct option builtin_merge_options[] = {
 	OPT_BOOL(0, "stat", &show_diffstat,
 		N_("show a diffstat at the end of the merge")),
 	OPT_BOOL(0, "summary", &show_diffstat, N_("(synonym to --stat)")),
-	{ OPTION_INTEGER, 0, "log", &shortlog_len, N_("n"),
+	{ OPTION_INTEGER, 0, "log", { .voidp = &shortlog_len }, N_("n"),
 	  N_("add (at most <n>) entries from shortlog to merge commit message"),
 	  PARSE_OPT_OPTARG, NULL, DEFAULT_MERGE_LOG_LEN },
 	OPT_BOOL(0, "squash", &squash,
@@ -282,7 +282,7 @@ static struct option builtin_merge_options[] = {
 	OPT_CALLBACK('m', "message", &merge_msg, N_("message"),
 		N_("merge commit message (for a non-fast-forward merge)"),
 		option_parse_message),
-	{ OPTION_LOWLEVEL_CALLBACK, 'F', "file", &merge_msg, N_("path"),
+	{ OPTION_LOWLEVEL_CALLBACK, 'F', "file", { .voidp = &merge_msg }, N_("path"),
 		N_("read message from file"), PARSE_OPT_NONEG,
 		NULL, 0, option_read_message },
 	OPT__VERBOSITY(&verbosity),
@@ -295,7 +295,7 @@ static struct option builtin_merge_options[] = {
 	OPT_BOOL(0, "allow-unrelated-histories", &allow_unrelated_histories,
 		 N_("allow merging unrelated histories")),
 	OPT_SET_INT(0, "progress", &show_progress, N_("force progress reporting"), 1),
-	{ OPTION_STRING, 'S', "gpg-sign", &sign_commit, N_("key-id"),
+	{ OPTION_STRING, 'S', "gpg-sign", { .voidp = &sign_commit }, N_("key-id"),
 	  N_("GPG sign commit"), PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 	OPT_AUTOSTASH(&autostash),
 	OPT_BOOL(0, "overwrite-ignore", &overwrite_ignore, N_("update ignored files (default)")),

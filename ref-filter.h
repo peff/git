@@ -87,7 +87,7 @@ struct ref_format {
 
 /*  Macros for checking --merged and --no-merged options */
 #define _OPT_MERGED_NO_MERGED(option, filter, h) \
-	{ OPTION_CALLBACK, 0, option, (filter), N_("commit"), (h), \
+	{ OPTION_CALLBACK, 0, option, { .voidp = (filter) }, N_("commit"), (h), \
 	  PARSE_OPT_LASTARG_DEFAULT | PARSE_OPT_NONEG, \
 	  parse_opt_merge_filter, (intptr_t) "HEAD" \
 	}

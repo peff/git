@@ -154,7 +154,7 @@ static int exclude_existing_callback(const struct option *opt, const char *arg,
 {
 	BUG_ON_OPT_NEG(unset);
 	exclude_arg = 1;
-	*(const char **)opt->value = arg;
+	*(const char **)opt->value.voidp = arg;
 	return 0;
 }
 

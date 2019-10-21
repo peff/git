@@ -510,7 +510,7 @@ static int guess_repository_type(const char *git_dir)
 static int shared_callback(const struct option *opt, const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
-	*((int *) opt->value) = (arg) ? git_config_perm("arg", arg) : PERM_GROUP;
+	*((int *) opt->value.voidp) = (arg) ? git_config_perm("arg", arg) : PERM_GROUP;
 	return 0;
 }
 
@@ -540,7 +540,7 @@ int cmd_init_db(int argc, const char **argv, const char *prefix)
 				N_("directory from which templates will be used")),
 		OPT_SET_INT(0, "bare", &is_bare_repository_cfg,
 				N_("create a bare repository"), 1),
-		{ OPTION_CALLBACK, 0, "shared", &init_shared_repository,
+		{ OPTION_CALLBACK, 0, "shared", { .voidp = &init_shared_repository },
 			N_("permissions"),
 			N_("specify that the git repository is to be shared amongst several users"),
 			PARSE_OPT_OPTARG | PARSE_OPT_NONEG, shared_callback, 0},
