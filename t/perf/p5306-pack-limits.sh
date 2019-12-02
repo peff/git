@@ -63,4 +63,15 @@ test_size 'pack size' '
 	wc -c <$pack
 '
 
+test_perf 'window=100, bytes=1m' '
+	rm -f pack-*.pack &&
+	git -c pack.windowbytelimit=1m \
+		pack-objects $pack_opts --window=100 pack </dev/null
+'
+
+test_size 'pack size' '
+	pack=$(echo pack-*.pack) &&
+	wc -c <$pack
+'
+
 test_done
