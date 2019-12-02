@@ -34,6 +34,7 @@
 #include "replace-object.h"
 #include "dir.h"
 #include "midx.h"
+#include "trace.h"
 #include "trace2.h"
 #include "shallow.h"
 #include "promisor-remote.h"
@@ -180,6 +181,8 @@ static inline void oe_set_delta_size(struct packing_data *pack,
 #define SET_DELTA_SIZE(obj, val) oe_set_delta_size(&to_pack, obj, val)
 #define SET_DELTA_CHILD(obj, val) oe_set_delta_child(&to_pack, obj, val)
 #define SET_DELTA_SIBLING(obj, val) oe_set_delta_sibling(&to_pack, obj, val)
+
+static struct trace_key trace_delta = TRACE_KEY_INIT(DELTA);
 
 static const char *pack_usage[] = {
 	N_("git pack-objects --stdout [<options>] [< <ref-list> | < <object-list>]"),
@@ -2793,6 +2796,7 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 		struct unpacked *n = array + idx;
 		int j, max_depth, best_base = -1;
 		int slow_count = 0;
+		int slow_count_at_best_base;
 
 		progress_lock();
 		if (!*list_size) {
@@ -2852,6 +2856,7 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 			else if (ret == TRY_DELTA_FOUND) {
 				best_base = other_idx;
 				slow_count++;
+				slow_count_at_best_base = slow_count;
 			} else if (ret == TRY_DELTA_NONE_SLOW) {
 				slow_count++;
 			}
@@ -2861,6 +2866,14 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 			if (window_byte_limit &&
 			    window_byte_limit <= SIZE(n->entry) * slow_count)
 				break;
+		}
+
+		if (best_base >= 0) {
+			trace_printf_key(&trace_delta,
+					 "best base for %s found at slot %d, byte %"PRIuMAX,
+					 oid_to_hex(&entry->idx.oid),
+					 slow_count_at_best_base,
+					 (uintmax_t)(SIZE(n->entry) * slow_count_at_best_base));
 		}
 
 		/*
