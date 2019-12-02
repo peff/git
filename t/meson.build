@@ -1166,6 +1166,7 @@ benchmarks = [
   'perf/p4221-log-grep-engines-fixed.sh',
   'perf/p5302-pack-index.sh',
   'perf/p5303-many-packs.sh',
+  'perf/p5305-pack-limits.sh',
   'perf/p5304-prune.sh',
   'perf/p5310-pack-bitmaps.sh',
   'perf/p5311-pack-bitmaps-fetch.sh',
