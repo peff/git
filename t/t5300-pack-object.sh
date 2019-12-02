@@ -514,6 +514,12 @@ test_expect_success 'pack with work limit' '
 	! grep ^chain out
 '
 
+test_expect_success 'pack with byte limit' '
+	git pack-objects --window=10 --window-byte-limit=100 byte <obj-list &&
+	git verify-pack -v byte-*.pack >out &&
+	! grep ^chain out
+'
+
 test_expect_success 'set up pack for non-repo tests' '
 	# make sure we have a pack with no matching index file
 	cp test-1-*.pack foo.pack
