@@ -2590,8 +2590,10 @@ enum try_delta_result {
 	TRY_DELTA_STOP,
 	/* we found a better delta */
 	TRY_DELTA_FOUND,
-	/* no better delta found */
-	TRY_DELTA_NONE,
+	/* heuristics quickly told us we would not find a better delta */
+	TRY_DELTA_NONE_FAST,
+	/* we computed a delta, but it was not an improvement */
+	TRY_DELTA_NONE_SLOW,
 };
 
 static enum try_delta_result try_delta(struct unpacked *trg,
@@ -2623,11 +2625,11 @@ static enum try_delta_result try_delta(struct unpacked *trg,
 	    !src_entry->preferred_base &&
 	    trg_entry->in_pack_type != OBJ_REF_DELTA &&
 	    trg_entry->in_pack_type != OBJ_OFS_DELTA)
-		return TRY_DELTA_NONE;
+		return TRY_DELTA_NONE_FAST;
 
 	/* Let's not bust the allowed depth. */
 	if (src->depth >= max_depth)
-		return TRY_DELTA_NONE;
+		return TRY_DELTA_NONE_FAST;
 
 	/* Now some size filtering heuristics. */
 	trg_size = SIZE(trg_entry);
@@ -2641,16 +2643,16 @@ static enum try_delta_result try_delta(struct unpacked *trg,
 	max_size = (uint64_t)max_size * (max_depth - src->depth) /
 						(max_depth - ref_depth + 1);
 	if (max_size == 0)
-		return TRY_DELTA_NONE;
+		return TRY_DELTA_NONE_FAST;
 	src_size = SIZE(src_entry);
 	sizediff = src_size < trg_size ? trg_size - src_size : 0;
 	if (sizediff >= max_size)
-		return TRY_DELTA_NONE;
+		return TRY_DELTA_NONE_FAST;
 	if (trg_size < src_size / 32)
-		return TRY_DELTA_NONE;
+		return TRY_DELTA_NONE_FAST;
 
 	if (!in_same_island(&trg->entry->idx.oid, &src->entry->idx.oid))
-		return TRY_DELTA_NONE;
+		return TRY_DELTA_NONE_FAST;
 
 	/* Load data if not already done */
 	if (!trg->data) {
@@ -2686,7 +2688,7 @@ static enum try_delta_result try_delta(struct unpacked *trg,
 				 * them if they can't be read, in case the
 				 * pack could be created nevertheless.
 				 */
-				return TRY_DELTA_NONE;
+				return TRY_DELTA_NONE_FAST;
 			}
 			die(_("object %s cannot be read"),
 			    oid_to_hex(&src_entry->idx.oid));
@@ -2703,21 +2705,21 @@ static enum try_delta_result try_delta(struct unpacked *trg,
 			static int warned = 0;
 			if (!warned++)
 				warning(_("suboptimal pack - out of memory"));
-			return TRY_DELTA_NONE;
+			return TRY_DELTA_NONE_FAST;
 		}
 		*mem_usage += sizeof_delta_index(src->index);
 	}
 
 	delta_buf = create_delta(src->index, trg->data, trg_size, &delta_size, max_size);
 	if (!delta_buf)
-		return TRY_DELTA_NONE;
+		return TRY_DELTA_NONE_SLOW;
 
 	if (DELTA(trg_entry)) {
 		/* Prefer only shallower same-sized deltas. */
 		if (delta_size == DELTA_SIZE(trg_entry) &&
 		    src->depth + 1 >= trg->depth) {
 			free(delta_buf);
-			return TRY_DELTA_NONE;
+			return TRY_DELTA_NONE_SLOW;
 		}
 	}
 
