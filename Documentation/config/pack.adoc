@@ -20,6 +20,12 @@ pack.windowSlotLimit::
 	`--window-slot-limit` in linkgit:git-pack-objects[1]. If
 	unconfigured, no limit is applied.
 
+pack.windowByteLimit::
+	Same as `pack.windowSlotLimit`, but scaled by the number of
+	bytes in each candidate object. See the description of
+	`--window-byte-limit` in linkgit:git-pack-objects[1]. If
+	unconfigured, no limit is applied.
+
 pack.compression::
 	An integer -1..9, indicating the compression level for objects
 	in a pack file. -1 is the zlib default. 0 means no
