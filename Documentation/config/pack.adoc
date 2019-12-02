@@ -14,6 +14,12 @@ pack.windowMemory::
 	suffixed with "k", "m", or "g".  When left unconfigured (or
 	set explicitly to 0), there will be no limit.
 
+pack.windowSlotLimit::
+	The maximum number of "expensive" delta candidate comparisons
+	that will be performed for each object. See the description of
+	`--window-slot-limit` in linkgit:git-pack-objects[1]. If
+	unconfigured, no limit is applied.
+
 pack.compression::
 	An integer -1..9, indicating the compression level for objects
 	in a pack file. -1 is the zlib default. 0 means no

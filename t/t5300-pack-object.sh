@@ -525,6 +525,14 @@ test_expect_success 'verify resulting packs' '
 	git verify-pack test-11-*.pack
 '
 
+test_expect_success 'pack with window=10 finds a delta' '
+	check_deltas = 1 --window=10 window-10 <obj-list
+'
+
+test_expect_success 'pack with work limit' '
+	check_deltas = 0 --window=10 --window-slot-limit=1 limit <obj-list
+'
+
 test_expect_success 'set up pack for non-repo tests' '
 	# make sure we have a pack with no matching index file
 	cp test-1-*.pack foo.pack
