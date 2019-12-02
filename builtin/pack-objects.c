@@ -247,6 +247,7 @@ static unsigned long max_delta_cache_size = DEFAULT_DELTA_CACHE_SIZE;
 static unsigned long cache_max_small_delta_size = 1000;
 
 static unsigned long window_memory_limit = 0;
+static int window_slot_limit;
 
 static struct string_list uri_protocols = STRING_LIST_INIT_NODUP;
 
@@ -2790,6 +2791,7 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 		struct object_entry *entry;
 		struct unpacked *n = array + idx;
 		int j, max_depth, best_base = -1;
+		int slow_count = 0;
 
 		progress_lock();
 		if (!*list_size) {
@@ -2846,8 +2848,15 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 			ret = try_delta(n, m, max_depth, &mem_usage);
 			if (ret == TRY_DELTA_STOP)
 				break;
-			else if (ret == TRY_DELTA_FOUND)
+			else if (ret == TRY_DELTA_FOUND) {
 				best_base = other_idx;
+				slow_count++;
+			} else if (ret == TRY_DELTA_NONE_SLOW) {
+				slow_count++;
+			}
+			if (window_slot_limit &&
+			    window_slot_limit <= slow_count)
+				break;
 		}
 
 		/*
@@ -3265,6 +3274,10 @@ static int git_pack_config(const char *k, const char *v,
 	}
 	if (!strcmp(k, "pack.windowmemory")) {
 		window_memory_limit = git_config_ulong(k, v, ctx->kvi);
+		return 0;
+	}
+	if (!strcmp(k, "pack.windowslotlimit")) {
+		window_slot_limit = git_config_int(k, v, ctx->kvi);
 		return 0;
 	}
 	if (!strcmp(k, "pack.depth")) {
@@ -4365,6 +4378,8 @@ int cmd_pack_objects(int argc,
 			    N_("limit pack window by objects")),
 		OPT_MAGNITUDE(0, "window-memory", &window_memory_limit,
 			      N_("limit pack window by memory in addition to object limit")),
+		OPT_INTEGER(0, "window-slot-limit", &window_slot_limit,
+			    N_("limit delta attempts within window by number of objects")),
 		OPT_INTEGER(0, "depth", &depth,
 			    N_("maximum length of delta chain allowed in the resulting pack")),
 		OPT_BOOL(0, "reuse-delta", &reuse_delta,
