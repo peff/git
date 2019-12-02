@@ -2805,8 +2805,19 @@ size_t oe_get_size_slow(struct packing_data *pack,
 	return size;
 }
 
-static int try_delta(struct unpacked *trg, struct unpacked *src,
-		     unsigned max_depth, size_t *mem_usage)
+enum try_delta_result {
+	/* do not bother looking further in the window */
+	TRY_DELTA_STOP,
+	/* we found a better delta */
+	TRY_DELTA_FOUND,
+	/* no better delta found */
+	TRY_DELTA_NONE,
+};
+
+static enum try_delta_result try_delta(struct unpacked *trg,
+				       struct unpacked *src,
+				       unsigned max_depth,
+				       size_t *mem_usage)
 {
 	struct object_entry *trg_entry = trg->entry;
 	struct object_entry *src_entry = src->entry;
@@ -2818,7 +2829,7 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 
 	/* Don't bother doing diffs between different types */
 	if (oe_type(trg_entry) != oe_type(src_entry))
-		return -1;
+		return TRY_DELTA_STOP;
 
 	/*
 	 * We do not bother to try a delta that we discarded on an
@@ -2833,11 +2844,11 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 	    !src_entry->preferred_base &&
 	    trg_entry->in_pack_type != OBJ_REF_DELTA &&
 	    trg_entry->in_pack_type != OBJ_OFS_DELTA)
-		return 0;
+		return TRY_DELTA_NONE;
 
 	/* Let's not bust the allowed depth. */
 	if (src->depth >= max_depth)
-		return 0;
+		return TRY_DELTA_NONE;
 
 	/* Now some size filtering heuristics. */
 	trg_size = SIZE(trg_entry);
@@ -2851,16 +2862,16 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 	max_size = (uint64_t)max_size * (max_depth - src->depth) /
 						(max_depth - ref_depth + 1);
 	if (max_size == 0)
-		return 0;
+		return TRY_DELTA_NONE;
 	src_size = SIZE(src_entry);
 	sizediff = src_size < trg_size ? trg_size - src_size : 0;
 	if (sizediff >= max_size)
-		return 0;
+		return TRY_DELTA_NONE;
 	if (trg_size < src_size / 32)
-		return 0;
+		return TRY_DELTA_NONE;
 
 	if (!in_same_island(&trg->entry->idx.oid, &src->entry->idx.oid))
-		return 0;
+		return TRY_DELTA_NONE;
 
 	/* Load data if not already done */
 	if (!trg->data) {
@@ -2900,7 +2911,7 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 				 * them if they can't be read, in case the
 				 * pack could be created nevertheless.
 				 */
-				return 0;
+				return TRY_DELTA_NONE;
 			}
 			die(_("object %s cannot be read"),
 			    oid_to_hex(&src_entry->idx.oid));
@@ -2917,21 +2928,21 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 			static int warned = 0;
 			if (!warned++)
 				warning(_("suboptimal pack - out of memory"));
-			return 0;
+			return TRY_DELTA_NONE;
 		}
 		*mem_usage += sizeof_delta_index(src->index);
 	}
 
 	delta_buf = create_delta(src->index, trg->data, trg_size, &delta_size, max_size);
 	if (!delta_buf)
-		return 0;
+		return TRY_DELTA_NONE;
 
 	if (DELTA(trg_entry)) {
 		/* Prefer only shallower same-sized deltas. */
 		if (delta_size == DELTA_SIZE(trg_entry) &&
 		    src->depth + 1 >= trg->depth) {
 			free(delta_buf);
-			return 0;
+			return TRY_DELTA_NONE;
 		}
 	}
 
@@ -2959,7 +2970,7 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 	SET_DELTA_SIZE(trg_entry, delta_size);
 	trg->depth = src->depth + 1;
 
-	return 1;
+	return TRY_DELTA_FOUND;
 }
 
 static unsigned int check_delta_limit(struct object_entry *me, unsigned int n)
@@ -3047,7 +3058,7 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 
 		j = window;
 		while (--j > 0) {
-			int ret;
+			enum try_delta_result ret;
 			uint32_t other_idx = idx + j;
 			struct unpacked *m;
 			if (other_idx >= window)
@@ -3056,9 +3067,9 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 			if (!m->entry)
 				break;
 			ret = try_delta(n, m, max_depth, &mem_usage);
-			if (ret < 0)
+			if (ret == TRY_DELTA_STOP)
 				break;
-			else if (ret > 0)
+			else if (ret == TRY_DELTA_FOUND)
 				best_base = other_idx;
 		}
 
