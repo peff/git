@@ -4,6 +4,8 @@ test_description='wildmatch tests'
 
 . ./test-lib.sh
 
+: ${GIT_TEST_CHAIN_LINT_HARDER:=0}
+
 should_create_test_file() {
 	file=$1
 

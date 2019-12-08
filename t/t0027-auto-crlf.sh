@@ -4,6 +4,8 @@ test_description='CRLF conversion all combinations'
 
 . ./test-lib.sh
 
+: ${GIT_TEST_CHAIN_LINT_HARDER:=0}
+
 compare_files () {
 	tr '\015\000' QN <"$1" >"$1".expect &&
 	tr '\015\000' QN <"$2" | tr -d 'Z' >"$2".actual &&
