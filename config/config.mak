@@ -58,7 +58,7 @@ endif
 USE_LIBPCRE = YesPlease
 
 GIT_TEST_OPTS = --root=/var/ram/git-tests -x --verbose-log
-GIT_PROVE_OPTS= -j16 --state=slow,save
+GIT_PROVE_OPTS= -j32 --state=slow,save
 DEFAULT_TEST_TARGET = prove
 export GIT_TEST_HTTPD = Yes
 export GIT_TEST_GIT_DAEMON = Yes
