@@ -483,7 +483,7 @@ test_expect_success 'cleanup for --strict and --fsck-objects downgrading fsck ms
 '
 
 test_expect_success 'honor pack.packSizeLimit' '
-	git config pack.packSizeLimit 3m &&
+	test_config pack.packSizeLimit 3m &&
 	packname_10=$(git pack-objects test-10 <obj-list) &&
 	test 2 = $(ls test-10-*.pack | wc -l)
 '
@@ -493,7 +493,7 @@ test_expect_success 'verify resulting packs' '
 '
 
 test_expect_success 'tolerate packsizelimit smaller than biggest object' '
-	git config pack.packSizeLimit 1 &&
+	test_config pack.packSizeLimit 1 &&
 	packname_11=$(git pack-objects test-11 <obj-list) &&
 	test 5 = $(ls test-11-*.pack | wc -l)
 '
