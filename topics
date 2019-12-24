@@ -2,7 +2,6 @@
 
 format='%(refname:short)'
 sortby=refname
-set -- $(getopt vtu "$@")
 while test $# -gt 0; do
 	case "$1" in
 	-v) format='%(refname:short) %(subject)' ;;
