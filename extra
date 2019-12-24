@@ -13,19 +13,14 @@ my %remote = (
 	`git for-each-ref --format='%(refname:short) %(objectname)' refs/remotes/github`
 );
 
-if (grep { $_ eq "--unmatched" } @ARGV) {
-	print "$_\n" for
-		grep { $remote{$_} && $remote{$_} ne $local{$_} }
-		(sort keys(%local));
-	exit 0;
-}
-
 my @push = grep { !$remote{$_} } (sort keys(%local));
 my @prune = grep { !$local{$_} } (sort keys(%remote));
+my @unmatched = grep { $remote{$_} && $remote{$_} ne $local{$_} } (sort keys(%local));
 
 if (grep { $_ eq "--stale" } @ARGV) {
 	print "PUSH:$_\n" foreach @push;
 	print "PRUNE:$_\n" foreach @prune;
+	print "PUSH:all\n" if @unmatched;
 	exit 0;
 }
 elsif (grep { $_ eq "--push" } @ARGV) {
