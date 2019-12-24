@@ -7,6 +7,7 @@ while test $# -gt 0; do
 	-v) format='%(refname:short) %(subject)' ;;
 	-t) sortby=-authordate ;;
 	-u) format='%(refname:short) %(upstream:short)' ;;
+	--format=*) format=${1#--*=} ;;
 	--) break ;;
 	 *) echo >&2 "unknown option: $1"; exit 100 ;;
 	esac
