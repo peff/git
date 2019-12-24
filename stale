@@ -5,10 +5,4 @@ if test -n "`git rev-list -1 private..private@{u}`"; then
 fi
 
 Meta/extra --stale
-
-for i in `Meta/extra --matched`; do
-	if test -n "`git rev-list -1 github/$i..$i`"; then
-		echo PUSH:all
-		break;
-	fi
-done
+test -z "$(Meta/extra --unmatched)" || echo PUSH:all

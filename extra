@@ -1,20 +1,22 @@
 #!/usr/bin/perl
 
 my %local = (
-	map { $_ => 1 }
+	map { split / +/, $_, 2 }
 	map { chomp; $_ }
-	`Meta/topics`
+	`Meta/topics --format='%(refname:short) %(objectname)'`
 );
 my %remote = (
-	map { $_ => 1 }
+	map { split / /, $_, 2 }
 	grep { m{/} }
 	map { s,^github/,,; $_ }
 	map { chomp; $_ }
-	`git for-each-ref --format='%(refname:short)' refs/remotes/github`
+	`git for-each-ref --format='%(refname:short) %(objectname)' refs/remotes/github`
 );
 
-if (grep { $_ eq "--matched" } @ARGV) {
-	print "$_\n" foreach grep { $remote{$_} } (sort keys(%local));
+if (grep { $_ eq "--unmatched" } @ARGV) {
+	print "$_\n" for
+		grep { $remote{$_} && $remote{$_} ne $local{$_} }
+		(sort keys(%local));
 	exit 0;
 }
 
