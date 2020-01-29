@@ -19,5 +19,4 @@ if test $# -lt 1; then
   upstream=`git rev-parse --symbolic-full-name @{u} 2>/dev/null`
   set -- ${upstream:-origin}
 fi
-GIT_EDITOR='sed -i "/^pick .*/aexec $GIT_META_TEST"' \
-	git rebase -i "$@"
+GIT_EDITOR=: git rebase -i -x "$GIT_META_TEST" "$@"
