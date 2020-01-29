@@ -5,11 +5,15 @@ if test -z "$GIT_META_TEST"; then
 	GIT_META_TEST='git test run HEAD'
 fi
 
+export GIT_EDITOR
+GIT_EDITOR=:
+
 while test $# -gt 0; do
 	case "$1" in
 	-c) GIT_META_TEST='git test run -t compile' ;;
 	-t) GIT_META_TEST="make -j16 && (cd t && ./t${2#t}-*.sh)"; shift ;;
 	--retest) GIT_META_TEST='git test run --retest HEAD' ;;
+	--edit) unset GIT_EDITOR ;;
 	*) break ;;
 	esac
 	shift
@@ -19,4 +23,4 @@ if test $# -lt 1; then
   upstream=`git rev-parse --symbolic-full-name @{u} 2>/dev/null`
   set -- ${upstream:-origin}
 fi
-GIT_EDITOR=: git rebase -i -x "$GIT_META_TEST" "$@"
+git rebase -i -x "$GIT_META_TEST" "$@"
