@@ -151,7 +151,14 @@ while read cmd args; do
 		;;
 	pick)
 		echo >&2 "Picking $args..."
-		git cherry-pick ${args%% *} || fail "resolve $args"
+		if ! git cherry-pick ${args%% *}; then
+			if git diff-index --quiet HEAD; then
+				echo >&2 "Discarding empty cherry-pick..."
+				git cherry-pick --skip || fail "resolve $args"
+			else
+				fail "resolve $args"
+			fi
+		fi
 		;;
 	exec)
 		eval "($args)" || fail
