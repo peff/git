@@ -93,7 +93,7 @@ while read i upstream; do
 	if ! git rebase --onto $upstream `find_base $upstream`; then
 		if test -z "`git ls-files -u`"; then
 			echo >&2 Auto-continuing rebase via rerere...
-			git rebase --continue || exit 1
+			GIT_EDITOR=: git rebase --continue || exit 1
 		else
 			exit 1
 		fi
