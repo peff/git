@@ -13,6 +13,6 @@
 [merge]
 	conflictStyle = diff3
 [test "default"]
-	command = make -j8 strict=yes test
+	command = make -j16 strict=yes test
 [test "compile"]
-        command = make -j8 strict=yes
+        command = make -j16 strict=yes
