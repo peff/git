@@ -55,7 +55,7 @@ ifeq ($(filter-out %maint, $(head)),)
   CFLAGS += -Wno-unused-value -Wno-strict-prototypes
 endif
 
-USE_LIBPCRE = YesPlease
+USE_LIBPCRE2 = YesPlease
 
 GIT_TEST_OPTS = --root=/var/ram/git-tests -x --verbose-log
 GIT_PROVE_OPTS= -j32 --state=slow,save
