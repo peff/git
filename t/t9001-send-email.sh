@@ -6,23 +6,20 @@ test_description='git send-email'
 GIT_SEND_EMAIL_NOTTY=1
 export GIT_SEND_EMAIL_NOTTY
 
-# May be altered later in the test
-PREREQ="PERL"
-
 replace_variable_fields () {
 	sed	-e "s/^\(Date:\).*/\1 DATE-STRING/" \
 		-e "s/^\(Message-Id:\).*/\1 MESSAGE-ID-STRING/" \
 		-e "s/^\(X-Mailer:\).*/\1 X-MAILER-STRING/"
 }
 
-test_expect_success $PREREQ 'prepare reference tree' '
+test_expect_success PERL 'prepare reference tree' '
 	echo "1A quick brown fox jumps over the" >file &&
 	echo "lazy dog" >>file &&
 	git add file &&
 	GIT_AUTHOR_NAME="A" git commit -a -m "Initial."
 '
 
-test_expect_success $PREREQ 'Setup helper tool' '
+test_expect_success PERL 'Setup helper tool' '
 	write_script fake.sendmail <<-\EOF &&
 	shift
 	output=1
@@ -44,7 +41,7 @@ clean_fake_sendmail () {
 	rm -f commandline* msgtxt*
 }
 
-test_expect_success $PREREQ 'Extract patches' '
+test_expect_success PERL 'Extract patches' '
 	patches=$(git format-patch -s --cc="One <one@example.com>" --cc=two@example.com -n HEAD^1) &&
 	threaded_patches=$(git format-patch -o threaded -s --in-reply-to="format" HEAD^1)
 '
@@ -61,27 +58,27 @@ test_no_confirm () {
 		! grep "Send this email" stdout
 }
 
-test_expect_success $PREREQ 'No confirm with --suppress-cc' '
+test_expect_success PERL 'No confirm with --suppress-cc' '
 	test_no_confirm --suppress-cc=sob
 '
 
 
-test_expect_success $PREREQ 'No confirm with --confirm=never' '
+test_expect_success PERL 'No confirm with --confirm=never' '
 	test_no_confirm --confirm=never
 '
 
 # leave sendemail.confirm set to never after this so that none of the
 # remaining tests prompt unintentionally.
-test_expect_success $PREREQ 'No confirm with sendemail.confirm=never' '
+test_expect_success PERL 'No confirm with sendemail.confirm=never' '
 	git config sendemail.confirm never &&
 	test_no_confirm --compose --subject=foo
 '
 
-test_expect_success $PREREQ 'Send patches' '
+test_expect_success PERL 'Send patches' '
 	git send-email --suppress-cc=sob --from="Example <nobody@example.com>" --to=nobody@example.com --smtp-server="$(pwd)/fake.sendmail" $patches 2>errors
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	!nobody@example.com!
 	!author@example.com!
@@ -90,16 +87,16 @@ test_expect_success $PREREQ 'setup expect' '
 	EOF
 '
 
-test_expect_success $PREREQ 'Verify commandline' '
+test_expect_success PERL 'Verify commandline' '
 	test_cmp expected commandline1
 '
 
-test_expect_success $PREREQ 'Send patches with --envelope-sender' '
+test_expect_success PERL 'Send patches with --envelope-sender' '
 	clean_fake_sendmail &&
 	git send-email --envelope-sender="Patch Contributor <patch@example.com>" --suppress-cc=sob --from="Example <nobody@example.com>" --to=nobody@example.com --smtp-server="$(pwd)/fake.sendmail" $patches 2>errors
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	!patch@example.com!
 	!-i!
@@ -110,16 +107,16 @@ test_expect_success $PREREQ 'setup expect' '
 	EOF
 '
 
-test_expect_success $PREREQ 'Verify commandline' '
+test_expect_success PERL 'Verify commandline' '
 	test_cmp expected commandline1
 '
 
-test_expect_success $PREREQ 'Send patches with --envelope-sender=auto' '
+test_expect_success PERL 'Send patches with --envelope-sender=auto' '
 	clean_fake_sendmail &&
 	git send-email --envelope-sender=auto --suppress-cc=sob --from="Example <nobody@example.com>" --to=nobody@example.com --smtp-server="$(pwd)/fake.sendmail" $patches 2>errors
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	!nobody@example.com!
 	!-i!
@@ -130,11 +127,11 @@ test_expect_success $PREREQ 'setup expect' '
 	EOF
 '
 
-test_expect_success $PREREQ 'Verify commandline' '
+test_expect_success PERL 'Verify commandline' '
 	test_cmp expected commandline1
 '
 
-test_expect_success $PREREQ 'setup expect for cc trailer' "
+test_expect_success PERL 'setup expect for cc trailer' "
 cat >expected-cc <<\EOF
 !recipient@example.com!
 !author@example.com!
@@ -147,7 +144,7 @@ cat >expected-cc <<\EOF
 EOF
 "
 
-test_expect_success $PREREQ 'cc trailer with various syntax' '
+test_expect_success PERL 'cc trailer with various syntax' '
 	test_commit cc-trailer &&
 	test_when_finished "git reset --hard HEAD^" &&
 	git commit --amend -F - <<-EOF &&
@@ -166,7 +163,7 @@ test_expect_success $PREREQ 'cc trailer with various syntax' '
 	test_cmp expected-cc commandline1
 '
 
-test_expect_success $PREREQ 'setup fake get_maintainer.pl script for cc trailer' "
+test_expect_success PERL 'setup fake get_maintainer.pl script for cc trailer' "
 	write_script expected-cc-script.sh <<-EOF
 	echo 'One Person <one@example.com> (supporter:THIS (FOO/bar))'
 	echo 'Two Person <two@example.com> (maintainer:THIS THING)'
@@ -177,7 +174,7 @@ test_expect_success $PREREQ 'setup fake get_maintainer.pl script for cc trailer'
 	EOF
 "
 
-test_expect_success $PREREQ 'cc trailer with get_maintainer.pl output' '
+test_expect_success PERL 'cc trailer with get_maintainer.pl output' '
 	clean_fake_sendmail &&
 	git send-email -1 --to=recipient@example.com \
 		--cc-cmd=./expected-cc-script.sh \
@@ -185,7 +182,7 @@ test_expect_success $PREREQ 'cc trailer with get_maintainer.pl output' '
 	test_cmp expected-cc commandline1
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-show-all-headers <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -274,34 +271,34 @@ test_suppress_self_quoted () {
 	EOF
 }
 
-test_expect_success $PREREQ 'self name is suppressed' "
+test_expect_success PERL 'self name is suppressed' "
 	test_suppress_self_unquoted 'A U Thor' 'author@example.com' \
 		'self_name_suppressed'
 "
 
-test_expect_success $PREREQ 'self name with dot is suppressed' "
+test_expect_success PERL 'self name with dot is suppressed' "
 	test_suppress_self_quoted 'A U. Thor' 'author@example.com' \
 		'self_name_dot_suppressed'
 "
 
-test_expect_success $PREREQ 'non-ascii self name is suppressed' "
+test_expect_success PERL 'non-ascii self name is suppressed' "
 	test_suppress_self_quoted 'Füñný Nâmé' 'odd_?=mail@example.com' \
 		'non_ascii_self_suppressed'
 "
 
 # This name is long enough to force format-patch to split it into multiple
 # encoded-words, assuming it uses UTF-8 with the "Q" encoding.
-test_expect_success $PREREQ 'long non-ascii self name is suppressed' "
+test_expect_success PERL 'long non-ascii self name is suppressed' "
 	test_suppress_self_quoted 'Ƒüñníęř €. Nâṁé' 'odd_?=mail@example.com' \
 		'long_non_ascii_self_suppressed'
 "
 
-test_expect_success $PREREQ 'sanitized self name is suppressed' "
+test_expect_success PERL 'sanitized self name is suppressed' "
 	test_suppress_self_unquoted '\"A U. Thor\"' 'author@example.com' \
 		'self_name_sanitized_suppressed'
 "
 
-test_expect_success $PREREQ 'Show all headers' '
+test_expect_success PERL 'Show all headers' '
 	git send-email \
 		--dry-run \
 		--suppress-cc=sob \
@@ -317,7 +314,7 @@ test_expect_success $PREREQ 'Show all headers' '
 	test_cmp expected-show-all-headers actual-show-all-headers
 '
 
-test_expect_success $PREREQ 'Prompting works' '
+test_expect_success PERL 'Prompting works' '
 	clean_fake_sendmail &&
 	(echo "to@example.com" &&
 	 echo ""
@@ -329,7 +326,7 @@ test_expect_success $PREREQ 'Prompting works' '
 		grep "^To: to@example.com\$" msgtxt1
 '
 
-test_expect_success $PREREQ,AUTOIDENT 'implicit ident is allowed' '
+test_expect_success PERL,AUTOIDENT 'implicit ident is allowed' '
 	clean_fake_sendmail &&
 	(sane_unset GIT_AUTHOR_NAME &&
 	sane_unset GIT_AUTHOR_EMAIL &&
@@ -342,7 +339,7 @@ test_expect_success $PREREQ,AUTOIDENT 'implicit ident is allowed' '
 	)
 '
 
-test_expect_success $PREREQ,!AUTOIDENT 'broken implicit ident aborts send-email' '
+test_expect_success PERL,!AUTOIDENT 'broken implicit ident aborts send-email' '
 	clean_fake_sendmail &&
 	(sane_unset GIT_AUTHOR_NAME &&
 	sane_unset GIT_AUTHOR_EMAIL &&
@@ -356,7 +353,7 @@ test_expect_success $PREREQ,!AUTOIDENT 'broken implicit ident aborts send-email'
 	)
 '
 
-test_expect_success $PREREQ 'setup tocmd and cccmd scripts' '
+test_expect_success PERL 'setup tocmd and cccmd scripts' '
 	write_script tocmd-sed <<-\EOF &&
 	sed -n -e "s/^tocmd--//p" "$1"
 	EOF
@@ -365,7 +362,7 @@ test_expect_success $PREREQ 'setup tocmd and cccmd scripts' '
 	EOF
 '
 
-test_expect_success $PREREQ 'tocmd works' '
+test_expect_success PERL 'tocmd works' '
 	clean_fake_sendmail &&
 	cp $patches tocmd.patch &&
 	echo tocmd--tocmd@example.com >>tocmd.patch &&
@@ -378,7 +375,7 @@ test_expect_success $PREREQ 'tocmd works' '
 	grep "^To: tocmd@example.com" msgtxt1
 '
 
-test_expect_success $PREREQ 'cccmd works' '
+test_expect_success PERL 'cccmd works' '
 	clean_fake_sendmail &&
 	cp $patches cccmd.patch &&
 	echo "cccmd--  cccmd@example.com" >>cccmd.patch &&
@@ -392,7 +389,7 @@ test_expect_success $PREREQ 'cccmd works' '
 	grep "^	cccmd@example.com" msgtxt1
 '
 
-test_expect_success $PREREQ 'reject long lines' '
+test_expect_success PERL 'reject long lines' '
 	z8=zzzzzzzz &&
 	z64=$z8$z8$z8$z8$z8$z8$z8$z8 &&
 	z512=$z64$z64$z64$z64$z64$z64$z64$z64 &&
@@ -409,11 +406,11 @@ test_expect_success $PREREQ 'reject long lines' '
 	grep longline.patch errors
 '
 
-test_expect_success $PREREQ 'no patch was sent' '
+test_expect_success PERL 'no patch was sent' '
 	! test -e commandline1
 '
 
-test_expect_success $PREREQ 'Author From: in message body' '
+test_expect_success PERL 'Author From: in message body' '
 	clean_fake_sendmail &&
 	git send-email \
 		--from="Example <nobody@example.com>" \
@@ -424,7 +421,7 @@ test_expect_success $PREREQ 'Author From: in message body' '
 	grep "From: A <author@example.com>" msgbody1
 '
 
-test_expect_success $PREREQ 'Author From: not in message body' '
+test_expect_success PERL 'Author From: not in message body' '
 	clean_fake_sendmail &&
 	git send-email \
 		--from="A <author@example.com>" \
@@ -435,7 +432,7 @@ test_expect_success $PREREQ 'Author From: not in message body' '
 	! grep "From: A <author@example.com>" msgbody1
 '
 
-test_expect_success $PREREQ 'allow long lines with --no-validate' '
+test_expect_success PERL 'allow long lines with --no-validate' '
 	git send-email \
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
@@ -445,7 +442,7 @@ test_expect_success $PREREQ 'allow long lines with --no-validate' '
 		2>errors
 '
 
-test_expect_success $PREREQ 'short lines with auto encoding are 8bit' '
+test_expect_success PERL 'short lines with auto encoding are 8bit' '
 	clean_fake_sendmail &&
 	git send-email \
 		--from="A <author@example.com>" \
@@ -456,7 +453,7 @@ test_expect_success $PREREQ 'short lines with auto encoding are 8bit' '
 	grep "Content-Transfer-Encoding: 8bit" msgtxt1
 '
 
-test_expect_success $PREREQ 'long lines with auto encoding are quoted-printable' '
+test_expect_success PERL 'long lines with auto encoding are quoted-printable' '
 	clean_fake_sendmail &&
 	git send-email \
 		--from="Example <nobody@example.com>" \
@@ -468,7 +465,7 @@ test_expect_success $PREREQ 'long lines with auto encoding are quoted-printable'
 	grep "Content-Transfer-Encoding: quoted-printable" msgtxt1
 '
 
-test_expect_success $PREREQ 'carriage returns with auto encoding are quoted-printable' '
+test_expect_success PERL 'carriage returns with auto encoding are quoted-printable' '
 	clean_fake_sendmail &&
 	cp $patches cr.patch &&
 	printf "this is a line\r\n" >>cr.patch &&
@@ -484,7 +481,7 @@ test_expect_success $PREREQ 'carriage returns with auto encoding are quoted-prin
 
 for enc in auto quoted-printable base64
 do
-	test_expect_success $PREREQ "--validate passes with encoding $enc" '
+	test_expect_success PERL "--validate passes with encoding $enc" '
 		git send-email \
 			--from="Example <nobody@example.com>" \
 			--to=nobody@example.com \
@@ -498,7 +495,7 @@ done
 
 for enc in 7bit 8bit quoted-printable base64
 do
-	test_expect_success $PREREQ "--transfer-encoding=$enc produces correct header" '
+	test_expect_success PERL "--transfer-encoding=$enc produces correct header" '
 		clean_fake_sendmail &&
 		git send-email \
 			--from="Example <nobody@example.com>" \
@@ -510,7 +507,7 @@ do
 	'
 done
 
-test_expect_success $PREREQ 'Invalid In-Reply-To' '
+test_expect_success PERL 'Invalid In-Reply-To' '
 	clean_fake_sendmail &&
 	git send-email \
 		--from="Example <nobody@example.com>" \
@@ -522,7 +519,7 @@ test_expect_success $PREREQ 'Invalid In-Reply-To' '
 	! grep "^In-Reply-To: < *>" msgtxt1
 '
 
-test_expect_success $PREREQ 'Valid In-Reply-To when prompting' '
+test_expect_success PERL 'Valid In-Reply-To when prompting' '
 	clean_fake_sendmail &&
 	(echo "From Example <from@example.com>" &&
 	 echo "To Example <to@example.com>" &&
@@ -533,7 +530,7 @@ test_expect_success $PREREQ 'Valid In-Reply-To when prompting' '
 	! grep "^In-Reply-To: < *>" msgtxt1
 '
 
-test_expect_success $PREREQ 'In-Reply-To without --chain-reply-to' '
+test_expect_success PERL 'In-Reply-To without --chain-reply-to' '
 	clean_fake_sendmail &&
 	echo "<unique-message-id@example.com>" >expect &&
 	git send-email \
@@ -555,7 +552,7 @@ test_expect_success $PREREQ 'In-Reply-To without --chain-reply-to' '
 	test_cmp expect actual
 '
 
-test_expect_success $PREREQ 'In-Reply-To with --chain-reply-to' '
+test_expect_success PERL 'In-Reply-To with --chain-reply-to' '
 	clean_fake_sendmail &&
 	echo "<unique-message-id@example.com>" >expect &&
 	git send-email \
@@ -576,7 +573,7 @@ test_expect_success $PREREQ 'In-Reply-To with --chain-reply-to' '
 	test_cmp expect actual
 '
 
-test_expect_success $PREREQ 'setup fake editor' '
+test_expect_success PERL 'setup fake editor' '
 	write_script fake-editor <<-\EOF
 	echo fake edit >>"$1"
 	EOF
@@ -584,7 +581,7 @@ test_expect_success $PREREQ 'setup fake editor' '
 
 test_set_editor "$(pwd)/fake-editor"
 
-test_expect_success $PREREQ '--compose works' '
+test_expect_success PERL '--compose works' '
 	clean_fake_sendmail &&
 	git send-email \
 	--compose --subject foo \
@@ -595,15 +592,15 @@ test_expect_success $PREREQ '--compose works' '
 	2>errors
 '
 
-test_expect_success $PREREQ 'first message is compose text' '
+test_expect_success PERL 'first message is compose text' '
 	grep "^fake edit" msgtxt1
 '
 
-test_expect_success $PREREQ 'second message is patch' '
+test_expect_success PERL 'second message is patch' '
 	grep "Subject:.*Second" msgtxt2
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-sob <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -646,12 +643,12 @@ test_suppression () {
 	test_cmp expected-suppress-$1${2+"-$2"} actual-suppress-$1${2+"-$2"}
 }
 
-test_expect_success $PREREQ 'sendemail.cc set' '
+test_expect_success PERL 'sendemail.cc set' '
 	git config sendemail.cc cc@example.com &&
 	test_suppression sob
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-sob <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -680,12 +677,12 @@ Result: OK
 EOF
 "
 
-test_expect_success $PREREQ 'sendemail.cc unset' '
+test_expect_success PERL 'sendemail.cc unset' '
 	git config --unset sendemail.cc &&
 	test_suppression sob
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-cccmd <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -717,7 +714,7 @@ Result: OK
 EOF
 "
 
-test_expect_success $PREREQ 'sendemail.cccmd' '
+test_expect_success PERL 'sendemail.cccmd' '
 	write_script cccmd <<-\EOF &&
 	echo cc-cmd@example.com
 	EOF
@@ -725,7 +722,7 @@ test_expect_success $PREREQ 'sendemail.cccmd' '
 	test_suppression cccmd
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 cat >expected-suppress-all <<\EOF
 0001-Second.patch
 Dry-OK. Log says:
@@ -745,11 +742,11 @@ Result: OK
 EOF
 '
 
-test_expect_success $PREREQ '--suppress-cc=all' '
+test_expect_success PERL '--suppress-cc=all' '
 	test_suppression all
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-body <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -781,11 +778,11 @@ Result: OK
 EOF
 "
 
-test_expect_success $PREREQ '--suppress-cc=body' '
+test_expect_success PERL '--suppress-cc=body' '
 	test_suppression body
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-body-cccmd <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -814,11 +811,11 @@ Result: OK
 EOF
 "
 
-test_expect_success $PREREQ '--suppress-cc=body --suppress-cc=cccmd' '
+test_expect_success PERL '--suppress-cc=body --suppress-cc=cccmd' '
 	test_suppression body cccmd
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-sob <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -847,12 +844,12 @@ Result: OK
 EOF
 "
 
-test_expect_success $PREREQ '--suppress-cc=sob' '
+test_expect_success PERL '--suppress-cc=sob' '
 	test_might_fail git config --unset sendemail.cccmd &&
 	test_suppression sob
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-bodycc <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -884,11 +881,11 @@ Result: OK
 EOF
 "
 
-test_expect_success $PREREQ '--suppress-cc=bodycc' '
+test_expect_success PERL '--suppress-cc=bodycc' '
 	test_suppression bodycc
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 cat >expected-suppress-cc <<\EOF
 0001-Second.patch
 (mbox) Adding cc: A <author@example.com> from line 'From: A <author@example.com>'
@@ -914,7 +911,7 @@ Result: OK
 EOF
 "
 
-test_expect_success $PREREQ '--suppress-cc=cc' '
+test_expect_success PERL '--suppress-cc=cc' '
 	test_suppression cc
 '
 
@@ -928,35 +925,35 @@ test_confirm () {
 	grep "Send this email" stdout
 }
 
-test_expect_success $PREREQ '--confirm=always' '
+test_expect_success PERL '--confirm=always' '
 	test_confirm --confirm=always --suppress-cc=all
 '
 
-test_expect_success $PREREQ '--confirm=auto' '
+test_expect_success PERL '--confirm=auto' '
 	test_confirm --confirm=auto
 '
 
-test_expect_success $PREREQ '--confirm=cc' '
+test_expect_success PERL '--confirm=cc' '
 	test_confirm --confirm=cc
 '
 
-test_expect_success $PREREQ '--confirm=compose' '
+test_expect_success PERL '--confirm=compose' '
 	test_confirm --confirm=compose --compose
 '
 
-test_expect_success $PREREQ 'confirm by default (due to cc)' '
+test_expect_success PERL 'confirm by default (due to cc)' '
 	test_when_finished git config sendemail.confirm never &&
 	git config --unset sendemail.confirm &&
 	test_confirm
 '
 
-test_expect_success $PREREQ 'confirm by default (due to --compose)' '
+test_expect_success PERL 'confirm by default (due to --compose)' '
 	test_when_finished git config sendemail.confirm never &&
 	git config --unset sendemail.confirm &&
 	test_confirm --suppress-cc=all --compose
 '
 
-test_expect_success $PREREQ 'confirm detects EOF (inform assumes y)' '
+test_expect_success PERL 'confirm detects EOF (inform assumes y)' '
 	test_when_finished git config sendemail.confirm never &&
 	git config --unset sendemail.confirm &&
 	rm -fr outdir &&
@@ -968,7 +965,7 @@ test_expect_success $PREREQ 'confirm detects EOF (inform assumes y)' '
 			outdir/*.patch </dev/null
 '
 
-test_expect_success $PREREQ 'confirm detects EOF (auto causes failure)' '
+test_expect_success PERL 'confirm detects EOF (auto causes failure)' '
 	test_when_finished git config sendemail.confirm never &&
 	git config sendemail.confirm auto &&
 	test_must_fail git send-email \
@@ -978,7 +975,7 @@ test_expect_success $PREREQ 'confirm detects EOF (auto causes failure)' '
 		$patches </dev/null
 '
 
-test_expect_success $PREREQ 'confirm does not loop forever' '
+test_expect_success PERL 'confirm does not loop forever' '
 	test_when_finished git config sendemail.confirm never &&
 	git config sendemail.confirm auto &&
 	yes "bogus" | test_must_fail git send-email \
@@ -988,7 +985,7 @@ test_expect_success $PREREQ 'confirm does not loop forever' '
 		$patches
 '
 
-test_expect_success $PREREQ 'utf8 Cc is rfc2047 encoded' '
+test_expect_success PERL 'utf8 Cc is rfc2047 encoded' '
 	clean_fake_sendmail &&
 	rm -fr outdir &&
 	git format-patch -1 -o outdir --cc="àéìöú <utf8@example.com>" &&
@@ -1001,7 +998,7 @@ test_expect_success $PREREQ 'utf8 Cc is rfc2047 encoded' '
 	grep "=?UTF-8?q?=C3=A0=C3=A9=C3=AC=C3=B6=C3=BA?= <utf8@example.com>"
 '
 
-test_expect_success $PREREQ '--compose adds MIME for utf8 body' '
+test_expect_success PERL '--compose adds MIME for utf8 body' '
 	clean_fake_sendmail &&
 	write_script fake-editor-utf8 <<-\EOF &&
 	echo "utf8 body: àéìöú" >>"$1"
@@ -1017,7 +1014,7 @@ test_expect_success $PREREQ '--compose adds MIME for utf8 body' '
 	grep "^Content-Type: text/plain; charset=UTF-8" msgtxt1
 '
 
-test_expect_success $PREREQ '--compose respects user mime type' '
+test_expect_success PERL '--compose respects user mime type' '
 	clean_fake_sendmail &&
 	write_script fake-editor-utf8-mime <<-\EOF &&
 	cat >"$1" <<-\EOM
@@ -1041,7 +1038,7 @@ test_expect_success $PREREQ '--compose respects user mime type' '
 	! grep "^Content-Type: text/plain; charset=UTF-8" msgtxt1
 '
 
-test_expect_success $PREREQ '--compose adds MIME for utf8 subject' '
+test_expect_success PERL '--compose adds MIME for utf8 subject' '
 	clean_fake_sendmail &&
 	GIT_EDITOR="\"$(pwd)/fake-editor\"" \
 	git send-email \
@@ -1054,7 +1051,7 @@ test_expect_success $PREREQ '--compose adds MIME for utf8 subject' '
 	grep "^Subject: =?UTF-8?q?utf8-s=C3=BCbj=C3=ABct?=" msgtxt1
 '
 
-test_expect_success $PREREQ 'utf8 author is correctly passed on' '
+test_expect_success PERL 'utf8 author is correctly passed on' '
 	clean_fake_sendmail &&
 	test_commit weird_author &&
 	test_when_finished "git reset --hard HEAD^" &&
@@ -1067,7 +1064,7 @@ test_expect_success $PREREQ 'utf8 author is correctly passed on' '
 	grep "^From: Füñný Nâmé <odd_?=mail@example.com>" msgtxt1
 '
 
-test_expect_success $PREREQ 'utf8 sender is not duplicated' '
+test_expect_success PERL 'utf8 sender is not duplicated' '
 	clean_fake_sendmail &&
 	test_commit weird_sender &&
 	test_when_finished "git reset --hard HEAD^" &&
@@ -1081,7 +1078,7 @@ test_expect_success $PREREQ 'utf8 sender is not duplicated' '
 	test_line_count = 1 msgfrom
 '
 
-test_expect_success $PREREQ 'sendemail.composeencoding works' '
+test_expect_success PERL 'sendemail.composeencoding works' '
 	clean_fake_sendmail &&
 	git config sendemail.composeencoding iso-8859-1 &&
 	write_script fake-editor-utf8 <<-\EOF &&
@@ -1098,7 +1095,7 @@ test_expect_success $PREREQ 'sendemail.composeencoding works' '
 	grep "^Content-Type: text/plain; charset=iso-8859-1" msgtxt1
 '
 
-test_expect_success $PREREQ '--compose-encoding works' '
+test_expect_success PERL '--compose-encoding works' '
 	clean_fake_sendmail &&
 	write_script fake-editor-utf8 <<-\EOF &&
 	echo "utf8 body: àéìöú" >>"$1"
@@ -1115,7 +1112,7 @@ test_expect_success $PREREQ '--compose-encoding works' '
 	grep "^Content-Type: text/plain; charset=iso-8859-1" msgtxt1
 '
 
-test_expect_success $PREREQ '--compose-encoding overrides sendemail.composeencoding' '
+test_expect_success PERL '--compose-encoding overrides sendemail.composeencoding' '
 	clean_fake_sendmail &&
 	git config sendemail.composeencoding iso-8859-1 &&
 	write_script fake-editor-utf8 <<-\EOF &&
@@ -1133,7 +1130,7 @@ test_expect_success $PREREQ '--compose-encoding overrides sendemail.composeencod
 	grep "^Content-Type: text/plain; charset=iso-8859-2" msgtxt1
 '
 
-test_expect_success $PREREQ '--compose-encoding adds correct MIME for subject' '
+test_expect_success PERL '--compose-encoding adds correct MIME for subject' '
 	clean_fake_sendmail &&
 	GIT_EDITOR="\"$(pwd)/fake-editor\"" \
 	git send-email \
@@ -1147,7 +1144,7 @@ test_expect_success $PREREQ '--compose-encoding adds correct MIME for subject' '
 	grep "^Subject: =?iso-8859-2?q?utf8-s=C3=BCbj=C3=ABct?=" msgtxt1
 '
 
-test_expect_success $PREREQ 'detects ambiguous reference/file conflict' '
+test_expect_success PERL 'detects ambiguous reference/file conflict' '
 	echo master >master &&
 	git add master &&
 	git commit -m"add master" &&
@@ -1155,7 +1152,7 @@ test_expect_success $PREREQ 'detects ambiguous reference/file conflict' '
 	grep disambiguate errors
 '
 
-test_expect_success $PREREQ 'feed two files' '
+test_expect_success PERL 'feed two files' '
 	rm -fr outdir &&
 	git format-patch -2 -o outdir &&
 	git send-email \
@@ -1168,7 +1165,7 @@ test_expect_success $PREREQ 'feed two files' '
 	test "z$(sed -n -e 2p subjects)" = "zSubject: [PATCH 2/2] add master"
 '
 
-test_expect_success $PREREQ 'in-reply-to but no threading' '
+test_expect_success PERL 'in-reply-to but no threading' '
 	git send-email \
 		--dry-run \
 		--from="Example <nobody@example.com>" \
@@ -1179,7 +1176,7 @@ test_expect_success $PREREQ 'in-reply-to but no threading' '
 	grep "In-Reply-To: <in-reply-id@example.com>" out
 '
 
-test_expect_success $PREREQ 'no in-reply-to and no threading' '
+test_expect_success PERL 'no in-reply-to and no threading' '
 	git send-email \
 		--dry-run \
 		--from="Example <nobody@example.com>" \
@@ -1189,7 +1186,7 @@ test_expect_success $PREREQ 'no in-reply-to and no threading' '
 	! grep "In-Reply-To: " stdout
 '
 
-test_expect_success $PREREQ 'threading but no chain-reply-to' '
+test_expect_success PERL 'threading but no chain-reply-to' '
 	git send-email \
 		--dry-run \
 		--from="Example <nobody@example.com>" \
@@ -1200,7 +1197,7 @@ test_expect_success $PREREQ 'threading but no chain-reply-to' '
 	grep "In-Reply-To: " stdout
 '
 
-test_expect_success $PREREQ 'override in-reply-to if no threading' '
+test_expect_success PERL 'override in-reply-to if no threading' '
 	git send-email \
 		--dry-run \
 		--from="Example <nobody@example.com>" \
@@ -1211,7 +1208,7 @@ test_expect_success $PREREQ 'override in-reply-to if no threading' '
 	grep "In-Reply-To: <override>" stdout
 '
 
-test_expect_success $PREREQ 'sendemail.to works' '
+test_expect_success PERL 'sendemail.to works' '
 	git config --replace-all sendemail.to "Somebody <somebody@ex.com>" &&
 	git send-email \
 		--dry-run \
@@ -1220,13 +1217,13 @@ test_expect_success $PREREQ 'sendemail.to works' '
 	grep "To: Somebody <somebody@ex.com>" stdout
 '
 
-test_expect_success $PREREQ 'setup sendemail.identity' '
+test_expect_success PERL 'setup sendemail.identity' '
 	git config --replace-all sendemail.to "default@example.com" &&
 	git config --replace-all sendemail.isp.to "isp@example.com" &&
 	git config --replace-all sendemail.cloud.to "cloud@example.com"
 '
 
-test_expect_success $PREREQ 'sendemail.identity: reads the correct identity config' '
+test_expect_success PERL 'sendemail.identity: reads the correct identity config' '
 	git -c sendemail.identity=cloud send-email \
 		--dry-run \
 		--from="nobody@example.com" \
@@ -1234,7 +1231,7 @@ test_expect_success $PREREQ 'sendemail.identity: reads the correct identity conf
 	grep "To: cloud@example.com" stdout
 '
 
-test_expect_success $PREREQ 'sendemail.identity: identity overrides sendemail.identity' '
+test_expect_success PERL 'sendemail.identity: identity overrides sendemail.identity' '
 	git -c sendemail.identity=cloud send-email \
 		--identity=isp \
 		--dry-run \
@@ -1243,7 +1240,7 @@ test_expect_success $PREREQ 'sendemail.identity: identity overrides sendemail.id
 	grep "To: isp@example.com" stdout
 '
 
-test_expect_success $PREREQ 'sendemail.identity: --no-identity clears previous identity' '
+test_expect_success PERL 'sendemail.identity: --no-identity clears previous identity' '
 	git -c sendemail.identity=cloud send-email \
 		--no-identity \
 		--dry-run \
@@ -1252,7 +1249,7 @@ test_expect_success $PREREQ 'sendemail.identity: --no-identity clears previous i
 	grep "To: default@example.com" stdout
 '
 
-test_expect_success $PREREQ 'sendemail.identity: bool identity variable existence overrides' '
+test_expect_success PERL 'sendemail.identity: bool identity variable existence overrides' '
 	git -c sendemail.identity=cloud \
 		-c sendemail.xmailer=true \
 		-c sendemail.cloud.xmailer=false \
@@ -1264,7 +1261,7 @@ test_expect_success $PREREQ 'sendemail.identity: bool identity variable existenc
 	! grep "X-Mailer" stdout
 '
 
-test_expect_success $PREREQ 'sendemail.identity: bool variable fallback' '
+test_expect_success PERL 'sendemail.identity: bool variable fallback' '
 	git -c sendemail.identity=cloud \
 		-c sendemail.xmailer=false \
 		send-email \
@@ -1275,7 +1272,7 @@ test_expect_success $PREREQ 'sendemail.identity: bool variable fallback' '
 	! grep "X-Mailer" stdout
 '
 
-test_expect_success $PREREQ '--no-to overrides sendemail.to' '
+test_expect_success PERL '--no-to overrides sendemail.to' '
 	git send-email \
 		--dry-run \
 		--from="Example <nobody@example.com>" \
@@ -1286,7 +1283,7 @@ test_expect_success $PREREQ '--no-to overrides sendemail.to' '
 	! grep "To: Somebody <somebody@ex.com>" stdout
 '
 
-test_expect_success $PREREQ 'sendemail.cc works' '
+test_expect_success PERL 'sendemail.cc works' '
 	git config --replace-all sendemail.cc "Somebody <somebody@ex.com>" &&
 	git send-email \
 		--dry-run \
@@ -1296,7 +1293,7 @@ test_expect_success $PREREQ 'sendemail.cc works' '
 	grep "Cc: Somebody <somebody@ex.com>" stdout
 '
 
-test_expect_success $PREREQ '--no-cc overrides sendemail.cc' '
+test_expect_success PERL '--no-cc overrides sendemail.cc' '
 	git send-email \
 		--dry-run \
 		--from="Example <nobody@example.com>" \
@@ -1308,7 +1305,7 @@ test_expect_success $PREREQ '--no-cc overrides sendemail.cc' '
 	! grep "Cc: Somebody <somebody@ex.com>" stdout
 '
 
-test_expect_success $PREREQ 'sendemail.bcc works' '
+test_expect_success PERL 'sendemail.bcc works' '
 	git config --replace-all sendemail.bcc "Other <other@ex.com>" &&
 	git send-email \
 		--dry-run \
@@ -1319,7 +1316,7 @@ test_expect_success $PREREQ 'sendemail.bcc works' '
 	grep "RCPT TO:<other@ex.com>" stdout
 '
 
-test_expect_success $PREREQ '--no-bcc overrides sendemail.bcc' '
+test_expect_success PERL '--no-bcc overrides sendemail.bcc' '
 	git send-email \
 		--dry-run \
 		--from="Example <nobody@example.com>" \
@@ -1332,7 +1329,7 @@ test_expect_success $PREREQ '--no-bcc overrides sendemail.bcc' '
 	! grep "RCPT TO:<other@ex.com>" stdout
 '
 
-test_expect_success $PREREQ 'patches To headers are used by default' '
+test_expect_success PERL 'patches To headers are used by default' '
 	patch=$(git format-patch -1 --to="bodies@example.com") &&
 	test_when_finished "rm $patch" &&
 	git send-email \
@@ -1343,7 +1340,7 @@ test_expect_success $PREREQ 'patches To headers are used by default' '
 	grep "RCPT TO:<bodies@example.com>" stdout
 '
 
-test_expect_success $PREREQ 'patches To headers are appended to' '
+test_expect_success PERL 'patches To headers are appended to' '
 	patch=$(git format-patch -1 --to="bodies@example.com") &&
 	test_when_finished "rm $patch" &&
 	git send-email \
@@ -1356,7 +1353,7 @@ test_expect_success $PREREQ 'patches To headers are appended to' '
 	grep "RCPT TO:<nobody@example.com>" stdout
 '
 
-test_expect_success $PREREQ 'To headers from files reset each patch' '
+test_expect_success PERL 'To headers from files reset each patch' '
 	patch1=$(git format-patch -1 --to="bodies@example.com") &&
 	patch2=$(git format-patch -1 --to="other@example.com" HEAD~) &&
 	test_when_finished "rm $patch1 && rm $patch2" &&
@@ -1371,7 +1368,7 @@ test_expect_success $PREREQ 'To headers from files reset each patch' '
 	test $(grep -c "RCPT TO:<other@example.com>" stdout) = 1
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 cat >email-using-8bit <<\EOF
 From fe6ecc66ece37198fe5db91fa2fc41d9f4fe5cc4 Mon Sep 17 00:00:00 2001
 Message-Id: <bogus-message-id@example.com>
@@ -1383,11 +1380,11 @@ Dieser deutsche Text enthält einen Umlaut!
 EOF
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	echo "Subject: subject goes here" >expected
 '
 
-test_expect_success $PREREQ 'ASCII subject is not RFC2047 quoted' '
+test_expect_success PERL 'ASCII subject is not RFC2047 quoted' '
 	clean_fake_sendmail &&
 	echo bogus |
 	git send-email --from=author@example.com --to=nobody@example.com \
@@ -1398,7 +1395,7 @@ test_expect_success $PREREQ 'ASCII subject is not RFC2047 quoted' '
 	test_cmp expected actual
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >content-type-decl <<-\EOF
 	MIME-Version: 1.0
 	Content-Type: text/plain; charset=UTF-8
@@ -1406,7 +1403,7 @@ test_expect_success $PREREQ 'setup expect' '
 	EOF
 '
 
-test_expect_success $PREREQ 'asks about and fixes 8bit encodings' '
+test_expect_success PERL 'asks about and fixes 8bit encodings' '
 	clean_fake_sendmail &&
 	echo |
 	git send-email --from=author@example.com --to=nobody@example.com \
@@ -1419,7 +1416,7 @@ test_expect_success $PREREQ 'asks about and fixes 8bit encodings' '
 	test_cmp content-type-decl actual
 '
 
-test_expect_success $PREREQ 'sendemail.8bitEncoding works' '
+test_expect_success PERL 'sendemail.8bitEncoding works' '
 	clean_fake_sendmail &&
 	git config sendemail.assume8bitEncoding UTF-8 &&
 	echo bogus |
@@ -1430,7 +1427,7 @@ test_expect_success $PREREQ 'sendemail.8bitEncoding works' '
 	test_cmp content-type-decl actual
 '
 
-test_expect_success $PREREQ '--8bit-encoding overrides sendemail.8bitEncoding' '
+test_expect_success PERL '--8bit-encoding overrides sendemail.8bitEncoding' '
 	clean_fake_sendmail &&
 	git config sendemail.assume8bitEncoding "bogus too" &&
 	echo bogus |
@@ -1442,7 +1439,7 @@ test_expect_success $PREREQ '--8bit-encoding overrides sendemail.8bitEncoding' '
 	test_cmp content-type-decl actual
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >email-using-8bit <<-\EOF
 	From fe6ecc66ece37198fe5db91fa2fc41d9f4fe5cc4 Mon Sep 17 00:00:00 2001
 	Message-Id: <bogus-message-id@example.com>
@@ -1454,13 +1451,13 @@ test_expect_success $PREREQ 'setup expect' '
 	EOF
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	Subject: =?UTF-8?q?Dieser=20Betreff=20enth=C3=A4lt=20auch=20einen=20Umlaut!?=
 	EOF
 '
 
-test_expect_success $PREREQ '--8bit-encoding also treats subject' '
+test_expect_success PERL '--8bit-encoding also treats subject' '
 	clean_fake_sendmail &&
 	echo bogus |
 	git send-email --from=author@example.com --to=nobody@example.com \
@@ -1471,7 +1468,7 @@ test_expect_success $PREREQ '--8bit-encoding also treats subject' '
 	test_cmp expected actual
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >email-using-8bit <<-\EOF
 	From fe6ecc66ece37198fe5db91fa2fc41d9f4fe5cc4 Mon Sep 17 00:00:00 2001
 	Message-Id: <bogus-message-id@example.com>
@@ -1484,7 +1481,7 @@ test_expect_success $PREREQ 'setup expect' '
 	EOF
 '
 
-test_expect_success $PREREQ '--transfer-encoding overrides sendemail.transferEncoding' '
+test_expect_success PERL '--transfer-encoding overrides sendemail.transferEncoding' '
 	clean_fake_sendmail &&
 	test_must_fail git -c sendemail.transferEncoding=8bit \
 		send-email \
@@ -1496,7 +1493,7 @@ test_expect_success $PREREQ '--transfer-encoding overrides sendemail.transferEnc
 	test -z "$(ls msgtxt*)"
 '
 
-test_expect_success $PREREQ 'sendemail.transferEncoding via config' '
+test_expect_success PERL 'sendemail.transferEncoding via config' '
 	clean_fake_sendmail &&
 	test_must_fail git -c sendemail.transferEncoding=7bit \
 		send-email \
@@ -1507,7 +1504,7 @@ test_expect_success $PREREQ 'sendemail.transferEncoding via config' '
 	test -z "$(ls msgtxt*)"
 '
 
-test_expect_success $PREREQ 'sendemail.transferEncoding via cli' '
+test_expect_success PERL 'sendemail.transferEncoding via cli' '
 	clean_fake_sendmail &&
 	test_must_fail git send-email \
 		--transfer-encoding=7bit \
@@ -1518,13 +1515,13 @@ test_expect_success $PREREQ 'sendemail.transferEncoding via cli' '
 	test -z "$(ls msgtxt*)"
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	Dieser Betreff enth=C3=A4lt auch einen Umlaut!
 	EOF
 '
 
-test_expect_success $PREREQ '8-bit and sendemail.transferencoding=quoted-printable' '
+test_expect_success PERL '8-bit and sendemail.transferencoding=quoted-printable' '
 	clean_fake_sendmail &&
 	git send-email \
 		--transfer-encoding=quoted-printable \
@@ -1535,13 +1532,13 @@ test_expect_success $PREREQ '8-bit and sendemail.transferencoding=quoted-printab
 	test_cmp expected actual
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	RGllc2VyIEJldHJlZmYgZW50aMOkbHQgYXVjaCBlaW5lbiBVbWxhdXQhCg==
 	EOF
 '
 
-test_expect_success $PREREQ '8-bit and sendemail.transferencoding=base64' '
+test_expect_success PERL '8-bit and sendemail.transferencoding=base64' '
 	clean_fake_sendmail &&
 	git send-email \
 		--transfer-encoding=base64 \
@@ -1552,7 +1549,7 @@ test_expect_success $PREREQ '8-bit and sendemail.transferencoding=base64' '
 	test_cmp expected actual
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >email-using-qp <<-\EOF
 	From fe6ecc66ece37198fe5db91fa2fc41d9f4fe5cc4 Mon Sep 17 00:00:00 2001
 	Message-Id: <bogus-message-id@example.com>
@@ -1567,7 +1564,7 @@ test_expect_success $PREREQ 'setup expect' '
 	EOF
 '
 
-test_expect_success $PREREQ 'convert from quoted-printable to base64' '
+test_expect_success PERL 'convert from quoted-printable to base64' '
 	clean_fake_sendmail &&
 	git send-email \
 		--transfer-encoding=base64 \
@@ -1578,7 +1575,7 @@ test_expect_success $PREREQ 'convert from quoted-printable to base64' '
 	test_cmp expected actual
 '
 
-test_expect_success $PREREQ 'setup expect' "
+test_expect_success PERL 'setup expect' "
 tr -d '\\015' | tr '%' '\\015' >email-using-crlf <<EOF
 From fe6ecc66ece37198fe5db91fa2fc41d9f4fe5cc4 Mon Sep 17 00:00:00 2001
 Message-Id: <bogus-message-id@example.com>
@@ -1591,13 +1588,13 @@ Look, I have a CRLF and an = sign!%
 EOF
 "
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	Look, I have a CRLF and an =3D sign!=0D
 	EOF
 '
 
-test_expect_success $PREREQ 'CRLF and sendemail.transferencoding=quoted-printable' '
+test_expect_success PERL 'CRLF and sendemail.transferencoding=quoted-printable' '
 	clean_fake_sendmail &&
 	git send-email \
 		--transfer-encoding=quoted-printable \
@@ -1608,13 +1605,13 @@ test_expect_success $PREREQ 'CRLF and sendemail.transferencoding=quoted-printabl
 	test_cmp expected actual
 '
 
-test_expect_success $PREREQ 'setup expect' '
+test_expect_success PERL 'setup expect' '
 	cat >expected <<-\EOF
 	TG9vaywgSSBoYXZlIGEgQ1JMRiBhbmQgYW4gPSBzaWduIQ0K
 	EOF
 '
 
-test_expect_success $PREREQ 'CRLF and sendemail.transferencoding=base64' '
+test_expect_success PERL 'CRLF and sendemail.transferencoding=base64' '
 	clean_fake_sendmail &&
 	git send-email \
 		--transfer-encoding=base64 \
@@ -1629,7 +1626,7 @@ test_expect_success $PREREQ 'CRLF and sendemail.transferencoding=base64' '
 # Note that the patches in this test are deliberately out of order; we
 # want to make sure it works even if the cover-letter is not in the
 # first mail.
-test_expect_success $PREREQ 'refusing to send cover letter template' '
+test_expect_success PERL 'refusing to send cover letter template' '
 	clean_fake_sendmail &&
 	rm -fr outdir &&
 	git format-patch --cover-letter -2 -o outdir &&
@@ -1645,7 +1642,7 @@ test_expect_success $PREREQ 'refusing to send cover letter template' '
 	test -z "$(ls msgtxt*)"
 '
 
-test_expect_success $PREREQ '--force sends cover letter template anyway' '
+test_expect_success PERL '--force sends cover letter template anyway' '
 	clean_fake_sendmail &&
 	rm -fr outdir &&
 	git format-patch --cover-letter -2 -o outdir &&
@@ -1689,25 +1686,25 @@ test_cover_addresses () {
 	test_line_count = 1 to3
 }
 
-test_expect_success $PREREQ 'to-cover adds To to all mail' '
+test_expect_success PERL 'to-cover adds To to all mail' '
 	test_cover_addresses "To" --to-cover
 '
 
-test_expect_success $PREREQ 'cc-cover adds Cc to all mail' '
+test_expect_success PERL 'cc-cover adds Cc to all mail' '
 	test_cover_addresses "Cc" --cc-cover
 '
 
-test_expect_success $PREREQ 'tocover adds To to all mail' '
+test_expect_success PERL 'tocover adds To to all mail' '
 	test_config sendemail.tocover true &&
 	test_cover_addresses "To"
 '
 
-test_expect_success $PREREQ 'cccover adds Cc to all mail' '
+test_expect_success PERL 'cccover adds Cc to all mail' '
 	test_config sendemail.cccover true &&
 	test_cover_addresses "Cc"
 '
 
-test_expect_success $PREREQ 'escaped quotes in sendemail.aliasfiletype=mutt' '
+test_expect_success PERL 'escaped quotes in sendemail.aliasfiletype=mutt' '
 	clean_fake_sendmail &&
 	echo "alias sbd \\\"Dot U. Sir\\\" <somebody@example.org>" >.mutt &&
 	git config --replace-all sendemail.aliasesfile "$(pwd)/.mutt" &&
@@ -1722,7 +1719,7 @@ test_expect_success $PREREQ 'escaped quotes in sendemail.aliasfiletype=mutt' '
 	grep -F "To: \"Dot U. Sir\" <somebody@example.org>" out
 '
 
-test_expect_success $PREREQ 'sendemail.aliasfiletype=mailrc' '
+test_expect_success PERL 'sendemail.aliasfiletype=mailrc' '
 	clean_fake_sendmail &&
 	echo "alias sbd  somebody@example.org" >.mailrc &&
 	git config --replace-all sendemail.aliasesfile "$(pwd)/.mailrc" &&
@@ -1736,7 +1733,7 @@ test_expect_success $PREREQ 'sendemail.aliasfiletype=mailrc' '
 	grep "^!somebody@example\.org!$" commandline1
 '
 
-test_expect_success $PREREQ 'sendemail.aliasfile=~/.mailrc' '
+test_expect_success PERL 'sendemail.aliasfile=~/.mailrc' '
 	clean_fake_sendmail &&
 	echo "alias sbd  someone@example.org" >"$HOME/.mailrc" &&
 	git config --replace-all sendemail.aliasesfile "~/.mailrc" &&
@@ -1756,7 +1753,7 @@ test_dump_aliases () {
 	printf '%s\n' "$@" >expect &&
 	cat >.tmp-email-aliases &&
 
-	test_expect_success $PREREQ "$msg" '
+	test_expect_success PERL "$msg" '
 		clean_fake_sendmail && rm -fr outdir &&
 		git config --replace-all sendemail.aliasesfile \
 			"$(pwd)/.tmp-email-aliases" &&
@@ -1832,7 +1829,7 @@ test_expect_success '--dump-aliases must be used alone' '
 	test_must_fail git send-email --dump-aliases --to=janice@example.com -1 refs/heads/accounting
 '
 
-test_expect_success $PREREQ 'aliases and sendemail.identity' '
+test_expect_success PERL 'aliases and sendemail.identity' '
 	test_must_fail git \
 		-c sendemail.identity=cloud \
 		-c sendemail.aliasesfile=default-aliases \
@@ -1846,7 +1843,7 @@ test_sendmail_aliases () {
 	expect="$@" &&
 	cat >.tmp-email-aliases &&
 
-	test_expect_success $PREREQ "$msg" '
+	test_expect_success PERL "$msg" '
 		clean_fake_sendmail && rm -fr outdir &&
 		git format-patch -1 -o outdir &&
 		git config --replace-all sendemail.aliasesfile \
@@ -1913,7 +1910,7 @@ test_sendmail_aliases 'sendmail aliases tolerate bogus line folding' \
 test_sendmail_aliases 'sendmail aliases empty' alice bcgrp <<-\EOF
 	EOF
 
-test_expect_success $PREREQ 'alias support in To header' '
+test_expect_success PERL 'alias support in To header' '
 	clean_fake_sendmail &&
 	echo "alias sbd  someone@example.org" >.mailrc &&
 	test_config sendemail.aliasesfile ".mailrc" &&
@@ -1927,7 +1924,7 @@ test_expect_success $PREREQ 'alias support in To header' '
 	grep "^!someone@example\.org!$" commandline1
 '
 
-test_expect_success $PREREQ 'alias support in Cc header' '
+test_expect_success PERL 'alias support in Cc header' '
 	clean_fake_sendmail &&
 	echo "alias sbd  someone@example.org" >.mailrc &&
 	test_config sendemail.aliasesfile ".mailrc" &&
@@ -1941,7 +1938,7 @@ test_expect_success $PREREQ 'alias support in Cc header' '
 	grep "^!someone@example\.org!$" commandline1
 '
 
-test_expect_success $PREREQ 'tocmd works with aliases' '
+test_expect_success PERL 'tocmd works with aliases' '
 	clean_fake_sendmail &&
 	echo "alias sbd  someone@example.org" >.mailrc &&
 	test_config sendemail.aliasesfile ".mailrc" &&
@@ -1957,7 +1954,7 @@ test_expect_success $PREREQ 'tocmd works with aliases' '
 	grep "^!someone@example\.org!$" commandline1
 '
 
-test_expect_success $PREREQ 'cccmd works with aliases' '
+test_expect_success PERL 'cccmd works with aliases' '
 	clean_fake_sendmail &&
 	echo "alias sbd  someone@example.org" >.mailrc &&
 	test_config sendemail.aliasesfile ".mailrc" &&
@@ -1987,26 +1984,26 @@ do_xmailer_test () {
 	test_line_count = $expected mailer
 }
 
-test_expect_success $PREREQ '--[no-]xmailer without any configuration' '
+test_expect_success PERL '--[no-]xmailer without any configuration' '
 	do_xmailer_test 1 "--xmailer" &&
 	do_xmailer_test 0 "--no-xmailer"
 '
 
-test_expect_success $PREREQ '--[no-]xmailer with sendemail.xmailer=true' '
+test_expect_success PERL '--[no-]xmailer with sendemail.xmailer=true' '
 	test_config sendemail.xmailer true &&
 	do_xmailer_test 1 "" &&
 	do_xmailer_test 0 "--no-xmailer" &&
 	do_xmailer_test 1 "--xmailer"
 '
 
-test_expect_success $PREREQ '--[no-]xmailer with sendemail.xmailer=false' '
+test_expect_success PERL '--[no-]xmailer with sendemail.xmailer=false' '
 	test_config sendemail.xmailer false &&
 	do_xmailer_test 0 "" &&
 	do_xmailer_test 0 "--no-xmailer" &&
 	do_xmailer_test 1 "--xmailer"
 '
 
-test_expect_success $PREREQ 'setup expected-list' '
+test_expect_success PERL 'setup expected-list' '
 	git send-email \
 	--dry-run \
 	--from="Example <from@example.com>" \
@@ -2021,7 +2018,7 @@ test_expect_success $PREREQ 'setup expected-list' '
 	>expected-list
 '
 
-test_expect_success $PREREQ 'use email list in --cc --to and --bcc' '
+test_expect_success PERL 'use email list in --cc --to and --bcc' '
 	git send-email \
 	--dry-run \
 	--from="Example <from@example.com>" \
@@ -2034,7 +2031,7 @@ test_expect_success $PREREQ 'use email list in --cc --to and --bcc' '
 	test_cmp expected-list actual-list
 '
 
-test_expect_success $PREREQ 'aliases work with email list' '
+test_expect_success PERL 'aliases work with email list' '
 	echo "alias to2 to2@example.com" >.mutt &&
 	echo "alias cc1 Cc 1 <cc1@example.com>" >>.mutt &&
 	test_config sendemail.aliasesfile ".mutt" &&
@@ -2050,7 +2047,7 @@ test_expect_success $PREREQ 'aliases work with email list' '
 	test_cmp expected-list actual-list
 '
 
-test_expect_success $PREREQ 'leading and trailing whitespaces are removed' '
+test_expect_success PERL 'leading and trailing whitespaces are removed' '
 	echo "alias to2 to2@example.com" >.mutt &&
 	echo "alias cc1 Cc 1 <cc1@example.com>" >>.mutt &&
 	test_config sendemail.aliasesfile ".mutt" &&
@@ -2074,7 +2071,7 @@ test_expect_success $PREREQ 'leading and trailing whitespaces are removed' '
 	test_cmp expected-list actual-list
 '
 
-test_expect_success $PREREQ 'invoke hook' '
+test_expect_success PERL 'invoke hook' '
 	mkdir -p .git/hooks &&
 
 	write_script .git/hooks/sendemail-validate <<-\EOF &&
@@ -2114,7 +2111,7 @@ test_expect_success $PREREQ 'invoke hook' '
 	)
 '
 
-test_expect_success $PREREQ 'test that send-email works outside a repo' '
+test_expect_success PERL 'test that send-email works outside a repo' '
 	nongit git send-email \
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
@@ -2122,7 +2119,7 @@ test_expect_success $PREREQ 'test that send-email works outside a repo' '
 		"$(pwd)/0001-add-master.patch"
 '
 
-test_expect_success $PREREQ 'test that sendmail config is rejected' '
+test_expect_success PERL 'test that sendmail config is rejected' '
 	test_config sendmail.program sendmail &&
 	test_must_fail git send-email \
 		--from="Example <nobody@example.com>" \
@@ -2132,7 +2129,7 @@ test_expect_success $PREREQ 'test that sendmail config is rejected' '
 	test_i18ngrep "found configuration options for '"'"sendmail"'"'" err
 '
 
-test_expect_success $PREREQ 'test that sendmail config rejection is specific' '
+test_expect_success PERL 'test that sendmail config rejection is specific' '
 	test_config resendmail.program sendmail &&
 	git send-email \
 		--from="Example <nobody@example.com>" \
@@ -2141,7 +2138,7 @@ test_expect_success $PREREQ 'test that sendmail config rejection is specific' '
 		HEAD^
 '
 
-test_expect_success $PREREQ 'test forbidSendmailVariables behavior override' '
+test_expect_success PERL 'test forbidSendmailVariables behavior override' '
 	test_config sendmail.program sendmail &&
 	test_config sendemail.forbidSendmailVariables false &&
 	git send-email \
