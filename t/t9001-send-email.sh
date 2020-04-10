@@ -51,7 +51,6 @@ test_expect_success $PREREQ 'Extract patches' '
 
 # Test no confirm early to ensure remaining tests will not hang
 test_no_confirm () {
-	rm -f no_confirm_okay
 	echo n | \
 		git send-email \
 		--from="Example <from@example.com>" \
@@ -59,37 +58,23 @@ test_no_confirm () {
 		--smtp-server="$(pwd)/fake.sendmail" \
 		$@ \
 		$patches >stdout &&
-		! grep "Send this email" stdout &&
-		>no_confirm_okay
-}
-
-# Exit immediately to prevent hang if a no-confirm test fails
-check_no_confirm () {
-	if ! test -f no_confirm_okay
-	then
-		say 'confirm test failed; skipping remaining tests to prevent hanging'
-		PREREQ="$PREREQ,CHECK_NO_CONFIRM"
-	fi
-	return 0
+		! grep "Send this email" stdout
 }
 
 test_expect_success $PREREQ 'No confirm with --suppress-cc' '
-	test_no_confirm --suppress-cc=sob &&
-	check_no_confirm
+	test_no_confirm --suppress-cc=sob
 '
 
 
 test_expect_success $PREREQ 'No confirm with --confirm=never' '
-	test_no_confirm --confirm=never &&
-	check_no_confirm
+	test_no_confirm --confirm=never
 '
 
 # leave sendemail.confirm set to never after this so that none of the
 # remaining tests prompt unintentionally.
 test_expect_success $PREREQ 'No confirm with sendemail.confirm=never' '
 	git config sendemail.confirm never &&
-	test_no_confirm --compose --subject=foo &&
-	check_no_confirm
+	test_no_confirm --compose --subject=foo
 '
 
 test_expect_success $PREREQ 'Send patches' '
