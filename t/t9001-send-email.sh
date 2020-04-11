@@ -6,6 +6,9 @@ export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 
 . ./test-lib.sh
 
+GIT_SEND_EMAIL_NOTTY=1
+export GIT_SEND_EMAIL_NOTTY
+
 # May be altered later in the test
 PREREQ="PERL"
 
@@ -53,7 +56,6 @@ test_expect_success $PREREQ 'Extract patches' '
 test_no_confirm () {
 	rm -f no_confirm_okay
 	echo n | \
-		GIT_SEND_EMAIL_NOTTY=1 \
 		git send-email \
 		--from="Example <from@example.com>" \
 		--to=nobody@example.com \
@@ -337,7 +339,7 @@ test_expect_success $PREREQ 'Prompting works' '
 	clean_fake_sendmail &&
 	(echo "to@example.com" &&
 	 echo ""
-	) | GIT_SEND_EMAIL_NOTTY=1 git send-email \
+	) | git send-email \
 		--smtp-server="$(pwd)/fake.sendmail" \
 		$patches \
 		2>errors &&
@@ -351,7 +353,7 @@ test_expect_success $PREREQ,AUTOIDENT 'implicit ident is allowed' '
 	sane_unset GIT_AUTHOR_EMAIL &&
 	sane_unset GIT_COMMITTER_NAME &&
 	sane_unset GIT_COMMITTER_EMAIL &&
-	GIT_SEND_EMAIL_NOTTY=1 git send-email \
+	git send-email \
 		--smtp-server="$(pwd)/fake.sendmail" \
 		--to=to@example.com \
 		$patches </dev/null 2>errors
@@ -364,7 +366,6 @@ test_expect_success $PREREQ,!AUTOIDENT 'broken implicit ident aborts send-email'
 	sane_unset GIT_AUTHOR_EMAIL &&
 	sane_unset GIT_COMMITTER_NAME &&
 	sane_unset GIT_COMMITTER_EMAIL &&
-	GIT_SEND_EMAIL_NOTTY=1 && export GIT_SEND_EMAIL_NOTTY &&
 	test_must_fail git send-email \
 		--smtp-server="$(pwd)/fake.sendmail" \
 		--to=to@example.com \
@@ -595,7 +596,7 @@ test_expect_success $PREREQ 'Valid In-Reply-To when prompting' '
 	(echo "From Example <from@example.com>" &&
 	 echo "To Example <to@example.com>" &&
 	 echo ""
-	) | GIT_SEND_EMAIL_NOTTY=1 git send-email \
+	) | git send-email \
 		--smtp-server="$(pwd)/fake.sendmail" \
 		$patches 2>errors &&
 	! grep "^In-Reply-To: < *>" msgtxt1
@@ -1007,7 +1008,6 @@ test_expect_success $PREREQ '--suppress-cc=cc' '
 
 test_confirm () {
 	echo y | \
-		GIT_SEND_EMAIL_NOTTY=1 \
 		git send-email \
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
@@ -1049,7 +1049,6 @@ test_expect_success $PREREQ 'confirm detects EOF (inform assumes y)' '
 	git config --unset sendemail.confirm &&
 	rm -fr outdir &&
 	git format-patch -2 -o outdir &&
-	GIT_SEND_EMAIL_NOTTY=1 \
 		git send-email \
 			--from="Example <nobody@example.com>" \
 			--to=nobody@example.com \
@@ -1060,25 +1059,21 @@ test_expect_success $PREREQ 'confirm detects EOF (inform assumes y)' '
 test_expect_success $PREREQ 'confirm detects EOF (auto causes failure)' '
 	test_when_finished git config sendemail.confirm never &&
 	git config sendemail.confirm auto &&
-	GIT_SEND_EMAIL_NOTTY=1 &&
-	export GIT_SEND_EMAIL_NOTTY &&
-		test_must_fail git send-email \
-			--from="Example <nobody@example.com>" \
-			--to=nobody@example.com \
-			--smtp-server="$(pwd)/fake.sendmail" \
-			$patches </dev/null
+	test_must_fail git send-email \
+		--from="Example <nobody@example.com>" \
+		--to=nobody@example.com \
+		--smtp-server="$(pwd)/fake.sendmail" \
+		$patches </dev/null
 '
 
 test_expect_success $PREREQ 'confirm does not loop forever' '
 	test_when_finished git config sendemail.confirm never &&
 	git config sendemail.confirm auto &&
-	GIT_SEND_EMAIL_NOTTY=1 &&
-	export GIT_SEND_EMAIL_NOTTY &&
-		yes "bogus" | test_must_fail git send-email \
-			--from="Example <nobody@example.com>" \
-			--to=nobody@example.com \
-			--smtp-server="$(pwd)/fake.sendmail" \
-			$patches
+	yes "bogus" | test_must_fail git send-email \
+		--from="Example <nobody@example.com>" \
+		--to=nobody@example.com \
+		--smtp-server="$(pwd)/fake.sendmail" \
+		$patches
 '
 
 test_expect_success $PREREQ 'utf8 Cc is rfc2047 encoded' '
