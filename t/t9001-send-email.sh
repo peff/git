@@ -70,10 +70,8 @@ test_expect_success PERL 'No confirm with --confirm=never' '
 	test_no_confirm --confirm=never
 '
 
-# leave sendemail.confirm set to never after this so that none of the
-# remaining tests prompt unintentionally.
 test_expect_success PERL 'No confirm with sendemail.confirm=never' '
-	git config sendemail.confirm never &&
+	test_config sendemail.confirm never &&
 	test_no_confirm --compose --subject=foo
 '
 
@@ -660,6 +658,7 @@ test_expect_success PERL '--compose works' '
 	--compose --subject foo \
 	--from="Example <nobody@example.com>" \
 	--to=nobody@example.com \
+	--confirm=never \
 	--smtp-server="$(pwd)/fake.sendmail" \
 	$patches \
 	2>errors
@@ -999,36 +998,37 @@ test_confirm () {
 }
 
 test_expect_success PERL '--confirm=always' '
+	test_config sendemail.confirm never &&
 	test_confirm --confirm=always --suppress-cc=all
 '
 
 test_expect_success PERL '--confirm=auto' '
+	test_config sendemail.confirm never &&
 	test_confirm --confirm=auto
 '
 
 test_expect_success PERL '--confirm=cc' '
+	test_config sendemail.confirm never &&
 	test_confirm --confirm=cc
 '
 
 test_expect_success PERL '--confirm=compose' '
+	test_config sendemail.confirm never &&
 	test_confirm --confirm=compose --compose
 '
 
 test_expect_success PERL 'confirm by default (due to cc)' '
-	test_when_finished git config sendemail.confirm never &&
-	git config --unset sendemail.confirm &&
+	test_unconfig sendemail.confirm &&
 	test_confirm
 '
 
 test_expect_success PERL 'confirm by default (due to --compose)' '
-	test_when_finished git config sendemail.confirm never &&
-	git config --unset sendemail.confirm &&
+	test_unconfig sendemail.confirm &&
 	test_confirm --suppress-cc=all --compose
 '
 
 test_expect_success PERL 'confirm detects EOF (inform assumes y)' '
-	test_when_finished git config sendemail.confirm never &&
-	git config --unset sendemail.confirm &&
+	test_unconfig sendemail.confirm &&
 	rm -fr outdir &&
 	git format-patch -2 -o outdir &&
 		git send-email \
@@ -1039,8 +1039,7 @@ test_expect_success PERL 'confirm detects EOF (inform assumes y)' '
 '
 
 test_expect_success PERL 'confirm detects EOF (auto causes failure)' '
-	test_when_finished git config sendemail.confirm never &&
-	git config sendemail.confirm auto &&
+	test_config sendemail.confirm auto &&
 	test_must_fail git send-email \
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
@@ -1049,8 +1048,7 @@ test_expect_success PERL 'confirm detects EOF (auto causes failure)' '
 '
 
 test_expect_success PERL 'confirm does not loop forever' '
-	test_when_finished git config sendemail.confirm never &&
-	git config sendemail.confirm auto &&
+	test_unconfig sendemail.confirm &&
 	yes "bogus" | test_must_fail git send-email \
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
@@ -1082,6 +1080,7 @@ test_expect_success PERL '--compose adds MIME for utf8 body' '
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$patches &&
 	grep "^utf8 body" msgtxt1 &&
 	grep "^Content-Type: text/plain; charset=UTF-8" msgtxt1
@@ -1105,6 +1104,7 @@ test_expect_success PERL '--compose respects user mime type' '
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$patches &&
 	grep "^utf8 body" msgtxt1 &&
 	grep "^Content-Type: text/plain; charset=iso-8859-1" msgtxt1 &&
@@ -1119,6 +1119,7 @@ test_expect_success PERL '--compose adds MIME for utf8 subject' '
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$patches &&
 	grep "^fake edit" msgtxt1 &&
 	grep "^Subject: =?UTF-8?q?utf8-s=C3=BCbj=C3=ABct?=" msgtxt1
@@ -1163,6 +1164,7 @@ test_expect_success PERL 'sendemail.composeencoding works' '
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$patches &&
 	grep "^utf8 body" msgtxt1 &&
 	grep "^Content-Type: text/plain; charset=iso-8859-1" msgtxt1
@@ -1180,6 +1182,7 @@ test_expect_success PERL '--compose-encoding works' '
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$patches &&
 	grep "^utf8 body" msgtxt1 &&
 	grep "^Content-Type: text/plain; charset=iso-8859-1" msgtxt1
@@ -1198,6 +1201,7 @@ test_expect_success PERL '--compose-encoding overrides sendemail.composeencoding
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$patches &&
 	grep "^utf8 body" msgtxt1 &&
 	grep "^Content-Type: text/plain; charset=iso-8859-2" msgtxt1
@@ -1212,6 +1216,7 @@ test_expect_success PERL '--compose-encoding adds correct MIME for subject' '
 		--from="Example <nobody@example.com>" \
 		--to=nobody@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$patches &&
 	grep "^fake edit" msgtxt1 &&
 	grep "^Subject: =?iso-8859-2?q?utf8-s=C3=BCbj=C3=ABct?=" msgtxt1
@@ -2050,6 +2055,7 @@ do_xmailer_test () {
 		--from="Example <nobody@example.com>" \
 		--to=someone@example.com \
 		--smtp-server="$(pwd)/fake.sendmail" \
+		--confirm=never \
 		$params \
 		0001-*.patch \
 		2>errors >out &&
