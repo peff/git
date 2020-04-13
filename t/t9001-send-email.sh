@@ -46,32 +46,6 @@ test_expect_success PERL 'Extract patches' '
 	threaded_patches=$(git format-patch -o threaded -s --in-reply-to="format" HEAD^1)
 '
 
-# Test no confirm early to ensure remaining tests will not hang
-test_no_confirm () {
-	echo n | \
-		git send-email \
-		--from="Example <from@example.com>" \
-		--to=nobody@example.com \
-		--smtp-server="$(pwd)/fake.sendmail" \
-		$@ \
-		$patches >stdout &&
-		! grep "Send this email" stdout
-}
-
-test_expect_success PERL 'No confirm with --suppress-cc' '
-	test_no_confirm --suppress-cc=sob
-'
-
-
-test_expect_success PERL 'No confirm with --confirm=never' '
-	test_no_confirm --confirm=never
-'
-
-test_expect_success PERL 'No confirm with sendemail.confirm=never' '
-	test_config sendemail.confirm never &&
-	test_no_confirm --compose --subject=foo
-'
-
 test_expect_success PERL 'Send patches' '
 	git send-email --suppress-cc=sob --from="Example <nobody@example.com>" --to=nobody@example.com --smtp-server="$(pwd)/fake.sendmail" $patches 2>errors
 '
@@ -912,6 +886,31 @@ EOF
 
 test_expect_success PERL '--suppress-cc=cc' '
 	test_suppression cc
+'
+
+test_no_confirm () {
+	echo n | \
+		git send-email \
+		--from="Example <from@example.com>" \
+		--to=nobody@example.com \
+		--smtp-server="$(pwd)/fake.sendmail" \
+		$@ \
+		$patches >stdout &&
+		! grep "Send this email" stdout
+}
+
+test_expect_success PERL 'No confirm with --suppress-cc' '
+	test_no_confirm --suppress-cc=sob
+'
+
+
+test_expect_success PERL 'No confirm with --confirm=never' '
+	test_no_confirm --confirm=never
+'
+
+test_expect_success PERL 'No confirm with sendemail.confirm=never' '
+	test_config sendemail.confirm never &&
+	test_no_confirm --compose --subject=foo
 '
 
 test_confirm () {
