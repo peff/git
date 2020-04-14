@@ -19,7 +19,11 @@ my @unmatched = grep { $remote{$_} && $remote{$_} ne $local{$_} } (sort keys(%lo
 if (grep { $_ eq "--stale" } @ARGV) {
 	print "PUSH:$_\n" foreach @push;
 	print "PRUNE:$_\n" foreach @prune;
-	print "PUSH:all\n" if @unmatched;
+	if (@unmatched > 3) {
+		print "PUSH:all\n";
+	} else {
+		print "PUSH:$_\n" foreach @unmatched;
+	}
 	exit 0;
 }
 elsif (grep { $_ eq "--push" } @ARGV) {
