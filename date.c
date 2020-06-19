@@ -877,10 +877,11 @@ static int match_object_header_date(const char *date, timestamp_t *timestamp, in
 	timestamp_t stamp;
 	int ofs;
 
-	if (*date < '0' || '9' < *date)
+	if (*date != '-' && (*date < '0' || '9' < *date))
 		return -1;
+	errno = 0;
 	stamp = parse_timestamp(date, &end, 10);
-	if (*end != ' ' || stamp == TIME_MAX || (end[1] != '+' && end[1] != '-'))
+	if (*end != ' ' || errno == ERANGE || (end[1] != '+' && end[1] != '-'))
 		return -1;
 	date = end + 2;
 	ofs = strtol(date, &end, 10);

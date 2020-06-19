@@ -38,4 +38,18 @@ test_expect_success 'show timestamp in EST5' '
 	test_cmp expect actual
 '
 
+test_expect_success 'negative @-stamp in GIT_AUTHOR_DATE' '
+	GIT_AUTHOR_DATE="@-700000 +0000" git commit --allow-empty -m foo &&
+	git log --date=iso --format=%ad -1 >actual &&
+	echo "1969-12-23 21:33:20 +0000" >expect &&
+	test_cmp expect actual
+'
+
+test_expect_success 'negative @-stamp in commit --date' '
+	git commit --allow-empty -m foo --date="@-700000 -0800" &&
+	git log --date=iso --format=%ad -1 >actual &&
+	echo "1969-12-23 13:33:20 -0800" >expect &&
+	test_cmp expect actual
+'
+
 test_done
