@@ -2967,14 +2967,13 @@ LOCALIZED_PERL_GEN_PO = $(LOCALIZED_PERL:%=.build/pot/po/%.po)
 LOCALIZED_ALL_GEN_PO += $(LOCALIZED_PERL_GEN_PO)
 
 ## Gettext tools cannot work with our own custom PRItime type, so
-## we replace PRItime with PRIuMAX.  We need to update this to
-## PRIdMAX if we switch to a signed type later.
+## we replace PRItime with PRIdMAX.
 $(LOCALIZED_C_GEN_PO): .build/pot/po/%.po: %
 	$(call mkdir_p_parent_template)
 	$(QUIET_XGETTEXT) \
 	    if grep -q PRItime $<; then \
 		(\
-			sed -e 's|PRItime|PRIuMAX|g' <$< \
+			sed -e 's|PRItime|PRIdMAX|g' <$< \
 				>.build/pot/po/$< && \
 			cd .build/pot/po && \
 			$(XGETTEXT) --omit-header \
