@@ -453,11 +453,11 @@ char *gitdirname(char *);
 #define NAME_MAX 255
 #endif
 
-typedef uintmax_t timestamp_t;
-#define PRItime PRIuMAX
-#define parse_timestamp strtoumax
-#define TIME_MAX UINTMAX_MAX
-#define TIME_MIN 0
+typedef intmax_t timestamp_t;
+#define PRItime PRIdMAX
+#define parse_timestamp strtoimax
+#define TIME_MAX INTMAX_MAX
+#define TIME_MIN INTMAX_MIN
 
 #ifndef PATH_SEP
 #define PATH_SEP ':'

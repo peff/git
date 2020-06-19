@@ -1432,7 +1432,7 @@ int date_overflows(timestamp_t t)
 	time_t sys;
 
 	/* If we overflowed our timestamp data type, that's bad... */
-	if ((uintmax_t)t >= TIME_MAX)
+	if (t >= TIME_MAX || t <= TIME_MIN)
 		return 1;
 
 	/*
