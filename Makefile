@@ -2652,8 +2652,7 @@ endif
 ## Git repository (not a tarball extract), (2) any local modifications
 ## will be lost.
 ## Gettext tools cannot work with our own custom PRItime type, so
-## we replace PRItime with PRIuMAX.  We need to update this to
-## PRIdMAX if we switch to a signed type later.
+## we replace PRItime with PRIdMAX.
 
 po/git.pot: $(GENERATED_H) FORCE
 	# All modifications will be reverted at the end, so we do not
@@ -2662,7 +2661,7 @@ po/git.pot: $(GENERATED_H) FORCE
 
 	@for s in $(LOCALIZED_C) $(LOCALIZED_SH) $(LOCALIZED_PERL); \
 	do \
-		sed -e 's|PRItime|PRIuMAX|g' <"$$s" >"$$s+" && \
+		sed -e 's|PRItime|PRIdMAX|g' <"$$s" >"$$s+" && \
 		cat "$$s+" >"$$s" && rm "$$s+"; \
 	done
 
