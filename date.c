@@ -8,6 +8,7 @@
 
 /*
  * This is like mktime, but without normalization of tm_wday and tm_yday.
+ * It also always operates in UTC, not the local timezone.
  */
 static time_t tm_to_time_t(const struct tm *tm)
 {
