@@ -164,7 +164,7 @@ static void get_ac_line(const char *inbuf, const char *what,
 	mailbuf = ident.mail_begin;
 
 	if (ident.date_begin && ident.date_end)
-		*time = strtoul(ident.date_begin, NULL, 10);
+		*time = parse_timestamp(ident.date_begin, NULL, 10);
 	else
 		*time = 0;
 
