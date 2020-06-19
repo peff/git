@@ -11,28 +11,54 @@
 #include "strbuf.h"
 
 /*
+ * Convert a year-month-day time into a number of days since 1970 (possibly
+ * negative). Note that "year" is the full year (not offset from 1900), and
+ * "month" is in the range 1-12 (unlike a "struct tm" 0-11).
+ *
+ * Working in time_t is overkill (since it usually represents seconds), but
+ * this makes sure we don't hit any integer range issues.
+ *
+ * This function is taken from https://github.com/HowardHinnant/date,
+ * which is released under an MIT license.
+ */
+static time_t days_from_civil(int year, int month, int day)
+{
+	time_t era;
+	unsigned year_of_era, day_of_year, day_of_era;
+
+	year -= month <= 2;
+	era = (year >= 0 ? year : year - 399) / 400;
+	year_of_era = year - era * 400;
+	day_of_year = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
+	day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100
+			+ day_of_year;
+	return era * 146097 + (time_t)day_of_era - 719468;
+}
+
+/*
  * This is like mktime, but without normalization of tm_wday and tm_yday.
  * It also always operates in UTC, not the local timezone.
  */
 time_t tm_to_time_t(const struct tm *tm)
 {
-	static const int mdays[] = {
-	    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
-	};
-	int year = tm->tm_year - 70;
-	int month = tm->tm_mon;
-	int day = tm->tm_mday;
+	time_t days, hours, minutes, seconds;
 
-	if (year < 0 || year > 129) /* algo only works for 1970-2099 */
+	if (tm->tm_year < 0 ||
+	    tm->tm_mon < 0 ||
+	    tm->tm_mday < 0 ||
+	    tm->tm_hour < 0 ||
+	    tm->tm_min < 0 ||
+	    tm->tm_sec < 0)
 		return -1;
-	if (month < 0 || month > 11) /* array bounds */
-		return -1;
-	if (month < 2 || (year + 2) % 4)
-		day--;
-	if (tm->tm_hour < 0 || tm->tm_min < 0 || tm->tm_sec < 0)
-		return -1;
-	return (year * 365 + (year + 1) / 4 + mdays[month] + day) * 24*60*60UL +
-		tm->tm_hour * 60*60 + tm->tm_min * 60 + tm->tm_sec;
+
+	days = days_from_civil(tm->tm_year + 1900,
+			       tm->tm_mon + 1,
+			       tm->tm_mday);
+	hours = 24 * days + tm->tm_hour;
+	minutes = 60 * hours + tm->tm_min;
+	seconds = 60 * minutes + tm->tm_sec;
+
+	return seconds;
 }
 
 static const char *month_names[] = {
