@@ -82,8 +82,7 @@ static time_t gm_time_t(timestamp_t time, int tz)
 		if (unsigned_add_overflows(time, minutes * 60))
 			die("Timestamp+tz too large: %"PRItime" +%04d",
 			    time, tz);
-	} else if (time < -minutes * 60)
-		die("Timestamp before Unix epoch: %"PRItime" %04d", time, tz);
+	}
 	time += minutes * 60;
 	if (date_overflows(time))
 		die("Timestamp too large for this system: %"PRItime, time);
