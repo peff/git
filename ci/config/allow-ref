@@ -2,6 +2,6 @@
 
 case "$1" in
 refs/heads/private) true ;;
-refs/ci/*) true ;;
+refs/heads/ci/*) true ;;
 *) false ;;
 esac
