@@ -9,6 +9,7 @@
 #include "gettext.h"
 #include "pager.h"
 #include "strbuf.h"
+#include "trace.h"
 
 /*
  * Convert a year-month-day time into a number of days since 1970 (possibly
@@ -94,10 +95,20 @@ static time_t gm_time_t(timestamp_t time, int tz)
  * thing, which means that tz -0100 is passed in as the integer -100,
  * even though it means "sixty minutes off"
  */
+static struct trace_key trace_date = TRACE_KEY_INIT(DATE);
+
 static struct tm *time_to_tm(timestamp_t time, int tz, struct tm *tm)
 {
+	struct tm *ret;
 	time_t t = gm_time_t(time, tz);
-	return gmtime_r(&t, tm);
+	trace_printf_key(&trace_date,
+			 "gm_time_t(%"PRIdMAX", %d) = %"PRIdMAX,
+			 (intmax_t)time, tz, (intmax_t)t);
+	ret = gmtime_r(&t, tm);
+	trace_printf_key(&trace_date,
+			 "gmtime_r(%"PRIdMAX") = %p",
+			 (intmax_t)t, (void *)ret);
+	return ret;
 }
 
 static struct tm *time_to_tm_local(timestamp_t time, struct tm *tm)
@@ -352,6 +363,9 @@ const char *show_date(timestamp_t time, int tz, struct date_mode mode)
 	else
 		tm = time_to_tm(time, tz, &tmbuf);
 	if (!tm) {
+		trace_printf_key(&trace_date,
+				 "unable to handle timestamp %"PRIdMAX,
+				 (intmax_t)time);
 		tm = time_to_tm(0, 0, &tmbuf);
 		tz = 0;
 	}
