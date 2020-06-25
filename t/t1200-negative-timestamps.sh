@@ -3,6 +3,9 @@
 test_description='handling of timestamps before 1970'
 . ./test-lib.sh
 
+GIT_TRACE_DATE=1
+export GIT_TRACE_DATE
+
 test_expect_success 'create a commit with a negative timestamp' '
 	tree=$(git hash-object -w -t tree --stdin </dev/null) &&
 	commit=$(
