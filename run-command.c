@@ -673,6 +673,23 @@ int start_command(struct child_process *cmd)
 
 	if (!cmd->argv)
 		cmd->argv = cmd->args.v;
+	if (cmd->git_cmd) {
+		/*
+		 * Load any extra variables into env_array. But
+		 * if we weren't going to use it (in favor of "env"),
+		 * then consolidate the two. Make sure the original "env"
+		 * goes after what we add, so that it can override.
+		 *
+		 * We cannot just keep two lists, because we may hand off the
+		 * single list to a spawn() implementation.
+		 */
+		trace_config_for(cmd->argv[0], &cmd->env_array);
+		if (cmd->env_array.nr && cmd->env) {
+			for (; *cmd->env; cmd->env++)
+				strvec_push(&cmd->env_array, *cmd->env);
+			cmd->env = NULL;
+		}
+	}
 	if (!cmd->env)
 		cmd->env = cmd->env_array.v;
 
