@@ -90,7 +90,9 @@ while read i upstream; do
 
 	echo "===> Rebasing $i"
 	if ! git rebase --onto $upstream `find_base $upstream` $i; then
-		if test -z "`git ls-files -u`"; then
+		if test -z "`git ls-files -u`" &&
+		   ! git diff-index --quiet HEAD &&
+		   git diff-files --quiet; then
 			echo >&2 Auto-continuing rebase via rerere...
 			GIT_EDITOR=: git rebase --continue || exit 1
 		else
