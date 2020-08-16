@@ -38,7 +38,7 @@ static void setup(void (*f)(struct oidmap *map))
 
 	if (!ret)
 		f(&map);
-	oidmap_free(&map, 1);
+	oidmap_clear(&map, 1);
 }
 
 static void t_replace(struct oidmap *map)
