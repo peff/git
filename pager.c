@@ -3,6 +3,7 @@
 #include "run-command.h"
 #include "sigchain.h"
 #include "alias.h"
+#include "compat/pipe-id.h"
 
 #ifndef DEFAULT_PAGER
 #define DEFAULT_PAGER "less"
@@ -106,6 +107,7 @@ void prepare_pager_args(struct child_process *pager_process, const char *pager)
 void setup_pager(void)
 {
 	const char *pager = git_pager(isatty(1));
+	const char *pipe_id;
 
 	if (!pager)
 		return;
@@ -136,6 +138,10 @@ void setup_pager(void)
 		dup2(pager_process.in, 2);
 	close(pager_process.in);
 
+	pipe_id = pipe_id_get(1);
+	if (pipe_id)
+		setenv("GIT_PAGER_PIPE_ID", pipe_id, 1);
+
 	/* this makes sure that the parent terminates after the pager */
 	sigchain_push_common(wait_for_pager_signal);
 	atexit(wait_for_pager_atexit);
@@ -143,7 +149,15 @@ void setup_pager(void)
 
 int pager_in_use(void)
 {
-	return git_env_bool("GIT_PAGER_IN_USE", 0);
+	const char *pipe_id;
+
+	if (!git_env_bool("GIT_PAGER_IN_USE", 0))
+		return 0;
+
+	pipe_id = getenv("GIT_PAGER_PIPE_ID");
+	if (!pipe_id) /* historical compatibility */
+		return 1;
+	return pipe_id_match(1, pipe_id);
 }
 
 /*
