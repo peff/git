@@ -1227,9 +1227,6 @@ GIT_CONF_SUBST([HAVE_BSD_SYSCTL])
 # Define USE_PIC if you need the main git objects to be built with -fPIC
 # in order to build and link perl/Git.so.  x86-64 seems to need this.
 #
-# Define NO_SYMLINK_HEAD if you never want .git/HEAD to be a symbolic link.
-# Enable it on Windows.  By default, symrefs are still used.
-#
 # Define NO_PTHREADS if we do not have pthreads.
 #
 # Define PTHREAD_LIBS to the linker flag used for Pthread support.
