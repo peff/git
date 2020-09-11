@@ -25,7 +25,7 @@ test_expect_success 'reflog shows all entries' '
 		topic@{1} reset: moving to one
 		topic@{2} reset: moving to two
 		topic@{3} reset: moving to one
-		topic@{4} branch: Created from HEAD
+		topic@{4} branch: Created from refs/heads/master
 	EOF
 	git log -g --format="%gd %gs" topic >actual &&
 	test_cmp expect actual
