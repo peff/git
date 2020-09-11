@@ -9,6 +9,9 @@
 #include "parse-options.h"
 #include "unpack-trees.h"
 #include "dir.h"
+#include "diff.h"
+#include "revision.h"
+#include "list-objects.h"
 
 static char const * const archive_usage[] = {
 	N_("git archive [<options>] <tree-ish> [<path>...]"),
@@ -380,6 +383,59 @@ static void parse_pathspec_arg(const char **pathspec,
 	}
 }
 
+struct reachable_object_data {
+	struct rev_info revs;
+	struct object *obj;
+};
+
+static void check_object(struct object *obj, const char *name, void *vdata)
+{
+	struct reachable_object_data *data = vdata;
+	/*
+	 * We found it; the caller will take care of marking it SEEN,
+	 * but we can end the traversal early.
+	 */
+	if (obj == data->obj) {
+		free_commit_list(data->revs.commits);
+		data->revs.commits = NULL;
+
+		free(data->revs.pending.objects);
+		data->revs.pending.nr = 0;
+		data->revs.pending.alloc = 0;
+		data->revs.pending.objects = NULL;
+	}
+}
+
+static void check_commit(struct commit *commit, void *vdata)
+{
+	check_object(&commit->object, NULL, vdata);
+}
+
+static int object_is_reachable(struct object_id *oid)
+{
+	static const char *argv[] = {
+		"rev-list",
+		"--objects",
+		"--all",
+		NULL
+	};
+	struct reachable_object_data data;
+
+	data.obj = parse_object(the_repository, oid);
+	if (!data.obj)
+		return 0;
+
+	save_commit_buffer = 0;
+	init_revisions(&data.revs, NULL);
+	setup_revisions(ARRAY_SIZE(argv) - 1, argv, &data.revs, NULL);
+	data.revs.blob_objects = 0;
+	if (prepare_revision_walk(&data.revs))
+		return 0;
+
+	traverse_commit_list(&data.revs, check_commit, check_object, &data);
+	return data.obj->flags & SEEN;
+}
+
 static void parse_treeish_arg(const char **argv,
 		struct archiver_args *ar_args, const char *prefix,
 		int remote)
@@ -392,19 +448,13 @@ static void parse_treeish_arg(const char **argv,
 	struct object_id oid;
 	char *ref = NULL;
 
-	/* Remotes are only allowed to fetch actual refs */
-	if (remote && !remote_allow_unreachable) {
-		const char *colon = strchrnul(name, ':');
-		int refnamelen = colon - name;
-
-		if (!dwim_ref(name, refnamelen, &oid, &ref, 0))
-			die(_("no such ref: %.*s"), refnamelen, name);
-	} else {
-		dwim_ref(name, strlen(name), &oid, &ref, 0);
-	}
+	dwim_ref(name, strlen(name), &oid, &ref, 0);
 
 	if (get_oid(name, &oid))
 		die(_("not a valid object name: %s"), name);
+
+	if (remote && !object_is_reachable(&oid))
+		die("Not a valid object name");
 
 	commit = lookup_commit_reference_gently(ar_args->repo, &oid, 1);
 	if (commit) {

@@ -134,7 +134,7 @@ static void process_tree_contents(struct traversal_context *ctx,
 		else if (S_ISGITLINK(entry.mode))
 			process_gitlink(ctx, entry.oid.hash,
 					base, entry.path);
-		else {
+		else if (ctx->revs->blob_objects) {
 			struct blob *b = lookup_blob(ctx->revs->repo, &entry.oid);
 			if (!b) {
 				die(_("entry '%s' in tree %s has blob mode, "
