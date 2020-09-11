@@ -342,6 +342,18 @@ int ewah_iterator_next(eword_t *next, struct ewah_iterator *it)
 	if (it->pointer >= it->buffer_size)
 		return 0;
 
+	/*
+	 * If we return more bits than the ewah advertised, then either
+	 * our data bits or the bit_size field was corrupted, and we
+	 * risk a caller overwriting their own buffer (if they used
+	 * bit_size to size their buffer in the first place).
+	 *
+	 * We don't have a good way of returning an error here, so let's
+	 * just die.
+	 */
+	if (!it->words_remaining--)
+		die("ewah bitmap contains more bits than it claims");
+
 	if (it->compressed < it->rl) {
 		it->compressed++;
 		*next = it->b ? (eword_t)(~0) : 0;
@@ -369,6 +381,8 @@ void ewah_iterator_init(struct ewah_iterator *it, struct ewah_bitmap *parent)
 	it->buffer = parent->buffer;
 	it->buffer_size = parent->buffer_size;
 	it->pointer = 0;
+
+	it->words_remaining = (parent->bit_size + 63) / 64;
 
 	it->lw = 0;
 	it->rl = 0;

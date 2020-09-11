@@ -119,6 +119,7 @@ static struct ewah_bitmap *lookup_stored_bitmap(struct stored_bitmap *st)
  */
 static struct ewah_bitmap *read_bitmap_1(struct bitmap_index *index)
 {
+	size_t expected_bits;
 	struct ewah_bitmap *b = ewah_pool_new();
 
 	ssize_t bitmap_size = ewah_read_mmap(b,
@@ -127,6 +128,31 @@ static struct ewah_bitmap *read_bitmap_1(struct bitmap_index *index)
 
 	if (bitmap_size < 0) {
 		error("Failed to load bitmap index (corrupted?)");
+		ewah_pool_free(b);
+		return NULL;
+	}
+
+	/*
+	 * It's OK for us to have too fewer bits than objects, as the EWAH
+	 * writer may have simply left off an ending that is all-zeroes.
+	 *
+	 * However it's not OK for us to have too many bits, as that would
+	 * entail touching objects that we don't have. We are careful
+	 * enough to avoid doing so in later code, but in the case of
+	 * nonsensical values, we would want to avoid even allocating
+	 * memory to hold the expanded bitmap.
+	 *
+	 * There is one exception: we may "go over" to round up to the next
+	 * 64-bit ewah word, since the storage comes in chunks of that size.
+	 */
+	expected_bits = index->pack->num_objects;
+	if (expected_bits & 63) {
+		expected_bits &= ~63;
+		expected_bits += 64;
+	}
+	if (b->bit_size > expected_bits) {
+		error("unexpected number of bits in bitmap: %"PRIuMAX" > %"PRIuMAX,
+		      (uintmax_t)b->bit_size, (uintmax_t)expected_bits);
 		ewah_pool_free(b);
 		return NULL;
 	}
