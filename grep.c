@@ -1708,14 +1708,14 @@ static int look_ahead(struct grep_opt *opt,
 }
 
 static int fill_textconv_grep(struct repository *r,
-			      struct userdiff_driver *driver,
+			      struct userdiff_textconv *textconv,
 			      struct grep_source *gs)
 {
 	struct diff_filespec *df;
 	char *buf;
 	size_t size;
 
-	if (!driver || !driver->textconv)
+	if (!textconv)
 		return grep_source_load(gs);
 
 	/*
@@ -1748,7 +1748,7 @@ static int fill_textconv_grep(struct repository *r,
 	 * non-worktreee git-grep with --textconv.
 	 */
 	obj_read_lock();
-	size = fill_textconv(r, driver, df, &buf);
+	size = fill_textconv(r, textconv, df, &buf);
 	obj_read_unlock();
 	free_filespec(df);
 
@@ -1785,7 +1785,7 @@ static int grep_source_1(struct grep_opt *opt, struct grep_source *gs, int colle
 	unsigned count = 0;
 	int try_lookahead = 0;
 	int show_function = 0;
-	struct userdiff_driver *textconv = NULL;
+	struct userdiff_textconv *textconv = NULL;
 	enum grep_context ctx = GREP_CONTEXT_HEAD;
 	xdemitconf_t xecfg;
 

@@ -55,8 +55,12 @@ struct diff_filespec {
 #define DIRTY_SUBMODULE_MODIFIED  2
 	unsigned is_stdin : 1;
 	unsigned has_more_entries : 1; /* only appear in combined diff */
-	/* data should be considered "binary"; -1 means "don't know yet" */
-	signed int is_binary : 2;
+	enum diff_content {
+		DIFF_CONTENT_UNKNOWN = -1,
+		DIFF_CONTENT_TEXT = 0,
+		DIFF_CONTENT_BINARY = 1,
+		DIFF_CONTENT_UTF
+	} content_type;
 	struct userdiff_driver *driver;
 };
 
@@ -87,6 +91,7 @@ int diff_populate_filespec(struct repository *, struct diff_filespec *,
 void diff_free_filespec_data(struct diff_filespec *);
 void diff_free_filespec_blob(struct diff_filespec *);
 int diff_filespec_is_binary(struct repository *, struct diff_filespec *);
+enum diff_content diff_filespec_content_type(struct repository *, struct diff_filespec *);
 
 /**
  * This records a pair of `struct diff_filespec`; the filespec for a file in

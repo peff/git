@@ -55,6 +55,8 @@ static struct diff_options default_diff_options;
 static long diff_algorithm;
 static unsigned ws_error_highlight_default = WSEH_NEW;
 
+static struct userdiff_textconv autoencode_textconv = { "autoencode" };
+
 static char diff_colors[][COLOR_MAXLEN] = {
 	GIT_COLOR_RESET,
 	GIT_COLOR_NORMAL,	/* CONTEXT */
@@ -1783,8 +1785,8 @@ static void emit_rewrite_diff(const char *name_a,
 			      const char *name_b,
 			      struct diff_filespec *one,
 			      struct diff_filespec *two,
-			      struct userdiff_driver *textconv_one,
-			      struct userdiff_driver *textconv_two,
+			      struct userdiff_textconv *textconv_one,
+			      struct userdiff_textconv *textconv_two,
 			      struct diff_options *o)
 {
 	int lc_a, lc_b;
@@ -3351,28 +3353,59 @@ static void emit_binary_diff(struct diff_options *o,
 	emit_binary_diff_body(o, two, one);
 }
 
-int diff_filespec_is_binary(struct repository *r,
-			    struct diff_filespec *one)
+static const char *buffer_has_utf_bom(const void *vdata, size_t size)
+{
+	const unsigned char *data = vdata;
+
+	if (size >= 4) {
+		if (data[0] == 0x00 && data[1] == 0x00 &&
+		    data[2] == 0xfe && data[3] == 0xff)
+			return "UTF-32";
+		if (data[0] == 0xff && data[1] == 0xfe &&
+		    data[2] == 0x00 && data[3] == 0x00)
+			return "UTF-32";
+	}
+	if (size >= 2) {
+		if (data[0] == 0xfe && data[1] == 0xff)
+			return "UTF-16";
+		if (data[0] == 0xff && data[1] == 0xfe)
+			return "UTF-16";
+	}
+	return NULL;
+}
+
+enum diff_content diff_filespec_content_type(struct repository *r,
+					     struct diff_filespec *one)
 {
 	struct diff_populate_filespec_options dpf_options = {
 		.check_binary = 1,
 	};
 
-	if (one->is_binary == -1) {
+	if (one->content_type == DIFF_CONTENT_UNKNOWN) {
 		diff_filespec_load_driver(one, r->index);
 		if (one->driver->binary != -1)
-			one->is_binary = one->driver->binary;
+			one->content_type = one->driver->binary;
 		else {
 			if (!one->data && DIFF_FILE_VALID(one))
 				diff_populate_filespec(r, one, &dpf_options);
-			if (one->is_binary == -1 && one->data)
-				one->is_binary = buffer_is_binary(one->data,
-						one->size);
-			if (one->is_binary == -1)
-				one->is_binary = 0;
+			if (one->content_type == DIFF_CONTENT_UNKNOWN && one->data) {
+				if (!buffer_is_binary(one->data, one->size))
+					one->content_type = DIFF_CONTENT_TEXT;
+				else if (buffer_has_utf_bom(one->data, one->size))
+					one->content_type = DIFF_CONTENT_UTF;
+				else
+					one->content_type = DIFF_CONTENT_BINARY;
+			}
+			if (one->content_type == DIFF_CONTENT_UNKNOWN)
+				one->content_type = DIFF_CONTENT_TEXT;
 		}
 	}
-	return one->is_binary;
+	return one->content_type;
+}
+
+int diff_filespec_is_binary(struct repository *r, struct diff_filespec *one)
+{
+	return diff_filespec_content_type(r, one) != DIFF_CONTENT_TEXT;
 }
 
 static const struct userdiff_funcname *
@@ -3390,14 +3423,26 @@ void diff_set_mnemonic_prefix(struct diff_options *options, const char *a, const
 		options->b_prefix = b;
 }
 
-struct userdiff_driver *get_textconv(struct repository *r,
-				     struct diff_filespec *one)
+struct userdiff_textconv *diff_get_textconv(struct repository *r,
+					    struct diff_options *opt,
+					    struct diff_filespec *one)
 {
+	struct userdiff_textconv *textconv;
+
+	if (!opt->flags.allow_textconv)
+		return NULL;
+
 	if (!DIFF_FILE_VALID(one))
 		return NULL;
 
 	diff_filespec_load_driver(one, r->index);
-	return userdiff_get_textconv(r, one->driver);
+	textconv = userdiff_get_textconv(r, one->driver);
+
+	if (!textconv && opt->flags.allow_autoencode &&
+	    diff_filespec_content_type(r, one) == DIFF_CONTENT_UTF)
+		textconv = &autoencode_textconv;
+
+	return textconv;
 }
 
 static void builtin_diff(const char *name_a,
@@ -3415,8 +3460,8 @@ static void builtin_diff(const char *name_a,
 	const char *meta = diff_get_color_opt(o, DIFF_METAINFO);
 	const char *reset = diff_get_color_opt(o, DIFF_RESET);
 	const char *a_prefix, *b_prefix;
-	struct userdiff_driver *textconv_one = NULL;
-	struct userdiff_driver *textconv_two = NULL;
+	struct userdiff_textconv *textconv_one = NULL;
+	struct userdiff_textconv *textconv_two = NULL;
 	struct strbuf header = STRBUF_INIT;
 	const char *line_prefix = diff_line_prefix(o);
 
@@ -3445,10 +3490,8 @@ static void builtin_diff(const char *name_a,
 		return;
 	}
 
-	if (o->flags.allow_textconv) {
-		textconv_one = get_textconv(o->repo, one);
-		textconv_two = get_textconv(o->repo, two);
-	}
+	textconv_one = diff_get_textconv(o->repo, o, one);
+	textconv_two = diff_get_textconv(o->repo, o, two);
 
 	/* Never use a non-valid filename anywhere if at all possible */
 	name_a = DIFF_FILE_VALID(one) ? name_a : name_b;
@@ -3822,7 +3865,7 @@ struct diff_filespec *alloc_filespec(const char *path)
 
 	FLEXPTR_ALLOC_STR(spec, path, path);
 	spec->count = 1;
-	spec->is_binary = -1;
+	spec->content_type = DIFF_CONTENT_UNKNOWN;
 	return spec;
 }
 
@@ -4026,8 +4069,9 @@ int diff_populate_filespec(struct repository *r,
 		 * is probably fine.
 		 */
 		if (check_binary &&
-		    s->size > big_file_threshold && s->is_binary == -1) {
-			s->is_binary = 1;
+		    s->size > big_file_threshold &&
+		    s->content_type == DIFF_CONTENT_UNKNOWN) {
+			s->content_type = DIFF_CONTENT_BINARY;
 			return 0;
 		}
 		fd = open(s->path, O_RDONLY);
@@ -4076,8 +4120,9 @@ object_read:
 		if (size_only || check_binary) {
 			if (size_only)
 				return 0;
-			if (s->size > big_file_threshold && s->is_binary == -1) {
-				s->is_binary = 1;
+			if (s->size > big_file_threshold &&
+			    s->content_type == DIFF_CONTENT_UNKNOWN) {
+				s->content_type = DIFF_CONTENT_BINARY;
 				return 0;
 			}
 		}
@@ -4592,6 +4637,8 @@ void repo_diff_setup(struct repository *r, struct diff_options *options)
 	options->color_moved = diff_color_moved_default;
 	options->color_moved_ws_handling = diff_color_moved_ws_default;
 
+	options->flags.allow_autoencode = -1;
+
 	prep_parse_options(options);
 }
 
@@ -4699,6 +4746,9 @@ void diff_setup_done(struct diff_options *options)
 
 	if (options->pathspec.has_wildcard && options->max_depth_valid)
 		die("max-depth cannot be used with wildcard pathspecs");
+
+	if (options->flags.allow_autoencode == -1)
+		options->flags.allow_autoencode = !options->flags.binary;
 
 	FREE_AND_NULL(options->parseopts);
 }
@@ -5552,6 +5602,8 @@ static void prep_parse_options(struct diff_options *options)
 		OPT_CALLBACK_F(0, "textconv", options, NULL,
 			       N_("run external text conversion filters when comparing binary files"),
 			       PARSE_OPT_NOARG, diff_opt_textconv),
+		OPT_BOOL(0, "autoencode", &options->flags.allow_autoencode,
+			 N_("allow automatic encoding conversion")),
 		OPT_CALLBACK_F(0, "ignore-submodules", options, N_("<when>"),
 			       N_("ignore changes to submodules in the diff generation"),
 			       PARSE_OPT_NONEG | PARSE_OPT_OPTARG,
@@ -6873,55 +6925,86 @@ static char *run_textconv(struct repository *r,
 }
 
 size_t fill_textconv(struct repository *r,
-		     struct userdiff_driver *driver,
+		     struct userdiff_textconv *textconv,
 		     struct diff_filespec *df,
 		     char **outbuf)
 {
 	size_t size;
 
-	if (!driver) {
-		if (!DIFF_FILE_VALID(df)) {
-			*outbuf = "";
-			return 0;
-		}
+	if (!DIFF_FILE_VALID(df)) {
+		*outbuf = "";
+		return 0;
+	}
+
+	if (textconv == &autoencode_textconv) {
+		size_t outsize;
+		const char *from_encoding;
+
+		if (diff_populate_filespec(r, df, 0))
+			die("unable to read files to diff");
+
+		from_encoding = buffer_has_utf_bom(df->data, df->size);
+		if (!from_encoding)
+			BUG("autoencode triggered for non-utf content");
+
+		*outbuf = reencode_string_len(df->data, df->size,
+					      "UTF-8", from_encoding,
+					      &outsize);
+
+		/*
+		 * FIXME Our encoding guess failed. It's too late to return
+		 * the original content, since the caller has already decided
+		 * not to treat the contents as binary. But we could perhaps
+		 * give some munged text form (e.g., by escaping high-bit
+		 * characters and NULs).
+		 */
+		if (!*outbuf)
+			die_errno("unable to reencode from %s for path '%s'",
+				  from_encoding, df->path);
+
+		return outsize;
+	}
+
+	if (!textconv) {
 		if (diff_populate_filespec(r, df, NULL))
 			die("unable to read files to diff");
 		*outbuf = df->data;
 		return df->size;
 	}
 
-	if (!driver->textconv)
-		BUG("fill_textconv called with non-textconv driver");
+	if (!textconv->program)
+		BUG("fill_textconv called with empty textconv program");
 
-	if (driver->textconv_cache && df->oid_valid) {
-		*outbuf = notes_cache_get(driver->textconv_cache,
+	if (textconv->cache && df->oid_valid) {
+		*outbuf = notes_cache_get(textconv->cache,
 					  &df->oid,
 					  &size);
 		if (*outbuf)
 			return size;
 	}
 
-	*outbuf = run_textconv(r, driver->textconv, df, &size);
+	*outbuf = run_textconv(r, textconv->program, df, &size);
 	if (!*outbuf)
 		die("unable to read files to diff");
 
-	if (driver->textconv_cache && df->oid_valid) {
+	if (textconv->cache && df->oid_valid) {
 		/* ignore errors, as we might be in a readonly repository */
-		notes_cache_put(driver->textconv_cache, &df->oid, *outbuf,
-				size);
+		notes_cache_put(textconv->cache, &df->oid, *outbuf, size);
+
 		/*
 		 * we could save up changes and flush them all at the end,
 		 * but we would need an extra call after all diffing is done.
 		 * Since generating a cache entry is the slow path anyway,
 		 * this extra overhead probably isn't a big deal.
 		 */
-		notes_cache_write(driver->textconv_cache);
+		notes_cache_write(textconv->cache);
 	}
 
 	return size;
 }
 
 int textconv_object(struct repository *r,
+		    struct diff_options *opt,
 		    const char *path,
 		    unsigned mode,
 		    const struct object_id *oid,
@@ -6929,12 +7012,20 @@ int textconv_object(struct repository *r,
 		    char **buf,
 		    unsigned long *buf_size)
 {
+	struct diff_options fallback_opt;
 	struct diff_filespec *df;
-	struct userdiff_driver *textconv;
+	struct userdiff_textconv *textconv;
+
+	if (!opt) {
+		diff_setup(&fallback_opt);
+		fallback_opt.flags.allow_textconv = 1;
+		diff_setup_done(&fallback_opt);
+		opt = &fallback_opt;
+	}
 
 	df = alloc_filespec(path);
 	fill_filespec(df, oid, oid_valid, mode);
-	textconv = get_textconv(r, df);
+	textconv = diff_get_textconv(r, opt, df);
 	if (!textconv) {
 		free_filespec(df);
 		return 0;

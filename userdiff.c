@@ -296,9 +296,9 @@ int userdiff_config(const char *k, const char *v)
 	if (!strcmp(type, "command"))
 		return git_config_string(&drv->external, k, v);
 	if (!strcmp(type, "textconv"))
-		return git_config_string(&drv->textconv, k, v);
+		return git_config_string(&drv->textconv.program, k, v);
 	if (!strcmp(type, "cachetextconv"))
-		return parse_bool(&drv->textconv_want_cache, k, v);
+		return parse_bool(&drv->textconv.want_cache, k, v);
 	if (!strcmp(type, "wordregex"))
 		return git_config_string(&drv->word_regex, k, v);
 
@@ -331,21 +331,23 @@ struct userdiff_driver *userdiff_find_by_path(struct index_state *istate,
 	return userdiff_find_by_name(check->items[0].value);
 }
 
-struct userdiff_driver *userdiff_get_textconv(struct repository *r,
-					      struct userdiff_driver *driver)
+struct userdiff_textconv *userdiff_get_textconv(struct repository *r,
+						struct userdiff_driver *driver)
 {
-	if (!driver->textconv)
+	struct userdiff_textconv *textconv = &driver->textconv;
+
+	if (!textconv->program)
 		return NULL;
 
-	if (driver->textconv_want_cache && !driver->textconv_cache) {
+	if (textconv->want_cache && !textconv->cache) {
 		struct notes_cache *c = xmalloc(sizeof(*c));
 		struct strbuf name = STRBUF_INIT;
 
 		strbuf_addf(&name, "textconv/%s", driver->name);
-		notes_cache_init(r, c, name.buf, driver->textconv);
-		driver->textconv_cache = c;
+		notes_cache_init(r, c, name.buf, textconv->program);
+		textconv->cache = c;
 		strbuf_release(&name);
 	}
 
-	return driver;
+	return textconv;
 }

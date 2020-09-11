@@ -120,8 +120,8 @@ static int has_changes(mmfile_t *one, mmfile_t *two,
 static int pickaxe_match(struct diff_filepair *p, struct diff_options *o,
 			 regex_t *regexp, kwset_t kws, pickaxe_fn fn)
 {
-	struct userdiff_driver *textconv_one = NULL;
-	struct userdiff_driver *textconv_two = NULL;
+	struct userdiff_textconv *textconv_one = NULL;
+	struct userdiff_textconv *textconv_two = NULL;
 	mmfile_t mf1, mf2;
 	int ret;
 
@@ -139,10 +139,8 @@ static int pickaxe_match(struct diff_filepair *p, struct diff_options *o,
 	if (!o->pickaxe[0])
 		return 0;
 
-	if (o->flags.allow_textconv) {
-		textconv_one = get_textconv(o->repo, p->one);
-		textconv_two = get_textconv(o->repo, p->two);
-	}
+	textconv_one = diff_get_textconv(o->repo, o, p->one);
+	textconv_two = diff_get_textconv(o->repo, o, p->two);
 
 	/*
 	 * If we have an unmodified pair, we know that the count will be the
