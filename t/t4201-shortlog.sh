@@ -215,4 +215,21 @@ test_expect_success 'shortlog --committer (external)' '
 	test_cmp expect actual
 '
 
+test_expect_success '--group=committer is the same as --committer' '
+	git shortlog -ns --group=committer HEAD >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success 'shortlog --group=signed-off-by' '
+	git commit --allow-empty -m foo -s &&
+	GIT_COMMITTER_NAME="SOB One" git commit --allow-empty -m foo -s &&
+	git commit --allow-empty --amend --no-edit -s &&
+	cat >expect <<-\EOF &&
+	     2	C O Mitter <committer@example.com>
+	     1	SOB One <committer@example.com>
+	EOF
+	git shortlog -ns --group=trailer:signed-off-by HEAD >actual &&
+	test_cmp expect actual
+'
+
 test_done
