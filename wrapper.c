@@ -678,3 +678,11 @@ int is_empty_or_missing_file(const char *filename)
 
 	return !st.st_size;
 }
+
+#ifndef O_NOFOLLOW
+#define O_NOFOLLOW 0
+#endif
+int open_nofollow(const char *path, int flags)
+{
+	return open(path, flags | O_NOFOLLOW);
+}
