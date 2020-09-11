@@ -232,7 +232,7 @@ static size_t fill_conflict_hunk(xdfenv_t *xe1, const char *name1,
 		      xdl_recs_copy(xe1, m->i1, m->chg1, needs_cr, 1,
 				    dest ? dest + size : NULL));
 
-	if (style == XDL_MERGE_DIFF3) {
+	if (style == XDL_MERGE_DIFF3 || style == XDL_MERGE_ZEALOUS_DIFF3) {
 		/* Shared preimage */
 		if (!dest) {
 			size = st_add5(size, marker_size, 1, needs_cr, marker3_size);
@@ -492,6 +492,12 @@ static int xdl_do_merge(xdfenv_t *xe1, xdchange_t *xscr1,
 	int style = xmp->style;
 	int favor = xmp->favor;
 
+	/*
+	 * This is the only change between XDL_MERGE_DIFF3 and
+	 * XDL_MERGE_ZEALOUS_DIFF3. "zdiff3" isn't 100% technically correct (as
+	 * the base might be considerably simplified), but still it might help
+	 * interpreting conflicts between two big and near identical additions.
+	 */
 	if (style == XDL_MERGE_DIFF3) {
 		/*
 		 * "diff3 -m" output does not make sense for anything
