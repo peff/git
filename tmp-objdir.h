@@ -51,4 +51,7 @@ int tmp_objdir_destroy(struct tmp_objdir *);
  */
 void tmp_objdir_add_as_alternate(const struct tmp_objdir *);
 
+FILE *fopen_quarantine(const char *filename, const char *mode);
+int git_is_quarantined(void);
+
 #endif /* TMP_OBJDIR_H */
