@@ -70,6 +70,8 @@ int bitmap_has_oid_in_uninteresting(struct bitmap_index *, const struct object_i
 
 int bitmap_ahead_behind(struct commit *tip, struct commit *base, int *ahead, int *behind);
 
+off_t get_disk_usage_from_bitmap(struct bitmap_index *);
+
 void bitmap_writer_show_progress(int show);
 void bitmap_writer_set_checksum(unsigned char *sha1);
 void bitmap_writer_build_type_index(struct packing_data *to_pack,

@@ -1614,3 +1614,54 @@ int bitmap_ahead_behind(struct commit *tip, struct commit *base, int *ahead, int
 
 	return 0;
 }
+
+off_t get_disk_usage_from_bitmap(struct bitmap_index *bitmap_git)
+{
+	struct bitmap *result = bitmap_git->result;
+	struct packed_git *pack = bitmap_git->pack;
+	struct eindex *eindex = &bitmap_git->ext_index;
+	struct object_info oi = OBJECT_INFO_INIT;
+	off_t object_size;
+	off_t total = 0;
+	size_t i;
+
+	load_pack_revindex(bitmap_git->pack);
+
+	oi.disk_sizep = &object_size;
+
+	for (i = 0; i < result->word_alloc; i++) {
+		eword_t word = result->words[i];
+		size_t base = (i * BITS_IN_EWORD);
+		unsigned offset;
+
+		for (offset = 0; offset < BITS_IN_EWORD; offset++) {
+			size_t pos;
+
+			if ((word >> offset) == 0)
+				break;
+
+			offset += ewah_bit_ctz64(word >> offset);
+			pos = base + offset;
+
+			/*
+			 * If it's in the pack, we can use the fast path
+			 * and just check the revindex. Otherwise, we
+			 * fall back to looking it up.
+			 */
+			if (pos < pack->num_objects) {
+				struct revindex_entry *re = &bitmap_git->pack->revindex[pos];
+				object_size = re[1].offset - re[0].offset;
+			} else {
+				struct object *obj;
+				obj = eindex->objects[pos - pack->num_objects];
+				if (oid_object_info_extended(the_repository, &obj->oid, &oi, 0) < 0)
+					die("unable to get size for %s",
+					    oid_to_hex(&obj->oid));
+			}
+
+			total += object_size;
+		}
+	}
+
+	return total;
+}
