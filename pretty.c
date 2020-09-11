@@ -42,7 +42,8 @@ static void save_user_format(struct rev_info *rev, const char *cp, int is_tforma
 	rev->commit_format = CMIT_FMT_USERFORMAT;
 }
 
-static int git_pretty_formats_config(const char *var, const char *value, void *cb)
+static int git_pretty_formats_config(const char *var, const char *value,
+				     void *UNUSED(cb))
 {
 	struct cmt_fmt_map *commit_format = NULL;
 	const char *name;
@@ -1640,7 +1641,8 @@ static size_t format_commit_item(struct strbuf *sb, /* in UTF-8 */
 	return consumed + 1;
 }
 
-static size_t userformat_want_item(struct strbuf *sb, const char *placeholder,
+static size_t userformat_want_item(struct strbuf *UNUSED(sb),
+				   const char *placeholder,
 				   void *context)
 {
 	struct userformat_want *w = context;

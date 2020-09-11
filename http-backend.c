@@ -506,7 +506,7 @@ static void run_service(const char **argv, int buffer_input)
 }
 
 static int show_text_ref(const char *name, const struct object_id *oid,
-			 int flag, void *cb_data)
+			 int UNUSED(flag), void *cb_data)
 {
 	const char *name_nons = strip_namespace(name);
 	struct strbuf *buf = cb_data;
@@ -525,7 +525,7 @@ static int show_text_ref(const char *name, const struct object_id *oid,
 	return 0;
 }
 
-static void get_info_refs(struct strbuf *hdr, char *arg)
+static void get_info_refs(struct strbuf *hdr, char *UNUSED(arg))
 {
 	const char *service_name = get_parameter("service");
 	struct strbuf buf = STRBUF_INIT;
@@ -579,7 +579,7 @@ static int show_head_ref(const char *refname, const struct object_id *oid,
 	return 0;
 }
 
-static void get_head(struct strbuf *hdr, char *arg)
+static void get_head(struct strbuf *hdr, char *UNUSED(arg))
 {
 	struct strbuf buf = STRBUF_INIT;
 
@@ -589,7 +589,7 @@ static void get_head(struct strbuf *hdr, char *arg)
 	strbuf_release(&buf);
 }
 
-static void get_info_packs(struct strbuf *hdr, char *arg)
+static void get_info_packs(struct strbuf *hdr, char *UNUSED(arg))
 {
 	size_t objdirlen = strlen(get_object_directory());
 	struct strbuf buf = STRBUF_INIT;
@@ -736,7 +736,7 @@ static int bad_request(struct strbuf *hdr, const struct service_cmd *c)
 	return 0;
 }
 
-int cmd_main(int argc, const char **argv)
+int cmd_main(int UNUSED(argc), const char **UNUSED(argv))
 {
 	char *method = getenv("REQUEST_METHOD");
 	char *dir;

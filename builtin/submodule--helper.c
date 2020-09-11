@@ -56,7 +56,8 @@ static char *get_default_remote(void)
 	return ret;
 }
 
-static int print_default_remote(int argc, const char **argv, const char *prefix)
+static int print_default_remote(int argc, const char **UNUSED(argv),
+				const char *UNUSED(prefix))
 {
 	char *remote;
 
@@ -198,7 +199,8 @@ static char *relative_url(const char *remote_url,
 	return strbuf_detach(&sb, NULL);
 }
 
-static int resolve_relative_url(int argc, const char **argv, const char *prefix)
+static int resolve_relative_url(int argc, const char **argv,
+				const char *UNUSED(prefix))
 {
 	char *remoteurl = NULL;
 	char *remote = get_default_remote();
@@ -228,7 +230,8 @@ static int resolve_relative_url(int argc, const char **argv, const char *prefix)
 	return 0;
 }
 
-static int resolve_relative_url_test(int argc, const char **argv, const char *prefix)
+static int resolve_relative_url_test(int argc, const char **argv,
+				     const char *UNUSED(prefix))
 {
 	char *remoteurl, *res;
 	const char *up_path, *url;
@@ -314,7 +317,7 @@ struct module_list {
 };
 #define MODULE_LIST_INIT { NULL, 0, 0 }
 
-static int module_list_compute(int argc, const char **argv,
+static int module_list_compute(int UNUSED(argc), const char **argv,
 			       const char *prefix,
 			       struct pathspec *pathspec,
 			       struct module_list *list)
@@ -761,8 +764,9 @@ static void print_status(unsigned int flags, char state, const char *path,
 	printf("\n");
 }
 
-static int handle_submodule_head_ref(const char *refname,
-				     const struct object_id *oid, int flags,
+static int handle_submodule_head_ref(const char *UNUSED(refname),
+				     const struct object_id *oid,
+				     int UNUSED(flags),
 				     void *cb_data)
 {
 	struct object_id *output = cb_data;
@@ -909,7 +913,7 @@ static int module_status(int argc, const char **argv, const char *prefix)
 	return 0;
 }
 
-static int module_name(int argc, const char **argv, const char *prefix)
+static int module_name(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	const struct submodule *sub;
 
@@ -1203,7 +1207,7 @@ static void prepare_submodule_summary(struct summary_cb *info,
 }
 
 static void submodule_summary_callback(struct diff_queue_struct *q,
-				       struct diff_options *options,
+				       struct diff_options *UNUSED(options),
 				       void *data)
 {
 	int i;
@@ -1956,7 +1960,8 @@ static void determine_submodule_update_strategy(struct repository *r,
 	free(key);
 }
 
-static int module_update_module_mode(int argc, const char **argv, const char *prefix)
+static int module_update_module_mode(int argc, const char **argv,
+				     const char *UNUSED(prefix))
 {
 	const char *path, *update = NULL;
 	int just_cloned;
@@ -2225,9 +2230,9 @@ static int update_clone_get_next_task(struct child_process *child,
 	return 0;
 }
 
-static int update_clone_start_failure(struct strbuf *err,
+static int update_clone_start_failure(struct strbuf *UNUSED(err),
 				      void *suc_cb,
-				      void *idx_task_cb)
+				      void *UNUSED(idx_task_cb))
 {
 	struct submodule_update_clone *suc = suc_cb;
 	suc->quickstop = 1;
@@ -2378,7 +2383,8 @@ static int update_clone(int argc, const char **argv, const char *prefix)
 	return update_submodules(&suc);
 }
 
-static int resolve_relative_path(int argc, const char **argv, const char *prefix)
+static int resolve_relative_path(int argc, const char **argv,
+				 const char *UNUSED(prefix))
 {
 	struct strbuf sb = STRBUF_INIT;
 	if (argc != 3)
@@ -2428,7 +2434,7 @@ static const char *remote_submodule_branch(const char *path)
 }
 
 static int resolve_remote_submodule_branch(int argc, const char **argv,
-		const char *prefix)
+					   const char *UNUSED(prefix))
 {
 	const char *ret;
 	struct strbuf sb = STRBUF_INIT;
@@ -2444,7 +2450,7 @@ static int resolve_remote_submodule_branch(int argc, const char **argv,
 	return 0;
 }
 
-static int push_check(int argc, const char **argv, const char *prefix)
+static int push_check(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	struct remote *remote;
 	const char *superproject_head;
@@ -2521,7 +2527,8 @@ static int push_check(int argc, const char **argv, const char *prefix)
 	return 0;
 }
 
-static int ensure_core_worktree(int argc, const char **argv, const char *prefix)
+static int ensure_core_worktree(int argc, const char **argv,
+				const char *UNUSED(prefix))
 {
 	const struct submodule *sub;
 	const char *path;
@@ -2593,7 +2600,7 @@ static int absorb_git_dirs(int argc, const char **argv, const char *prefix)
 	return 0;
 }
 
-static int is_active(int argc, const char **argv, const char *prefix)
+static int is_active(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	if (argc != 2)
 		die("submodule--helper is-active takes exactly 1 argument");
@@ -2606,7 +2613,7 @@ static int is_active(int argc, const char **argv, const char *prefix)
  * invalid. If no names are given, filter stdin to print only valid names
  * (which is primarily intended for testing).
  */
-static int check_name(int argc, const char **argv, const char *prefix)
+static int check_name(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	if (argc > 1) {
 		while (*++argv) {

@@ -601,7 +601,7 @@ static void finish_request(struct transfer_request *request)
 }
 
 static int is_running_queue;
-static int fill_active_slot(void *unused)
+static int fill_active_slot(void *UNUSED(data))
 {
 	struct transfer_request *request;
 
@@ -777,7 +777,7 @@ static void handle_new_lock_ctx(struct xml_ctx *ctx, int tag_closed)
 static void one_remote_ref(const char *refname);
 
 static void
-xml_start_tag(void *userData, const char *name, const char **atts)
+xml_start_tag(void *userData, const char *name, const char **UNUSED(atts))
 {
 	struct xml_ctx *ctx = (struct xml_ctx *)userData;
 	const char *c = strchr(name, ':');

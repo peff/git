@@ -127,7 +127,7 @@ struct bundle_transport_data {
 
 static struct ref *get_refs_from_bundle(struct transport *transport,
 					int for_push,
-					const struct strvec *ref_prefixes)
+					const struct strvec *UNUSED(ref_prefixes))
 {
 	struct bundle_transport_data *data = transport->data;
 	struct ref *result = NULL;
@@ -157,7 +157,8 @@ static struct ref *get_refs_from_bundle(struct transport *transport,
 }
 
 static int fetch_refs_from_bundle(struct transport *transport,
-			       int nr_heads, struct ref **to_fetch)
+				  int UNUSED(nr_heads),
+				  struct ref **UNUSED(to_fetch))
 {
 	struct bundle_transport_data *data = transport->data;
 	int ret;
@@ -726,7 +727,8 @@ static int git_transport_push(struct transport *transport, struct ref *remote_re
 	return ret;
 }
 
-static int connect_git(struct transport *transport, const char *name,
+static int connect_git(struct transport *transport,
+		       const char *UNUSED(name),
 		       const char *executable, int fd[2])
 {
 	struct git_transport_data *data = transport->data;

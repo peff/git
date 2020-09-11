@@ -1403,7 +1403,7 @@ static int delta_base_cache_key_eq(const struct delta_base_cache_key *a,
 	return a->p == b->p && a->base_offset == b->base_offset;
 }
 
-static int delta_base_cache_hash_cmp(const void *unused_cmp_data,
+static int delta_base_cache_hash_cmp(const void *UNUSED(cmp_data),
 				     const struct hashmap_entry *va,
 				     const struct hashmap_entry *vb,
 				     const void *vkey)
@@ -2115,8 +2115,8 @@ int for_each_packed_object(each_packed_object_fn cb, void *data,
 }
 
 static int add_promisor_object(const struct object_id *oid,
-			       struct packed_git *pack,
-			       uint32_t pos,
+			       struct packed_git *UNUSED(pack),
+			       uint32_t UNUSED(pos),
 			       void *set_)
 {
 	struct oidset *set = set_;

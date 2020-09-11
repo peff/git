@@ -21,7 +21,7 @@ struct test_entry {
  * iterate -> oidkey1 namevalue1\noidkey2 namevalue2\n...
  *
  */
-int cmd__oidmap(int argc, const char **argv)
+int cmd__oidmap(int UNUSED(argc), const char **UNUSED(argv))
 {
 	struct strbuf line = STRBUF_INIT;
 	struct oidmap map = OIDMAP_INIT;

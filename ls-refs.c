@@ -74,7 +74,8 @@ static int send_ref(const char *refname, const struct object_id *oid,
 	return 0;
 }
 
-static int ls_refs_config(const char *var, const char *value, void *data)
+static int ls_refs_config(const char *var, const char *value,
+			  void *UNUSED(data))
 {
 	/*
 	 * We only serve fetches over v2 for now, so respect only "uploadpack"
@@ -84,7 +85,8 @@ static int ls_refs_config(const char *var, const char *value, void *data)
 	return parse_hide_refs_config(var, value, "uploadpack");
 }
 
-int ls_refs(struct repository *r, struct strvec *keys,
+int ls_refs(struct repository *UNUSED(r),
+	    struct strvec *UNUSED(keys),
 	    struct packet_reader *request)
 {
 	struct ls_refs_data data;

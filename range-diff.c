@@ -224,8 +224,10 @@ static int read_patches(const char *range, struct string_list *list,
 	return 0;
 }
 
-static int patch_util_cmp(const void *dummy, const struct patch_util *a,
-			  const struct patch_util *b, const char *keydata)
+static int patch_util_cmp(const void *UNUSED(cmp_data),
+			  const struct patch_util *a,
+			  const struct patch_util *b,
+			  const char *keydata)
 {
 	return strcmp(a->diff, keydata ? keydata : b->diff);
 }
@@ -269,13 +271,17 @@ static void find_exact_matches(struct string_list *a, struct string_list *b)
 	hashmap_free(&map);
 }
 
-static void diffsize_consume(void *data, char *line, unsigned long len)
+static void diffsize_consume(void *data,
+			     char *UNUSED(line),
+			     unsigned long UNUSED(len))
 {
 	(*(int *)data)++;
 }
 
-static void diffsize_hunk(void *data, long ob, long on, long nb, long nn,
-			  const char *funcline, long funclen)
+static void diffsize_hunk(void *data,
+			  long UNUSED(ob), long UNUSED(on),
+			  long UNUSED(nb), long UNUSED(nn),
+			  const char *UNUSED(func), long UNUSED(funclen))
 {
 	diffsize_consume(data, NULL, 0);
 }
@@ -515,7 +521,8 @@ static void output(struct string_list *a, struct string_list *b,
 	strbuf_release(&dashes);
 }
 
-static struct strbuf *output_prefix_cb(struct diff_options *opt, void *data)
+static struct strbuf *output_prefix_cb(struct diff_options *UNUSED(opt),
+				       void *data)
 {
 	return data;
 }

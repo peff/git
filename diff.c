@@ -263,7 +263,8 @@ void init_diff_ui_defaults(void)
 	diff_detect_rename_default = DIFF_DETECT_RENAME;
 }
 
-int git_diff_heuristic_config(const char *var, const char *value, void *cb)
+int git_diff_heuristic_config(const char *var, const char *value,
+			      void *UNUSED(cb))
 {
 	if (!strcmp(var, "diff.indentheuristic"))
 		diff_indent_heuristic = git_config_bool(var, value);
@@ -946,7 +947,7 @@ static int cmp_in_block_with_wsd(const struct diff_options *o,
 static int moved_entry_cmp(const void *hashmap_cmp_fn_data,
 			   const struct hashmap_entry *eptr,
 			   const struct hashmap_entry *entry_or_key,
-			   const void *keydata)
+			   const void *UNUSED(keydata))
 {
 	const struct diff_options *diffopt = hashmap_cmp_fn_data;
 	const struct moved_entry *a, *b;
@@ -2001,7 +2002,7 @@ static int color_words_output_graph_prefix(struct diff_words_data *diff_words)
 static void fn_out_diff_words_aux(void *priv,
 				  long minus_first, long minus_len,
 				  long plus_first, long plus_len,
-				  const char *func, long funclen)
+				  const char *UNUSED(func), long UNUSED(funclen))
 {
 	struct diff_words_data *diff_words = priv;
 	struct diff_words_style *style = diff_words->style;
@@ -2526,7 +2527,8 @@ static struct diffstat_file *diffstat_add(struct diffstat_t *diffstat,
 	return x;
 }
 
-static void diffstat_consume(void *priv, char *line, unsigned long len)
+static void diffstat_consume(void *priv, char *line,
+			     unsigned long UNUSED(len))
 {
 	struct diffstat_t *diffstat = priv;
 	struct diffstat_file *x = diffstat->files[diffstat->nr - 1];
@@ -3204,8 +3206,9 @@ static int is_conflict_marker(const char *line, int marker_size, unsigned long l
 }
 
 static void checkdiff_consume_hunk(void *priv,
-				   long ob, long on, long nb, long nn,
-				   const char *func, long funclen)
+				   long UNUSED(ob), long UNUSED(on),
+				   long nb, long UNUSED(nn),
+				   const char *UNUSED(func), long UNUSED(funclen))
 
 {
 	struct checkdiff_t *data = priv;

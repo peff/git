@@ -2252,7 +2252,7 @@ static int parse_insn_line(struct repository *r, struct todo_item *item,
 	return item->commit ? 0 : -1;
 }
 
-int sequencer_get_last_command(struct repository *r, enum replay_action *action)
+int sequencer_get_last_command(struct repository *UNUSED(r), enum replay_action *action)
 {
 	const char *todo_file, *bol;
 	struct strbuf buf = STRBUF_INIT;
@@ -4697,7 +4697,8 @@ struct labels_entry {
 	char label[FLEX_ARRAY];
 };
 
-static int labels_cmp(const void *fndata, const struct hashmap_entry *eptr,
+static int labels_cmp(const void *UNUSED(fndata),
+		      const struct hashmap_entry *eptr,
 		      const struct hashmap_entry *entry_or_key, const void *key)
 {
 	const struct labels_entry *a, *b;
@@ -5194,7 +5195,8 @@ void todo_list_add_exec_commands(struct todo_list *todo_list,
 	todo_list->alloc = alloc;
 }
 
-static void todo_list_to_strbuf(struct repository *r, struct todo_list *todo_list,
+static void todo_list_to_strbuf(struct repository *UNUSED(r),
+				struct todo_list *todo_list,
 				struct strbuf *buf, int num, unsigned flags)
 {
 	struct todo_item *item;
@@ -5414,7 +5416,7 @@ struct subject2item_entry {
 	char subject[FLEX_ARRAY];
 };
 
-static int subject2item_cmp(const void *fndata,
+static int subject2item_cmp(const void *UNUSED(fndata),
 			    const struct hashmap_entry *eptr,
 			    const struct hashmap_entry *entry_or_key,
 			    const void *key)

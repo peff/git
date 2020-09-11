@@ -615,8 +615,10 @@ static void repair_gitfile(struct worktree *wt,
 	strbuf_release(&dotgit);
 }
 
-static void repair_noop(int iserr, const char *path, const char *msg,
-			void *cb_data)
+static void repair_noop(int UNUSED(iserr),
+			const char *UNUSED(path),
+			const char *UNUSED(msg),
+			void *UNUSED(cb_data))
 {
 	/* nothing */
 }

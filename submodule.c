@@ -206,7 +206,8 @@ void set_diffopt_flags_from_submodule_config(struct diff_options *diffopt,
 }
 
 /* Cheap function that only determines if we're interested in submodules at all */
-int git_default_submodule_config(const char *var, const char *value, void *cb)
+int git_default_submodule_config(const char *var, const char *value,
+				 void *UNUSED(cb))
 {
 	if (!strcmp(var, "submodule.recurse")) {
 		int v = git_config_bool(var, value) ?
@@ -785,7 +786,7 @@ static const char *default_name_or_path(const char *path_or_name)
 }
 
 static void collect_changed_submodules_cb(struct diff_queue_struct *q,
-					  struct diff_options *options,
+					  struct diff_options *UNUSED(options),
 					  void *data)
 {
 	struct collect_changed_submodules_cb_data *me = data;
@@ -879,8 +880,9 @@ static void free_submodules_oids(struct string_list *submodules)
 	string_list_clear(submodules, 1);
 }
 
-static int has_remote(const char *refname, const struct object_id *oid,
-		      int flags, void *cb_data)
+static int has_remote(const char *UNUSED(refname),
+		      const struct object_id *UNUSED(oid),
+		      int UNUSED(flags), void *UNUSED(cb_data))
 {
 	return 1;
 }
@@ -1176,8 +1178,9 @@ int push_unpushed_submodules(struct repository *r,
 	return ret;
 }
 
-static int append_oid_to_array(const char *ref, const struct object_id *oid,
-			       int flags, void *data)
+static int append_oid_to_array(const char *UNUSED(ref),
+			       const struct object_id *oid,
+			       int UNUSED(flags), void *data)
 {
 	struct oid_array *array = data;
 	oid_array_append(array, oid);
@@ -1527,7 +1530,7 @@ static int get_next_submodule(struct child_process *cp,
 	return 0;
 }
 
-static int fetch_start_failure(struct strbuf *err,
+static int fetch_start_failure(struct strbuf *UNUSED(err),
 			       void *cb, void *task_cb)
 {
 	struct submodule_parallel_fetch *spf = cb;
@@ -1548,7 +1551,7 @@ static int commit_missing_in_sub(const struct object_id *oid, void *data)
 	return type != OBJ_COMMIT;
 }
 
-static int fetch_finish(int retvalue, struct strbuf *err,
+static int fetch_finish(int retvalue, struct strbuf *UNUSED(err),
 			void *cb, void *task_cb)
 {
 	struct submodule_parallel_fetch *spf = cb;

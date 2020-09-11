@@ -656,6 +656,12 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #define NO_SEGMENT_TRAVERSAL 0
 #endif /* NO_SEGMENT_TRAVERSAL */
 
+#if defined(__GNUC__)
+#define UNUSED(var) UNUSED_##var __attribute__((unused))
+#else
+#define UNUSED(var) UNUSED_##var
+#endif
+
 /*
   mallopt tuning options.  SVID/XPG defines four standard parameter
   numbers for mallopt, normally defined in malloc.h.  None of these
@@ -1802,7 +1808,7 @@ struct win32_mlock_t
   volatile long threadid;
 };
 
-static inline int return_0(int i) { return 0; }
+static inline int return_0(int UNUSED(i)) { return 0; }
 #define MLOCK_T               struct win32_mlock_t
 #define CURRENT_THREAD        win32_getcurrentthreadid()
 #define INITIAL_LOCK(sl)      (memset(sl, 0, sizeof(MLOCK_T)), return_0(0))
@@ -5223,7 +5229,7 @@ void* mspace_malloc(mspace msp, size_t bytes) {
   return 0;
 }
 
-void mspace_free(mspace msp, void* mem) {
+void mspace_free(mspace UNUSED(msp), void* mem) {
   if (mem != 0) {
     mchunkptr p  = mem2chunk(mem);
 #if FOOTERS

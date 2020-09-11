@@ -21,7 +21,7 @@ static unsigned __stdcall win32_start_routine(void *arg)
 	return 0;
 }
 
-int pthread_create(pthread_t *thread, const void *unused,
+int pthread_create(pthread_t *thread, const void *UNUSED(attr),
 		   void *(*start_routine)(void*), void *arg)
 {
 	thread->arg = arg;

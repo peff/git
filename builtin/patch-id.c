@@ -158,7 +158,7 @@ static int git_patch_id_config(const char *var, const char *value, void *cb)
 	return git_default_config(var, value, cb);
 }
 
-int cmd_patch_id(int argc, const char **argv, const char *prefix)
+int cmd_patch_id(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	int stable = -1;
 

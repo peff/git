@@ -111,10 +111,10 @@ struct path_and_oids_entry {
 	struct oidset trees;
 };
 
-static int path_and_oids_cmp(const void *hashmap_cmp_fn_data,
+static int path_and_oids_cmp(const void *UNUSED(hashmap_cmp_fn_data),
 			     const struct hashmap_entry *eptr,
 			     const struct hashmap_entry *entry_or_key,
-			     const void *keydata)
+			     const void *UNUSED(keydata))
 {
 	const struct path_and_oids_entry *e1, *e2;
 
@@ -604,10 +604,12 @@ static struct commit *one_relevant_parent(const struct rev_info *revs,
 static int tree_difference = REV_TREE_SAME;
 
 static void file_add_remove(struct diff_options *options,
-		    int addremove, unsigned mode,
-		    const struct object_id *oid,
-		    int oid_valid,
-		    const char *fullpath, unsigned dirty_submodule)
+		    int addremove,
+		    unsigned UNUSED(mode),
+		    const struct object_id *UNUSED(oid),
+		    int UNUSED(oid_valid),
+		    const char *UNUSED(fullpath),
+		    unsigned UNUSED(dirty_submodule))
 {
 	int diff = addremove == '+' ? REV_TREE_NEW : REV_TREE_OLD;
 	struct rev_info *revs = options->change_fn_data;
@@ -618,12 +620,15 @@ static void file_add_remove(struct diff_options *options,
 }
 
 static void file_change(struct diff_options *options,
-		 unsigned old_mode, unsigned new_mode,
-		 const struct object_id *old_oid,
-		 const struct object_id *new_oid,
-		 int old_oid_valid, int new_oid_valid,
-		 const char *fullpath,
-		 unsigned old_dirty_submodule, unsigned new_dirty_submodule)
+		 unsigned UNUSED(old_mode),
+		 unsigned UNUSED(new_mode),
+		 const struct object_id *UNUSED(old_oid),
+		 const struct object_id *UNUSED(new_oid),
+		 int UNUSED(old_oid_valid),
+		 int UNUSED(new_oid_valid),
+		 const char *UNUSED(fullpath),
+		 unsigned UNUSED(old_dirty_submodule),
+		 unsigned UNUSED(new_dirty_submodule))
 {
 	tree_difference = REV_TREE_DIFFERENT;
 	options->flags.has_changes = 1;
@@ -1527,7 +1532,8 @@ int ref_excluded(struct string_list *ref_excludes, const char *path)
 }
 
 static int handle_one_ref(const char *path, const struct object_id *oid,
-			  int flag, void *cb_data)
+			  int UNUSED(flag),
+			  void *cb_data)
 {
 	struct all_refs_cb *cb = cb_data;
 	struct object *object;
@@ -1602,8 +1608,11 @@ static void handle_one_reflog_commit(struct object_id *oid, void *cb_data)
 }
 
 static int handle_one_reflog_ent(struct object_id *ooid, struct object_id *noid,
-		const char *email, timestamp_t timestamp, int tz,
-		const char *message, void *cb_data)
+				 const char *UNUSED(email),
+				 timestamp_t UNUSED(timestamp),
+				 int UNUSED(tz),
+				 const char *UNUSED(message),
+				 void *cb_data)
 {
 	handle_one_reflog_commit(ooid, cb_data);
 	handle_one_reflog_commit(noid, cb_data);
@@ -1611,8 +1620,8 @@ static int handle_one_reflog_ent(struct object_id *ooid, struct object_id *noid,
 }
 
 static int handle_one_reflog(const char *refname_in_wt,
-			     const struct object_id *oid,
-			     int flag, void *cb_data)
+			     const struct object_id *UNUSED(oid),
+			     int UNUSED(flag), void *cb_data)
 {
 	struct all_refs_cb *cb = cb_data;
 	struct strbuf refname = STRBUF_INIT;
@@ -3301,8 +3310,8 @@ void reset_revision_walk(void)
 }
 
 static int mark_uninteresting(const struct object_id *oid,
-			      struct packed_git *pack,
-			      uint32_t pos,
+			      struct packed_git *UNUSED(pack),
+			      uint32_t UNUSED(pos),
 			      void *cb)
 {
 	struct rev_info *revs = cb;
@@ -4017,7 +4026,7 @@ static struct commit *get_revision_1(struct rev_info *revs)
  * Return true for entries that have not yet been shown.  (This is an
  * object_array_each_func_t.)
  */
-static int entry_unshown(struct object_array_entry *entry, void *cb_data_unused)
+static int entry_unshown(struct object_array_entry *entry, void *UNUSED(cb_data))
 {
 	return !(entry->item->flags & SHOWN);
 }

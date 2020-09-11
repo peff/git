@@ -302,8 +302,8 @@ static void parse_cmd_verify(struct ref_transaction *transaction,
 	strbuf_release(&err);
 }
 
-static void parse_cmd_option(struct ref_transaction *transaction,
-			     const char *next, const char *end)
+static void parse_cmd_option(struct ref_transaction *UNUSED(transaction),
+			     const char *next, const char *UNUSED(end))
 {
 	const char *rest;
 	if (skip_prefix(next, "no-deref", &rest) && *rest == line_termination)
@@ -312,8 +312,8 @@ static void parse_cmd_option(struct ref_transaction *transaction,
 		die("option unknown: %s", next);
 }
 
-static void parse_cmd_start(struct ref_transaction *transaction,
-			    const char *next, const char *end)
+static void parse_cmd_start(struct ref_transaction *UNUSED(transaction),
+			    const char *next, const char *UNUSED(end))
 {
 	if (*next != line_termination)
 		die("start: extra input: %s", next);
@@ -321,7 +321,7 @@ static void parse_cmd_start(struct ref_transaction *transaction,
 }
 
 static void parse_cmd_prepare(struct ref_transaction *transaction,
-			      const char *next, const char *end)
+			      const char *next, const char *UNUSED(end))
 {
 	struct strbuf error = STRBUF_INIT;
 	if (*next != line_termination)
@@ -332,7 +332,7 @@ static void parse_cmd_prepare(struct ref_transaction *transaction,
 }
 
 static void parse_cmd_abort(struct ref_transaction *transaction,
-			    const char *next, const char *end)
+			    const char *next, const char *UNUSED(end))
 {
 	struct strbuf error = STRBUF_INIT;
 	if (*next != line_termination)
@@ -343,7 +343,7 @@ static void parse_cmd_abort(struct ref_transaction *transaction,
 }
 
 static void parse_cmd_commit(struct ref_transaction *transaction,
-			     const char *next, const char *end)
+			     const char *next, const char *UNUSED(end))
 {
 	struct strbuf error = STRBUF_INIT;
 	if (*next != line_termination)

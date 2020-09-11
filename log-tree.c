@@ -132,7 +132,8 @@ static int ref_filter_match(const char *refname,
 }
 
 static int add_ref_decoration(const char *refname, const struct object_id *oid,
-			      int flags, void *cb_data)
+			      int UNUSED(flags),
+			      void *cb_data)
 {
 	struct object *obj;
 	enum decoration_type type = DECORATION_NONE;
@@ -183,7 +184,8 @@ static int add_ref_decoration(const char *refname, const struct object_id *oid,
 	return 0;
 }
 
-static int add_graft_decoration(const struct commit_graft *graft, void *cb_data)
+static int add_graft_decoration(const struct commit_graft *graft,
+				void *UNUSED(cb_data))
 {
 	struct commit *commit = lookup_commit(the_repository, &graft->oid);
 	if (!commit)

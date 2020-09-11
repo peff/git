@@ -472,7 +472,7 @@ static struct commit_graph *load_commit_graph_one(const char *graph_file,
 	return g;
 }
 
-static struct commit_graph *load_commit_graph_v1(struct repository *r,
+static struct commit_graph *load_commit_graph_v1(struct repository *UNUSED(r),
 						 struct object_directory *odb)
 {
 	char *graph_name = get_commit_graph_filename(odb);
@@ -1414,7 +1414,7 @@ struct refs_cb_data {
 
 static int add_ref_to_set(const char *refname,
 			  const struct object_id *oid,
-			  int flags, void *cb_data)
+			  int UNUSED(flags), void *cb_data)
 {
 	struct object_id peeled;
 	struct refs_cb_data *data = (struct refs_cb_data *)cb_data;

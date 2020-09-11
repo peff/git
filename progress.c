@@ -59,7 +59,7 @@ void progress_test_force_update(void)
 }
 
 
-static void progress_interval(int signum)
+static void progress_interval(int UNUSED(signum))
 {
 	progress_update = 1;
 }

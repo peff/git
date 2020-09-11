@@ -29,7 +29,7 @@ static int is_in(const char *s, int ch)
 #define LOWER "abcdefghijklmnopqrstuvwxyz"
 #define UPPER "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-int cmd__ctype(int argc, const char **argv)
+int cmd__ctype(int UNUSED(argc), const char **UNUSED(argv))
 {
 	TEST_CLASS(isdigit, DIGIT);
 	TEST_CLASS(isspace, " \n\r\t");

@@ -851,7 +851,8 @@ static int checkout(int submodule_progress)
 	return err;
 }
 
-static int write_one_config(const char *key, const char *value, void *data)
+static int write_one_config(const char *key, const char *value,
+			    void *UNUSED(data))
 {
 	return git_config_set_multivar_gently(key,
 					      value ? value : "true",

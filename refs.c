@@ -363,7 +363,8 @@ struct warn_if_dangling_data {
 	const char *msg_fmt;
 };
 
-static int warn_if_dangling_symref(const char *refname, const struct object_id *oid,
+static int warn_if_dangling_symref(const char *refname,
+				   const struct object_id *UNUSED(oid),
 				   int flags, void *cb_data)
 {
 	struct warn_if_dangling_data *d = cb_data;
@@ -864,8 +865,9 @@ struct read_ref_at_cb {
 };
 
 static int read_ref_at_ent(struct object_id *ooid, struct object_id *noid,
-		const char *email, timestamp_t timestamp, int tz,
-		const char *message, void *cb_data)
+			   const char *UNUSED(email),
+			   timestamp_t timestamp, int tz,
+			   const char *message, void *cb_data)
 {
 	struct read_ref_at_cb *cb = cb_data;
 
@@ -911,8 +913,9 @@ static int read_ref_at_ent(struct object_id *ooid, struct object_id *noid,
 }
 
 static int read_ref_at_ent_oldest(struct object_id *ooid, struct object_id *noid,
-				  const char *email, timestamp_t timestamp,
-				  int tz, const char *message, void *cb_data)
+				  const char *UNUSED(email),
+				  timestamp_t timestamp, int tz,
+				  const char *message, void *cb_data)
 {
 	struct read_ref_at_cb *cb = cb_data;
 
@@ -1430,7 +1433,7 @@ struct do_for_each_ref_help {
 	void *cb_data;
 };
 
-static int do_for_each_ref_helper(struct repository *r,
+static int do_for_each_ref_helper(struct repository *UNUSED(r),
 				  const char *refname,
 				  const struct object_id *oid,
 				  int flags,
@@ -1695,7 +1698,7 @@ struct ref_store_hash_entry
 	char name[FLEX_ARRAY];
 };
 
-static int ref_store_hash_cmp(const void *unused_cmp_data,
+static int ref_store_hash_cmp(const void *UNUSED(cmp_data),
 			      const struct hashmap_entry *eptr,
 			      const struct hashmap_entry *entry_or_key,
 			      const void *keydata)

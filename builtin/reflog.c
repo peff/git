@@ -295,8 +295,9 @@ static int unreachable(struct expire_reflog_policy_cb *cb, struct commit *commit
  * Return true iff the specified reflog entry should be expired.
  */
 static int should_expire_reflog_ent(struct object_id *ooid, struct object_id *noid,
-				    const char *email, timestamp_t timestamp, int tz,
-				    const char *message, void *cb_data)
+				    const char *UNUSED(email),
+				    timestamp_t timestamp, int UNUSED(tz),
+				    const char *UNUSED(message), void *cb_data)
 {
 	struct expire_reflog_policy_cb *cb = cb_data;
 	struct commit *old_commit, *new_commit;
@@ -322,7 +323,8 @@ static int should_expire_reflog_ent(struct object_id *ooid, struct object_id *no
 	return 0;
 }
 
-static int push_tip_to_list(const char *refname, const struct object_id *oid,
+static int push_tip_to_list(const char *UNUSED(refname),
+			    const struct object_id *oid,
 			    int flags, void *cb_data)
 {
 	struct commit_list **list = cb_data;
@@ -404,7 +406,8 @@ static void reflog_expiry_cleanup(void *cb_data)
 	}
 }
 
-static int collect_reflog(const char *ref, const struct object_id *oid, int unused, void *cb_data)
+static int collect_reflog(const char *ref, const struct object_id *oid,
+			  int UNUSED(flags), void *cb_data)
 {
 	struct collected_reflog *e;
 	struct collect_reflog_cb *cb = cb_data;
@@ -654,9 +657,11 @@ static int cmd_reflog_expire(int argc, const char **argv, const char *prefix)
 	return status;
 }
 
-static int count_reflog_ent(struct object_id *ooid, struct object_id *noid,
-		const char *email, timestamp_t timestamp, int tz,
-		const char *message, void *cb_data)
+static int count_reflog_ent(struct object_id *UNUSED(ooid),
+			    struct object_id *UNUSED(noid),
+			    const char *UNUSED(email),
+			    timestamp_t timestamp, int UNUSED(tz),
+			    const char *UNUSED(message), void *cb_data)
 {
 	struct expire_reflog_policy_cb *cb = cb_data;
 	if (!cb->cmd.expire_total || timestamp < cb->cmd.expire_total)
@@ -664,7 +669,8 @@ static int count_reflog_ent(struct object_id *ooid, struct object_id *noid,
 	return 0;
 }
 
-static int cmd_reflog_delete(int argc, const char **argv, const char *prefix)
+static int cmd_reflog_delete(int argc, const char **argv,
+			     const char *UNUSED(prefix))
 {
 	struct expire_reflog_policy_cb cb;
 	int i, status = 0;
@@ -731,7 +737,8 @@ static int cmd_reflog_delete(int argc, const char **argv, const char *prefix)
 	return status;
 }
 
-static int cmd_reflog_exists(int argc, const char **argv, const char *prefix)
+static int cmd_reflog_exists(int argc, const char **argv,
+			     const char *UNUSED(prefix))
 {
 	int i, start = 0;
 

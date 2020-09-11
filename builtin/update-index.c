@@ -725,7 +725,7 @@ static int do_unresolve(int ac, const char **av,
 	return err;
 }
 
-static int do_reupdate(int ac, const char **av,
+static int do_reupdate(int UNUSED(ac), const char **av,
 		       const char *prefix)
 {
 	/* Read HEAD and run update-index on paths that are
@@ -817,7 +817,7 @@ static int chmod_callback(const struct option *opt,
 	return 0;
 }
 
-static int resolve_undo_clear_callback(const struct option *opt,
+static int resolve_undo_clear_callback(const struct option *UNUSED(opt),
 				const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
@@ -851,7 +851,7 @@ static int parse_new_style_cacheinfo(const char *arg,
 }
 
 static enum parse_opt_result cacheinfo_callback(
-	struct parse_opt_ctx_t *ctx, const struct option *opt,
+	struct parse_opt_ctx_t *ctx, const struct option *UNUSED(opt),
 	const char *arg, int unset)
 {
 	struct object_id oid;

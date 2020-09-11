@@ -630,7 +630,7 @@ struct filter_params {
 	const char *path;
 };
 
-static int filter_buffer_or_fd(int in, int out, void *data)
+static int filter_buffer_or_fd(int UNUSED(in), int out, void *data)
 {
 	/*
 	 * Spawn cmd and feed the buffer contents through its stdin.
@@ -1012,7 +1012,7 @@ static int apply_filter(const char *path, const char *src, size_t len,
 	return 0;
 }
 
-static int read_convert_config(const char *var, const char *value, void *cb)
+static int read_convert_config(const char *var, const char *value, void *UNUSED(cb))
 {
 	const char *key, *name;
 	size_t namelen;
@@ -1558,7 +1558,7 @@ struct stream_filter {
 	struct stream_filter_vtbl *vtbl;
 };
 
-static int null_filter_fn(struct stream_filter *filter,
+static int null_filter_fn(struct stream_filter *UNUSED(filter),
 			  const char *input, size_t *isize_p,
 			  char *output, size_t *osize_p)
 {
@@ -1577,7 +1577,7 @@ static int null_filter_fn(struct stream_filter *filter,
 	return 0;
 }
 
-static void null_free_fn(struct stream_filter *filter)
+static void null_free_fn(struct stream_filter *UNUSED(filter))
 {
 	; /* nothing -- null instances are shared */
 }

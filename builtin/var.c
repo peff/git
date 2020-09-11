@@ -18,7 +18,7 @@ static const char *editor(int flag)
 	return pgm;
 }
 
-static const char *pager(int flag)
+static const char *pager(int UNUSED(flag))
 {
 	const char *pgm = git_pager(1);
 
@@ -72,7 +72,7 @@ static int show_config(const char *var, const char *value, void *cb)
 	return git_default_config(var, value, cb);
 }
 
-int cmd_var(int argc, const char **argv, const char *prefix)
+int cmd_var(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	const char *val = NULL;
 	if (argc != 2)

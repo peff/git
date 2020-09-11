@@ -551,7 +551,7 @@ static void load_all(void)
 	}
 }
 
-int cmd_pack_redundant(int argc, const char **argv, const char *prefix)
+int cmd_pack_redundant(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	int i;
 	struct pack_list *min = NULL, *red, *pl;

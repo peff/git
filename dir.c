@@ -640,10 +640,10 @@ void parse_path_pattern(const char **pattern,
 	*patternlen = len;
 }
 
-int pl_hashmap_cmp(const void *unused_cmp_data,
+int pl_hashmap_cmp(const void *UNUSED(cmp_data),
 		   const struct hashmap_entry *a,
 		   const struct hashmap_entry *b,
-		   const void *key)
+		   const void *UNUSED(key))
 {
 	const struct pattern_entry *ee1 =
 			container_of(a, struct pattern_entry, ent);
@@ -1239,7 +1239,7 @@ int match_basename(const char *basename, int basenamelen,
 int match_pathname(const char *pathname, int pathlen,
 		   const char *base, int baselen,
 		   const char *pattern, int prefix, int patternlen,
-		   unsigned flags)
+		   unsigned UNUSED(flags))
 {
 	const char *name;
 	int namelen;

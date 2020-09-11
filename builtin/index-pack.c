@@ -206,7 +206,9 @@ static void warn_large_object(const struct object_id *oid, unsigned long size)
 	large_obj_unlock();
 }
 
-static int mark_link(struct object *obj, int type, void *data, struct fsck_options *options)
+static int mark_link(struct object *obj, int type,
+		     void *UNUSED(data),
+		     struct fsck_options *UNUSED(options))
 {
 	if (!obj)
 		return -1;

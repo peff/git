@@ -262,7 +262,8 @@ static const char *abbrev_ref(const char *name, const char *prefix)
 }
 #define abbrev_branch(name) abbrev_ref((name), "refs/heads/")
 
-static int config_read_branches(const char *key, const char *value, void *cb)
+static int config_read_branches(const char *key, const char *value,
+				void *UNUSED(data))
 {
 	const char *orig_key = key;
 	char *name;
@@ -527,7 +528,8 @@ struct branches_for_remote {
 };
 
 static int add_branch_for_removal(const char *refname,
-	const struct object_id *oid, int flags, void *cb_data)
+				  const struct object_id *UNUSED(oid),
+				  int UNUSED(flags), void *cb_data)
 {
 	struct branches_for_remote *branches = cb_data;
 	struct refspec_item refspec;
@@ -568,7 +570,8 @@ struct rename_info {
 };
 
 static int read_remote_branches(const char *refname,
-	const struct object_id *oid, int flags, void *cb_data)
+				const struct object_id *UNUSED(oid),
+				int UNUSED(flags), void *cb_data)
 {
 	struct rename_info *rename = cb_data;
 	struct strbuf buf = STRBUF_INIT;
@@ -896,7 +899,7 @@ static int rm(int argc, const char **argv)
 	return result;
 }
 
-static void clear_push_info(void *util, const char *string)
+static void clear_push_info(void *util, const char *UNUSED(string))
 {
 	struct push_info *info = util;
 	free(info->dest);
@@ -913,7 +916,8 @@ static void free_remote_ref_states(struct ref_states *states)
 }
 
 static int append_ref_to_tracked_list(const char *refname,
-	const struct object_id *oid, int flags, void *cb_data)
+				      const struct object_id *UNUSED(oid),
+				      int flags, void *cb_data)
 {
 	struct ref_states *states = cb_data;
 	struct refspec_item refspec;
@@ -1435,7 +1439,7 @@ static int prune(int argc, const char **argv)
 	return result;
 }
 
-static int get_remote_default(const char *key, const char *value, void *priv)
+static int get_remote_default(const char *key, const char *UNUSED(value), void *priv)
 {
 	if (strcmp(key, "remotes.default") == 0) {
 		int *found = priv;

@@ -41,7 +41,7 @@ struct show_data {
 
 static int show_reference(struct repository *r, const char *refname,
 			  const struct object_id *oid,
-			  int flag, void *cb_data)
+			  int UNUSED(flag), void *cb_data)
 {
 	struct show_data *data = cb_data;
 
@@ -399,7 +399,7 @@ struct check_mergetag_data {
 	const char **argv;
 };
 
-static int check_one_mergetag(struct commit *commit,
+static int check_one_mergetag(struct commit *UNUSED(commit),
 			       struct commit_extra_header *extra,
 			       void *data)
 {

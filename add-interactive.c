@@ -416,7 +416,7 @@ struct pathname_entry {
 	struct file_item *item;
 };
 
-static int pathname_entry_cmp(const void *unused_cmp_data,
+static int pathname_entry_cmp(const void *UNUSED(cmp_data),
 			      const struct hashmap_entry *he1,
 			      const struct hashmap_entry *he2,
 			      const void *name)
@@ -703,7 +703,7 @@ static int run_update(struct add_i_state *s, const struct pathspec *ps,
 }
 
 static void revert_from_diff(struct diff_queue_struct *q,
-			     struct diff_options *opt, void *data)
+			     struct diff_options *opt, void *UNUSED(data))
 {
 	int i, add_flags = ADD_CACHE_OK_TO_ADD | ADD_CACHE_OK_TO_REPLACE;
 
@@ -994,9 +994,9 @@ static int run_diff(struct add_i_state *s, const struct pathspec *ps,
 	return res;
 }
 
-static int run_help(struct add_i_state *s, const struct pathspec *unused_ps,
-		    struct prefix_item_list *unused_files,
-		    struct list_and_choose_options *unused_opts)
+static int run_help(struct add_i_state *s, const struct pathspec *UNUSED(ps),
+		    struct prefix_item_list *UNUSED(files),
+		    struct list_and_choose_options *UNUSED(opts))
 {
 	color_fprintf_ln(stdout, s->help_color, "status        - %s",
 			 _("show paths with changes"));
@@ -1047,7 +1047,7 @@ struct print_command_item_data {
 	const char *color, *reset;
 };
 
-static void print_command_item(int i, int selected,
+static void print_command_item(int i, int UNUSED(selected),
 			       struct string_list_item *item,
 			       void *print_command_item_data)
 {

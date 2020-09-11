@@ -49,14 +49,14 @@ void reset_merge_attributes(void)
 /*
  * Built-in low-levels
  */
-static int ll_binary_merge(const struct ll_merge_driver *drv_unused,
+static int ll_binary_merge(const struct ll_merge_driver *UNUSED(drv),
 			   mmbuffer_t *result,
 			   const char *path,
-			   mmfile_t *orig, const char *orig_name,
+			   mmfile_t *orig, const char *UNUSED(orig_name),
 			   mmfile_t *src1, const char *name1,
 			   mmfile_t *src2, const char *name2,
 			   const struct ll_merge_options *opts,
-			   int marker_size)
+			   int UNUSED(marker_size))
 {
 	mmfile_t *stolen;
 	assert(opts);
@@ -137,9 +137,9 @@ static int ll_xdl_merge(const struct ll_merge_driver *drv_unused,
 static int ll_union_merge(const struct ll_merge_driver *drv_unused,
 			  mmbuffer_t *result,
 			  const char *path_unused,
-			  mmfile_t *orig, const char *orig_name,
-			  mmfile_t *src1, const char *name1,
-			  mmfile_t *src2, const char *name2,
+			  mmfile_t *orig, const char *UNUSED(orig_name),
+			  mmfile_t *src1, const char *UNUSED(name1),
+			  mmfile_t *src2, const char *UNUSED(name2),
 			  const struct ll_merge_options *opts,
 			  int marker_size)
 {
@@ -179,9 +179,9 @@ static void create_temp(mmfile_t *src, char *path, size_t len)
 static int ll_ext_merge(const struct ll_merge_driver *fn,
 			mmbuffer_t *result,
 			const char *path,
-			mmfile_t *orig, const char *orig_name,
-			mmfile_t *src1, const char *name1,
-			mmfile_t *src2, const char *name2,
+			mmfile_t *orig, const char *UNUSED(orig_name),
+			mmfile_t *src1, const char *UNUSED(name1),
+			mmfile_t *src2, const char *UNUSED(name2),
 			const struct ll_merge_options *opts,
 			int marker_size)
 {
@@ -243,7 +243,8 @@ static int ll_ext_merge(const struct ll_merge_driver *fn,
 static struct ll_merge_driver *ll_user_merge, **ll_user_merge_tail;
 static const char *default_ll_merge;
 
-static int read_merge_config(const char *var, const char *value, void *cb)
+static int read_merge_config(const char *var, const char *value,
+			     void *UNUSED(cb))
 {
 	struct ll_merge_driver *fn;
 	const char *key, *name;

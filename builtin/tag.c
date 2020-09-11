@@ -98,7 +98,8 @@ static int for_each_tag_name(const char **argv, each_tag_name_fn fn,
 }
 
 static int delete_tag(const char *name, const char *ref,
-		      const struct object_id *oid, const void *cb_data)
+		      const struct object_id *oid,
+		      const void *UNUSED(cb_data))
 {
 	if (delete_ref(NULL, ref, oid, 0))
 		return 1;
@@ -107,7 +108,7 @@ static int delete_tag(const char *name, const char *ref,
 	return 0;
 }
 
-static int verify_tag(const char *name, const char *ref,
+static int verify_tag(const char *name, const char *UNUSED(ref),
 		      const struct object_id *oid, const void *cb_data)
 {
 	int flags;

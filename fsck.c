@@ -1256,7 +1256,7 @@ int fsck_object(struct object *obj, void *data, unsigned long size,
 
 int fsck_error_function(struct fsck_options *o,
 			const struct object_id *oid,
-			enum object_type object_type,
+			enum object_type UNUSED(object_type),
 			int msg_type, const char *message)
 {
 	if (msg_type == FSCK_WARN) {

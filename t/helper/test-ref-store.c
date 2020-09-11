@@ -115,7 +115,7 @@ static int cmd_rename_ref(struct ref_store *refs, const char **argv)
 }
 
 static int each_ref(const char *refname, const struct object_id *oid,
-		    int flags, void *cb_data)
+		    int flags, void *UNUSED(cb_data))
 {
 	printf("%s %s 0x%x\n", oid_to_hex(oid), refname, flags);
 	return 0;
@@ -154,14 +154,15 @@ static int cmd_verify_ref(struct ref_store *refs, const char **argv)
 	return ret;
 }
 
-static int cmd_for_each_reflog(struct ref_store *refs, const char **argv)
+static int cmd_for_each_reflog(struct ref_store *refs,
+			       const char **UNUSED(argv))
 {
 	return refs_for_each_reflog(refs, each_ref, NULL);
 }
 
 static int each_reflog(struct object_id *old_oid, struct object_id *new_oid,
 		       const char *committer, timestamp_t timestamp,
-		       int tz, const char *msg, void *cb_data)
+		       int tz, const char *msg, void *UNUSED(cb_data))
 {
 	printf("%s %s %s %"PRItime" %d %s\n",
 	       oid_to_hex(old_oid), oid_to_hex(new_oid),
@@ -210,7 +211,8 @@ static int cmd_delete_reflog(struct ref_store *refs, const char **argv)
 	return refs_delete_reflog(refs, refname);
 }
 
-static int cmd_reflog_expire(struct ref_store *refs, const char **argv)
+static int cmd_reflog_expire(struct ref_store *UNUSED(refs),
+			     const char **UNUSED(argv))
 {
 	die("not supported yet");
 }
@@ -277,7 +279,7 @@ static struct command commands[] = {
 	{ NULL, NULL }
 };
 
-int cmd__ref_store(int argc, const char **argv)
+int cmd__ref_store(int UNUSED(argc), const char **argv)
 {
 	struct ref_store *refs;
 	const char *func;

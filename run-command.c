@@ -347,19 +347,19 @@ static void fake_fatal(const char *err, va_list params)
 	vreportf("fatal: ", err, params);
 }
 
-static void child_error_fn(const char *err, va_list params)
+static void child_error_fn(const char *UNUSED(err), va_list UNUSED(params))
 {
 	const char msg[] = "error() should not be called in child\n";
 	xwrite(2, msg, sizeof(msg) - 1);
 }
 
-static void child_warn_fn(const char *err, va_list params)
+static void child_warn_fn(const char *UNUSED(err), va_list UNUSED(params))
 {
 	const char msg[] = "warn() should not be called in child\n";
 	xwrite(2, msg, sizeof(msg) - 1);
 }
 
-static void NORETURN child_die_fn(const char *err, va_list params)
+static void NORETURN child_die_fn(const char *UNUSED(err), va_list UNUSED(params))
 {
 	const char msg[] = "die() should not be called in child\n";
 	xwrite(2, msg, sizeof(msg) - 1);
@@ -1584,17 +1584,17 @@ struct parallel_processes {
 	struct strbuf buffered_output; /* of finished children */
 };
 
-static int default_start_failure(struct strbuf *out,
-				 void *pp_cb,
-				 void *pp_task_cb)
+static int default_start_failure(struct strbuf *UNUSED(out),
+				 void *UNUSED(pp_cb),
+				 void *UNUSED(pp_task_cb))
 {
 	return 0;
 }
 
-static int default_task_finished(int result,
-				 struct strbuf *out,
-				 void *pp_cb,
-				 void *pp_task_cb)
+static int default_task_finished(int UNUSED(result),
+				 struct strbuf *UNUSED(out),
+				 void *UNUSED(pp_cb),
+				 void *UNUSED(pp_task_cb))
 {
 	return 0;
 }

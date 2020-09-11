@@ -438,7 +438,7 @@ static char short_submodule_status(struct wt_status_change_data *d)
 }
 
 static void wt_status_collect_changed_cb(struct diff_queue_struct *q,
-					 struct diff_options *options,
+					 struct diff_options *UNUSED(options),
 					 void *data)
 {
 	struct wt_status *s = data;
@@ -525,7 +525,7 @@ static int unmerged_mask(struct index_state *istate, const char *path)
 }
 
 static void wt_status_collect_updated_cb(struct diff_queue_struct *q,
-					 struct diff_options *options,
+					 struct diff_options *UNUSED(options),
 					 void *data)
 {
 	struct wt_status *s = data;
@@ -879,9 +879,11 @@ static void wt_longstatus_print_changed(struct wt_status *s)
 	wt_longstatus_print_trailer(s);
 }
 
-static int stash_count_refs(struct object_id *ooid, struct object_id *noid,
-			    const char *email, timestamp_t timestamp, int tz,
-			    const char *message, void *cb_data)
+static int stash_count_refs(struct object_id *UNUSED(ooid),
+			    struct object_id *UNUSED(noid),
+			    const char *UNUSED(email),
+			    timestamp_t UNUSED(timestamp), int UNUSED(tz),
+			    const char *UNUSED(message), void *cb_data)
 {
 	int *c = cb_data;
 	(*c)++;
@@ -1528,8 +1530,10 @@ struct grab_1st_switch_cbdata {
 	struct object_id noid;
 };
 
-static int grab_1st_switch(struct object_id *ooid, struct object_id *noid,
-			   const char *email, timestamp_t timestamp, int tz,
+static int grab_1st_switch(struct object_id *UNUSED(ooid),
+			   struct object_id *noid,
+			   const char *UNUSED(email),
+			   timestamp_t UNUSED(timestamp), int UNUSED(tz),
 			   const char *message, void *cb_data)
 {
 	struct grab_1st_switch_cbdata *cb = cb_data;

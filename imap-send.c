@@ -215,10 +215,14 @@ static void socket_perror(const char *func, struct imap_socket *sock, int ret)
 		else
 			fprintf(stderr, "%s: unexpected EOF\n", func);
 	}
+	/* mark as used to appease -Wunused-parameter with NO_OPENSSL */
+	(void)sock;
 }
 
 #ifdef NO_OPENSSL
-static int ssl_socket_connect(struct imap_socket *sock, int use_tls_only, int verify)
+static int ssl_socket_connect(struct imap_socket *UNUSED(sock),
+			      int UNUSED(use_tls_only),
+			      int UNUSED(verify))
 {
 	fprintf(stderr, "SSL requested but SSL support not compiled in\n");
 	return -1;
@@ -912,7 +916,9 @@ static char *cram(const char *challenge_64, const char *user, const char *pass)
 
 #else
 
-static char *cram(const char *challenge_64, const char *user, const char *pass)
+static char *cram(const char *UNUSED(challenge_64),
+		  const char *UNUSED(user),
+		  const char *UNUSED(pass))
 {
 	die("If you want to use CRAM-MD5 authenticate method, "
 	    "you have to build git-imap-send with OpenSSL library.");
@@ -920,7 +926,7 @@ static char *cram(const char *challenge_64, const char *user, const char *pass)
 
 #endif
 
-static int auth_cram_md5(struct imap_store *ctx, struct imap_cmd *cmd, const char *prompt)
+static int auth_cram_md5(struct imap_store *ctx, struct imap_cmd *UNUSED(cmd), const char *prompt)
 {
 	int ret;
 	char *response;
@@ -1408,7 +1414,7 @@ static int append_msgs_to_imap(struct imap_server_conf *server,
 }
 
 #ifdef USE_CURL_FOR_IMAP_SEND
-static CURL *setup_curl(struct imap_server_conf *srvc, struct credential *cred)
+static CURL *setup_curl(struct imap_server_conf *UNUSED(srvc), struct credential *cred)
 {
 	CURL *curl;
 	struct strbuf path = STRBUF_INIT;

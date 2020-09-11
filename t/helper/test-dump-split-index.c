@@ -3,12 +3,12 @@
 #include "split-index.h"
 #include "ewah/ewok.h"
 
-static void show_bit(size_t pos, void *data)
+static void show_bit(size_t pos, void *UNUSED(data))
 {
 	printf(" %d", (int)pos);
 }
 
-int cmd__dump_split_index(int ac, const char **av)
+int cmd__dump_split_index(int UNUSED(ac), const char **av)
 {
 	struct split_index *si;
 	int i;

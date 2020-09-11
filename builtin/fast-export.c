@@ -48,7 +48,7 @@ static int anonymize;
 static struct hashmap anonymized_seeds;
 static struct revision_sources revision_sources;
 
-static int parse_opt_signed_tag_mode(const struct option *opt,
+static int parse_opt_signed_tag_mode(const struct option *UNUSED(opt),
 				     const char *arg, int unset)
 {
 	if (unset || !strcmp(arg, "abort"))
@@ -66,7 +66,7 @@ static int parse_opt_signed_tag_mode(const struct option *opt,
 	return 0;
 }
 
-static int parse_opt_tag_of_filtered_mode(const struct option *opt,
+static int parse_opt_tag_of_filtered_mode(const struct option *UNUSED(opt),
 					  const char *arg, int unset)
 {
 	if (unset || !strcmp(arg, "abort"))
@@ -80,7 +80,7 @@ static int parse_opt_tag_of_filtered_mode(const struct option *opt,
 	return 0;
 }
 
-static int parse_opt_reencode_mode(const struct option *opt,
+static int parse_opt_reencode_mode(const struct option *UNUSED(opt),
 				   const char *arg, int unset)
 {
 	if (unset) {
@@ -131,7 +131,7 @@ struct anonymized_entry_key {
 	size_t orig_len;
 };
 
-static int anonymized_entry_cmp(const void *unused_cmp_data,
+static int anonymized_entry_cmp(const void *UNUSED(cmp_data),
 				const struct hashmap_entry *eptr,
 				const struct hashmap_entry *entry_or_key,
 				const void *keydata)
@@ -387,7 +387,7 @@ static void print_path_1(const char *path)
 		printf("%s", path);
 }
 
-static char *anonymize_path_component(void *data)
+static char *anonymize_path_component(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
@@ -409,7 +409,7 @@ static void print_path(const char *path)
 	}
 }
 
-static char *generate_fake_oid(void *data)
+static char *generate_fake_oid(void *UNUSED(data))
 {
 	static uint32_t counter = 1; /* avoid null oid */
 	const unsigned hashsz = the_hash_algo->rawsz;
@@ -429,7 +429,7 @@ static const char *anonymize_oid(const char *oid_hex)
 }
 
 static void show_filemodify(struct diff_queue_struct *q,
-			    struct diff_options *options, void *data)
+			    struct diff_options *UNUSED(options), void *data)
 {
 	int i;
 	struct string_list *changed = data;
@@ -522,7 +522,7 @@ static const char *find_encoding(const char *begin, const char *end)
 	return bol;
 }
 
-static char *anonymize_ref_component(void *data)
+static char *anonymize_ref_component(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
@@ -562,13 +562,13 @@ static const char *anonymize_refname(const char *refname)
  * We do not even bother to cache commit messages, as they are unlikely
  * to be repeated verbatim, and it is not that interesting when they are.
  */
-static char *anonymize_commit_message(const char *old)
+static char *anonymize_commit_message(const char *UNUSED(old))
 {
 	static int counter;
 	return xstrfmt("subject %d\n\nbody\n", counter++);
 }
 
-static char *anonymize_ident(void *data)
+static char *anonymize_ident(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
@@ -752,7 +752,7 @@ static void handle_commit(struct commit *commit, struct rev_info *rev,
 	show_progress();
 }
 
-static char *anonymize_tag(void *data)
+static char *anonymize_tag(void *UNUSED(data))
 {
 	static int counter;
 	struct strbuf out = STRBUF_INIT;
