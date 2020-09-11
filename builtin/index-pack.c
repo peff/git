@@ -83,6 +83,8 @@ static int verbose;
 static int show_resolving_progress;
 static int show_stat;
 static int check_self_contained_and_connected;
+static int unpack_to_loose;
+static unsigned long unpack_limit;
 
 static struct progress *progress;
 
@@ -770,9 +772,9 @@ static int check_collison(struct object_entry *entry)
 	return 0;
 }
 
-static void sha1_object(const void *data, struct object_entry *obj_entry,
-			unsigned long size, enum object_type type,
-			const struct object_id *oid)
+static void process_object(const void *data, struct object_entry *obj_entry,
+			   unsigned long size, enum object_type type,
+			   const struct object_id *oid)
 {
 	void *new_data = NULL;
 	int collision_test_needed = 0;
@@ -859,6 +861,21 @@ static void sha1_object(const void *data, struct object_entry *obj_entry,
 			}
 			obj->flags |= FLAG_CHECKED;
 		}
+		read_unlock();
+	}
+
+	if (unpack_to_loose) {
+		struct object_id dummy;
+
+		/* XXX This will expand too-large objects! */
+		if (!data)
+			data = new_data = get_data_from_pack(obj_entry);
+
+		/* XXX extra unnecessary hash! */
+		/* XXX there should be a thread-safe write_sha1_file! */
+		read_lock();
+		if (write_object_file(data, size, type_name(type), &dummy) < 0)
+			die("failed to write object %s", oid_to_hex(oid));
 		read_unlock();
 	}
 
@@ -951,8 +968,8 @@ static void resolve_delta(struct object_entry *delta_obj,
 		bad_object(delta_obj->idx.offset, _("failed to apply delta"));
 	hash_object_file(the_hash_algo, result->data, result->size,
 			 type_name(delta_obj->real_type), &delta_obj->idx.oid);
-	sha1_object(result->data, NULL, result->size, delta_obj->real_type,
-		    &delta_obj->idx.oid);
+	process_object(result->data, NULL, result->size, delta_obj->real_type,
+		       &delta_obj->idx.oid);
 	counter_lock();
 	nr_resolved_deltas++;
 	counter_unlock();
@@ -1140,8 +1157,8 @@ static void parse_pack_objects(unsigned char *hash)
 			obj->real_type = OBJ_BAD;
 			nr_delays++;
 		} else
-			sha1_object(data, NULL, obj->size, obj->type,
-				    &obj->idx.oid);
+			process_object(data, NULL, obj->size, obj->type,
+				       &obj->idx.oid);
 		free(data);
 		display_progress(progress, i+1);
 	}
@@ -1167,8 +1184,8 @@ static void parse_pack_objects(unsigned char *hash)
 		if (obj->real_type != OBJ_BAD)
 			continue;
 		obj->real_type = obj->type;
-		sha1_object(NULL, obj, obj->size, obj->type,
-			    &obj->idx.oid);
+		process_object(NULL, obj, obj->size, obj->type,
+			       &obj->idx.oid);
 		nr_delays--;
 	}
 	if (nr_delays)
@@ -1239,7 +1256,7 @@ static void conclude_pack(int fix_thin_pack, const char *curr_pack, unsigned cha
 		return;
 	}
 
-	if (fix_thin_pack) {
+	if (fix_thin_pack || unpack_to_loose) {
 		struct hashfile *f;
 		unsigned char read_hash[GIT_MAX_RAWSZ], tail_hash[GIT_MAX_RAWSZ];
 		struct strbuf msg = STRBUF_INIT;
@@ -1657,7 +1674,7 @@ static void show_pack_info(int stat_only)
 int cmd_index_pack(int argc, const char **argv, const char *prefix)
 {
 	int i, fix_thin_pack = 0, verify = 0, stat_only = 0;
-	const char *curr_index;
+	const char *curr_index = NULL;
 	const char *index_name = NULL, *pack_name = NULL;
 	const char *keep_msg = NULL;
 	const char *promisor_msg = NULL;
@@ -1766,6 +1783,11 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 				if (hash_algo == GIT_HASH_UNKNOWN)
 					die(_("unknown hash algorithm '%s'"), arg);
 				repo_set_hash_algo(the_repository, hash_algo);
+			} else if (!strcmp(arg, "--unpack")) {
+				unpack_to_loose = 1;
+			} else if (skip_prefix(arg, "--unpack-limit=", &arg)) {
+				if (!git_parse_ulong(arg, &unpack_limit))
+					die("--unpack-limit expects a non-negative integer");
 			} else
 				usage(index_pack_usage);
 			continue;
@@ -1787,9 +1809,7 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 	if (!index_name && pack_name)
 		index_name = derive_filename(pack_name, "idx", &index_name_buf);
 
-	if (verify) {
-		if (!index_name)
-			die(_("--verify with no packfile name given"));
+	if (verify && index_name) {
 		read_idx_option(&opts, index_name);
 		opts.flags |= WRITE_IDX_VERIFY | WRITE_IDX_STRICT;
 	}
@@ -1818,6 +1838,8 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 
 	curr_pack = open_pack_file(pack_name);
 	parse_pack_header();
+	if (nr_objects < unpack_limit)
+		unpack_to_loose = 1;
 	objects = xcalloc(st_add(nr_objects, 1), sizeof(struct object_entry));
 	if (show_stat)
 		obj_stat = xcalloc(st_add(nr_objects, 1), sizeof(struct object_stat));
@@ -1835,13 +1857,15 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 	if (show_stat)
 		show_pack_info(stat_only);
 
-	ALLOC_ARRAY(idx_objects, nr_objects);
-	for (i = 0; i < nr_objects; i++)
-		idx_objects[i] = &objects[i].idx;
-	curr_index = write_idx_file(index_name, idx_objects, nr_objects, &opts, pack_hash);
-	free(idx_objects);
+	if (!unpack_to_loose) {
+		ALLOC_ARRAY(idx_objects, nr_objects);
+		for (i = 0; i < nr_objects; i++)
+			idx_objects[i] = &objects[i].idx;
+		curr_index = write_idx_file(index_name, idx_objects, nr_objects, &opts, pack_hash);
+		free(idx_objects);
+	}
 
-	if (!verify)
+	if (!verify && !unpack_to_loose)
 		final(pack_name, curr_pack,
 		      index_name, curr_index,
 		      keep_msg, promisor_msg,
@@ -1854,8 +1878,13 @@ int cmd_index_pack(int argc, const char **argv, const char *prefix)
 
 	free(objects);
 	strbuf_release(&index_name_buf);
-	if (pack_name == NULL)
+	if (pack_name == NULL) {
+		if (unpack_to_loose) {
+			close(output_fd);
+			unlink_or_warn(curr_pack);
+		}
 		free((void *) curr_pack);
+	}
 	if (index_name == NULL)
 		free((void *) curr_index);
 
