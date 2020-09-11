@@ -819,6 +819,65 @@ static int run_argv(int *argcp, const char ***argv)
 	return done_alias;
 }
 
+static int copy_stdin(int in, int out, void *data)
+{
+	struct trace_key *key = data;
+	while (1) {
+		char buf[8192];
+		ssize_t len = xread(in, buf, sizeof(buf));
+		if (!len)
+			break;
+		if (len < 0) {
+			warning("error reading stdin trace: %s",
+				strerror(errno));
+			break;
+		}
+
+		trace_verbatim(key, buf, len);
+		if (write_in_full(out, buf, len) < 0) {
+			warning("error writing stdin trace: %s",
+				strerror(errno));
+			break;
+		}
+	}
+	close(in);
+	close(out);
+	return 0;
+}
+
+static void trace_stdin(void)
+{
+	static struct trace_key key = TRACE_KEY_INIT(STDIN);
+	static struct async async;
+
+	if (!trace_want(&key))
+		return;
+
+	memset(&async, 0, sizeof(async));
+	async.proc = copy_stdin;
+	async.data = &key;
+	async.in = dup(0);
+	async.out = -1;
+
+	if (async.in < 0 || start_async(&async) < 0) {
+		warning("unable to trace stdin: %s", strerror(errno));
+		return ;
+	}
+
+	/*
+	 * At this point we've handed stdin off to the async process,
+	 * so there we are past the point of no return.
+	 */
+	if (dup2(async.out, 0))
+		die_errno("unable to redirect stdin from async process");
+	close(async.out);
+
+	/*
+	 * leak async; we would know to finish_async() only when we are
+	 * exiting, and there is no point then
+	 */
+}
+
 int cmd_main(int argc, const char **argv)
 {
 	const char *cmd;
@@ -834,6 +893,7 @@ int cmd_main(int argc, const char **argv)
 	}
 
 	trace_command_performance(argv);
+	trace_stdin();
 
 	/*
 	 * "git-xxxx" is the same as "git xxxx", but we obviously:

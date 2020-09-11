@@ -4,6 +4,8 @@
 #include "git-compat-util.h"
 #include "strbuf.h"
 
+struct strvec;
+
 /**
  * The trace API can be used to print debug messages to stderr or a file. Trace
  * code is inactive unless explicitly enabled by setting `GIT_TRACE*` environment
@@ -125,6 +127,13 @@ uint64_t getnanotime(void);
 void trace_command_performance(const char **argv);
 void trace_verbatim(struct trace_key *key, const void *buf, unsigned len);
 uint64_t trace_performance_enter(void);
+
+/**
+ * Load any trace-related config for git command "cmd", and insert the matching
+ * environment variables into "out", which is suitable for use by run-command
+ * and friends.
+ */
+void trace_config_for(const char *cmd, struct strvec *out);
 
 #ifndef HAVE_VARIADIC_MACROS
 
