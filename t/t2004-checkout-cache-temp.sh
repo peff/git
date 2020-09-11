@@ -90,7 +90,7 @@ test_expect_success 'checkout all stage 2 to temporary files' '
 
 test_expect_success 'checkout all stages/one file to nothing' '
 	rm -f path* .merge_* actual &&
-	git checkout-index --stage=all --temp -- path0 >actual &&
+	test_must_fail git checkout-index --stage=all --temp -- path0 >actual &&
 	test_line_count = 0 actual
 '
 
