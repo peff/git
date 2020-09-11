@@ -372,7 +372,7 @@ static int git_help_config(const char *var, const char *value, void *cb)
 	if (starts_with(var, "man."))
 		return add_man_viewer_info(var, value);
 
-	return git_default_config(var, value, cb);
+	return 0;
 }
 
 static struct cmdnames main_cmds, other_cmds;
