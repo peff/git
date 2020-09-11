@@ -9,6 +9,8 @@
 #define DEFAULT_PAGER "less"
 #endif
 
+FILE *original_stderr;
+int original_stderr_fd = -1;
 static struct child_process pager_process = CHILD_PROCESS_INIT;
 static const char *pager_program;
 
@@ -134,8 +136,11 @@ void setup_pager(void)
 
 	/* original process continues, but writes to the pipe */
 	dup2(pager_process.in, 1);
-	if (isatty(2))
+	if (isatty(2)) {
+		original_stderr_fd = dup(2);
+		original_stderr = fdopen(original_stderr_fd, "w");
 		dup2(pager_process.in, 2);
+	}
 	close(pager_process.in);
 
 	pipe_id = pipe_id_get(1);

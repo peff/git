@@ -123,6 +123,13 @@ include::diff-options.txt[]
 	"Unmerged".  Can be used only when comparing the working tree
 	with the index.
 
+--no-progress::
+--progress::
+	Disable or enable progress reporting during long computations;
+	the default is to enable progress reporting when stderr is a
+	terminal. Currently the only computation with progress support
+	is inexact rename detection.
+
 <path>...::
 	The <paths> parameters, when given, are used to limit
 	the diff to the named paths (you can give directory

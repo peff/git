@@ -110,6 +110,13 @@ include::line-range-format.txt[]
 Paths may need to be prefixed with `--` to separate them from
 options or the revision range, when confusion arises.
 
+--no-progress::
+--progress::
+	Disable or enable progress reporting during long computations;
+	the default is to enable progress reporting when stderr is a
+	terminal. Currently the only computation with progress support
+	is inexact rename detection.
+
 include::rev-list-options.txt[]
 
 include::pretty-formats.txt[]
