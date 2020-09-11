@@ -878,6 +878,13 @@ static enum parse_opt_result cacheinfo_callback(
 	return 0;
 }
 
+static int clear_callback(const struct option *opt,
+			  const char *arg, int unset)
+{
+	discard_cache();
+	return 0;
+}
+
 static enum parse_opt_result stdin_cacheinfo_callback(
 	struct parse_opt_ctx_t *ctx, const struct option *opt,
 	const char *arg, int unset)
@@ -1032,6 +1039,9 @@ int cmd_update_index(int argc, const char **argv, const char *prefix)
 			N_("add entries from standard input to the index"),
 			PARSE_OPT_NONEG | PARSE_OPT_NOARG,
 			NULL, 0, stdin_cacheinfo_callback},
+		{OPTION_CALLBACK, 0, "clear", NULL, NULL,
+			"drop all index entries", PARSE_OPT_NONEG | PARSE_OPT_NOARG,
+			clear_callback},
 		{OPTION_LOWLEVEL_CALLBACK, 0, "unresolve", &has_errors, NULL,
 			N_("repopulate stages #2 and #3 for the listed paths"),
 			PARSE_OPT_NONEG | PARSE_OPT_NOARG,
