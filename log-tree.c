@@ -597,6 +597,28 @@ static int show_mergetag(struct rev_info *opt, struct commit *commit)
 	return for_each_mergetag(show_one_mergetag, commit, opt);
 }
 
+static void show_commit_header(struct rev_info *opt,
+			       struct pretty_print_context *pp,
+			       struct commit *commit)
+{
+	struct strbuf out = STRBUF_INIT;
+
+	format_commit_message(commit, opt->commit_header, &out, pp);
+	strbuf_complete_line(&out);
+
+	if (!strbuf_cmp(&out, &opt->last_commit_header)) {
+		strbuf_release(&out);
+		return;
+	}
+
+	graph_show_precommit(opt->graph);
+	graph_show_padding(opt->graph);
+	fwrite(out.buf, 1, out.len, opt->diffopt.file);
+
+	strbuf_swap(&out, &opt->last_commit_header);
+	strbuf_release(&out);
+}
+
 static void next_commentary_block(struct rev_info *opt, struct strbuf *sb)
 {
 	const char *x = opt->shown_dashes ? "\n" : "---\n";
@@ -661,6 +683,15 @@ void show_log(struct rev_info *opt)
 		putc(opt->diffopt.line_termination, opt->diffopt.file);
 	}
 	opt->shown_one = 1;
+
+	if (opt->commit_header) {
+		/*
+		 * XXX probably the initialization of the pretty ctx from "opt"
+		 * below should happen sooner so we can use it.
+		 */
+		ctx.color = opt->diffopt.use_color;
+		show_commit_header(opt, &ctx, commit);
+	}
 
 	/*
 	 * If the history graph was requested,

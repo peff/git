@@ -242,6 +242,9 @@ struct rev_info {
 	int		show_log_size;
 	struct string_list *mailmap;
 
+	const char *commit_header;
+	struct strbuf last_commit_header;
+
 	/* Filter by commit log message */
 	struct grep_opt	grep_filter;
 	/* Negate the match of grep_filter */
