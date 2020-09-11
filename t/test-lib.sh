@@ -963,19 +963,29 @@ test_eval_ () {
 	return $test_eval_ret_
 }
 
+chainlint_fail () {
+	return 117
+}
+
 test_run_ () {
 	test_cleanup=:
 	expecting_failure=$2
 
 	if test "${GIT_TEST_CHAIN_LINT:-1}" != 0; then
+		if test "${GIT_TEST_CHAIN_LINT_HARDER:-1}" != 0 &&
+		   $(printf '%s\n' "$1" | sed -f "$GIT_BUILD_DIR/t/chainlint.sed" | grep -q '?![A-Z][A-Z]*?!')
+		then
+			BUG "broken &&-chain or run-away HERE-DOC: $1"
+		fi
+
 		# turn off tracing for this test-eval, as it simply creates
 		# confusing noise in the "-x" output
 		trace_tmp=$trace
 		trace=
 		# 117 is magic because it is unlikely to match the exit
 		# code of other programs
-		if $(printf '%s\n' "$1" | sed -f "$GIT_BUILD_DIR/t/chainlint.sed" | grep -q '?![A-Z][A-Z]*?!') ||
-			test "OK-117" != "$(test_eval_ "(exit 117) && $1${LF}${LF}echo OK-\$?" 3>&1)"
+
+		if test "OK-117" != "$(test_eval_ "chainlint_fail && $1${LF}${LF}echo OK-\$?" 3>&1)"
 		then
 			BUG "broken &&-chain or run-away HERE-DOC: $1"
 		fi
