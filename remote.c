@@ -14,6 +14,7 @@
 #include "strvec.h"
 #include "commit-reach.h"
 #include "advice.h"
+#include "pack-bitmap.h"
 
 enum map_direction { FROM_SRC, FROM_DST };
 
@@ -1880,8 +1881,6 @@ static int stat_branch_pair(const char *branch_name, const char *base,
 {
 	struct object_id oid;
 	struct commit *ours, *theirs;
-	struct rev_info revs;
-	struct strvec argv = STRVEC_INIT;
 
 	/* Cannot stat if what we used to build on no longer exists */
 	if (read_ref(base, &oid))
@@ -1896,6 +1895,16 @@ static int stat_branch_pair(const char *branch_name, const char *base,
 	if (!ours)
 		return -1;
 
+	return revision_ahead_behind(ours, theirs, num_ours, num_theirs, abf);
+}
+
+int revision_ahead_behind(struct commit *ours, struct commit *theirs,
+			  int *num_ours, int *num_theirs,
+			  enum ahead_behind_flags abf)
+{
+	struct rev_info revs;
+	struct strvec argv = STRVEC_INIT;
+
 	*num_theirs = *num_ours = 0;
 
 	/* are we the same? */
@@ -1905,6 +1914,11 @@ static int stat_branch_pair(const char *branch_name, const char *base,
 		return 1;
 	if (abf != AHEAD_BEHIND_FULL)
 		BUG("stat_branch_pair: invalid abf '%d'", abf);
+
+	/* fast path: if bitmaps are available, we can greatly speed up
+	 * the ahead-behind calculation by generating traversal bitmaps */
+	if (!bitmap_ahead_behind(ours, theirs, num_ours, num_theirs))
+		return 0;
 
 	/* Run "rev-list --left-right ours...theirs" internally... */
 	strvec_push(&argv, ""); /* ignored */
