@@ -598,6 +598,30 @@ test_expect_success 'directory becomes symlink'        '
 	(cd result && git show master:foo)
 '
 
+test_expect_success 'symlink becomes directory'        '
+	git init symlinktodir &&
+	git init symlinktodirresult &&
+	(
+		cd symlinktodir &&
+		mkdir bar &&
+		echo hello > bar/world &&
+		test_ln_s_add bar foo &&
+		git add foo bar/world &&
+		git commit -q -mone &&
+		git rm foo &&
+		mkdir foo &&
+		echo hello > foo/world &&
+		git add foo/world &&
+		git commit -q -mtwo
+	) &&
+	(
+		cd symlinktodir &&
+		git fast-export master -- foo |
+		(cd ../symlinktodirresult && git fast-import --quiet)
+	) &&
+	(cd symlinktodirresult && git show master:foo)
+'
+
 test_expect_success 'fast-export quotes pathnames' '
 	git init crazy-paths &&
 	test_config -C crazy-paths core.protectNTFS false &&

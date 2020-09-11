@@ -345,6 +345,14 @@ static int depth_first(const void *a_, const void *b_)
 	const char *name_a, *name_b;
 	int len_a, len_b, len;
 	int cmp;
+	int deletion;
+
+	/*
+	 * Move all deletions first, to make room for any later modifications.
+	 */
+	deletion = (b->status == 'D') - (a->status == 'D');
+	if (deletion)
+		return deletion;
 
 	name_a = a->one ? a->one->path : a->two->path;
 	name_b = b->one ? b->one->path : b->two->path;
