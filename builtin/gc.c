@@ -1376,7 +1376,7 @@ static void initialize_task_config(int schedule)
 	strbuf_release(&config_name);
 }
 
-static int task_option_parse(const struct option *opt,
+static int task_option_parse(const struct option *UNUSED(opt),
 			     const char *arg, int unset)
 {
 	int i, num_selected = 0;
