@@ -1318,7 +1318,8 @@ int packed_object_info_with_index_pos(struct odb_source_packed *source,
 
 	/*
 	 * We always get the representation type, but only convert it to
-	 * a "real" type later if the caller is interested.
+	 * a "real" type later if the caller is interested. Likewise...
+	 * tbd.
 	 */
 	if (oi->contentp) {
 		*oi->contentp = cache_or_unpack_entry(p->repo, p, obj_offset,
@@ -1327,24 +1328,24 @@ int packed_object_info_with_index_pos(struct odb_source_packed *source,
 			type = OBJ_BAD;
 	} else if (oi->sizep || oi->typep || oi->delta_base_oid) {
 		type = unpack_object_header(p, &w_curs, &curpos, &size);
-	}
 
-	if (!oi->contentp && oi->sizep) {
-		if (type == OBJ_OFS_DELTA || type == OBJ_REF_DELTA) {
-			off_t tmp_pos = curpos;
-			off_t base_offset = get_delta_base(p, &w_curs, &tmp_pos,
-							   type, obj_offset);
-			if (!base_offset) {
-				ret = -1;
-				goto out;
+		if (oi->sizep) {
+			if (type == OBJ_OFS_DELTA || type == OBJ_REF_DELTA) {
+				off_t tmp_pos = curpos;
+				off_t base_offset = get_delta_base(p, &w_curs, &tmp_pos,
+								   type, obj_offset);
+				if (!base_offset) {
+					ret = -1;
+					goto out;
+				}
+				size = get_size_from_delta(p, &w_curs, tmp_pos);
+				if (size == 0) {
+					ret = -1;
+					goto out;
+				}
 			}
-			size = get_size_from_delta(p, &w_curs, tmp_pos);
-			if (size == 0) {
-				ret = -1;
-				goto out;
-			}
+			*oi->sizep = size;
 		}
-		*oi->sizep = size;
 	}
 
 	if (oi->disk_sizep || (oi->mtimep && p->is_cruft)) {
