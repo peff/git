@@ -200,6 +200,7 @@ struct expand_data {
 	off_t disk_size;
 	const char *rest;
 	struct object_id delta_base_oid;
+	void *content;
 
 	/*
 	 * If mark_query is true, we do not expand anything, but rather
@@ -303,7 +304,10 @@ static void print_object_or_die(struct batch_options *opt, struct expand_data *d
 
 	assert(data->info.typep);
 
-	if (data->type == OBJ_BLOB) {
+	if (data->content) {
+		batch_write(opt, data->content, data->size);
+		FREE_AND_NULL(data->content);
+	} else if (data->type == OBJ_BLOB) {
 		if (opt->buffer_output)
 			fflush(stdout);
 		if (opt->cmdmode) {
@@ -521,9 +525,18 @@ static int batch_objects(struct batch_options *opt)
 	/*
 	 * If we are printing out the object, then always fill in the type,
 	 * since we will want to decide whether or not to stream.
+	 *
+	 * Likewise, grab the content in the initial request if it's small
+	 * and we're not planning to filter it.
 	 */
-	if (opt->print_contents)
+	if (opt->print_contents) {
 		data.info.typep = &data.type;
+		if (!opt->cmdmode) {
+			data.info.sizep = &data.size;
+			data.info.contentp = &data.content;
+			data.info.content_limit = big_file_threshold;
+		}
+	}
 
 	if (opt->all_objects) {
 		struct object_cb_data cb;
