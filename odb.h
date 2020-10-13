@@ -370,6 +370,7 @@ struct object_info {
 
 	/* The object contents. Ownership of memory goes over to the caller. */
 	void **contentp;
+	size_t content_limit;
 
 	/*
 	 * The time the given looked-up object has been last modified.

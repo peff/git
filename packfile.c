@@ -1321,7 +1321,7 @@ int packed_object_info_with_index_pos(struct odb_source_packed *source,
 	 * a "real" type later if the caller is interested. Likewise...
 	 * tbd.
 	 */
-	if (oi->contentp) {
+	if (oi->contentp && !oi->content_limit) {
 		*oi->contentp = cache_or_unpack_entry(p->repo, p, obj_offset,
 						      oi->sizep, &type);
 		if (!*oi->contentp)
@@ -1345,6 +1345,17 @@ int packed_object_info_with_index_pos(struct odb_source_packed *source,
 				}
 			}
 			*oi->sizep = size;
+		}
+
+		if (oi->contentp) {
+			if (oi->sizep && *oi->sizep < oi->content_limit) {
+				*oi->contentp = cache_or_unpack_entry(p->repo, p, obj_offset,
+								      oi->sizep, &type);
+				if (!*oi->contentp)
+					type = OBJ_BAD;
+			} else {
+				*oi->contentp = NULL;
+			}
 		}
 	}
 
