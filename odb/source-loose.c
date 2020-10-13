@@ -171,10 +171,14 @@ static int read_object_info_from_path(struct odb_source_loose *loose,
 			die(_("invalid object type"));
 
 		if (oi->contentp) {
-			*oi->contentp = unpack_loose_rest(&stream, hdr, *oi->sizep, oid);
-			if (!*oi->contentp) {
-				ret = -1;
-				goto out;
+			if (!oi->content_limit || *oi->sizep <= oi->content_limit) {
+				*oi->contentp = unpack_loose_rest(&stream, hdr, *oi->sizep, oid);
+				if (!*oi->contentp) {
+					ret = -1;
+					goto out;
+				}
+			} else {
+				*oi->contentp = NULL;
 			}
 		}
 
