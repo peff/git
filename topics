@@ -5,6 +5,7 @@ eval "$(
 	Meta/topics [options]
 	--
 	v           show subject of tip commit
+	p	    prettify output
 	u           show upstream branches
 	t           sort by authordate
 	format=s    custom output format
@@ -13,9 +14,11 @@ eval "$(
 
 format='%(refname:short)'
 sortby=refname
+pretty=
 while test $# -gt 0; do
 	case "$1" in
-	-v) format='%(refname:short) %(subject)' ;;
+	-v) format='%(refname:short) %(subject)'; pretty=t ;;
+	-p) pretty=t ;;
 	-t) sortby=-authordate ;;
 	-u) format='%(refname:short) %(upstream:short)' ;;
 	--format) format=$2; shift ;;
@@ -26,7 +29,11 @@ done
 
 git for-each-ref --sort=$sortby --format="$format" refs/heads |
 egrep '^[a-z]*/' |
-perl -pe '
-  s/(\S+) /$& . " " x (30 - length($1))/e; # line up subjects
-  s/^(.{79}).*/$1/; # truncate long lines
-'
+if test -n "$pretty"; then
+	perl -pe '
+		s/(\S+) /$& . " " x (30 - length($1))/e; # line up subjects
+		s/^(.{79}).*/$1/; # truncate long lines
+	'
+else
+	cat
+fi
