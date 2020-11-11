@@ -529,7 +529,7 @@ static void clear_or_reinit_internal_opts(struct merge_options_internal *opti,
 	renames->callback_data_nr = renames->callback_data_alloc = 0;
 }
 
-static int err(struct merge_options *opt, const char *err, ...)
+static int err(struct merge_options *UNUSED(opt), const char *err, ...)
 {
 	va_list params;
 	struct strbuf sb = STRBUF_INIT;
@@ -567,7 +567,7 @@ static void format_commit(struct strbuf *sb,
 __attribute__((format (printf, 4, 5)))
 static void path_msg(struct merge_options *opt,
 		     const char *path,
-		     int omittable_hint, /* skippable under --remerge-diff */
+		     int UNUSED(omittable_hint), /* skippable under --remerge-diff */
 		     const char *fmt, ...)
 {
 	va_list ap;
@@ -2438,7 +2438,7 @@ static void prune_cached_from_relevant(struct rename_info *renames,
 	}
 }
 
-static void use_cached_pairs(struct merge_options *opt,
+static void use_cached_pairs(struct merge_options *UNUSED(opt),
 			     struct strmap *cached_pairs,
 			     struct diff_queue_struct *pairs)
 {
@@ -2663,9 +2663,9 @@ static int collect_renames(struct merge_options *opt,
 }
 
 static int detect_and_process_renames(struct merge_options *opt,
-				      struct tree *merge_base,
-				      struct tree *side1,
-				      struct tree *side2)
+				      struct tree *UNUSED(merge_base),
+				      struct tree *UNUSED(side1),
+				      struct tree *UNUSED(side2))
 {
 	struct diff_queue_struct combined;
 	struct rename_info *renames = &opt->priv->renames;
@@ -3954,7 +3954,7 @@ static void merge_start(struct merge_options *opt, struct merge_result *result)
 	trace2_region_leave("merge", "allocate/init", opt->repo);
 }
 
-static void merge_check_renames_reusable(struct merge_options *opt,
+static void merge_check_renames_reusable(struct merge_options *UNUSED(opt),
 					 struct merge_result *result,
 					 struct tree *merge_base,
 					 struct tree *side1,
