@@ -129,7 +129,7 @@ struct raw_object_store {
 	 * Objects that should be substituted by other objects
 	 * (see git-replace(1)).
 	 */
-	struct oidmap *replace_map;
+	struct oidmap replace_map;
 	unsigned replace_map_initialized : 1;
 	pthread_mutex_t replace_mutex; /* protect object replace functions */
 

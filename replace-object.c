@@ -26,7 +26,7 @@ static int register_replace_ref(struct repository *r,
 	oidcpy(&repl_obj->replacement, oid);
 
 	/* Register new object */
-	if (oidmap_put(r->objects->replace_map, repl_obj))
+	if (oidmap_put(&r->objects->replace_map, repl_obj))
 		die(_("duplicate replace ref: %s"), refname);
 
 	return 0;
@@ -43,9 +43,7 @@ void prepare_replace_object(struct repository *r)
 		return;
 	}
 
-	r->objects->replace_map =
-		xmalloc(sizeof(*r->objects->replace_map));
-	oidmap_init(r->objects->replace_map, 0);
+	oidmap_init(&r->objects->replace_map, 0);
 
 	for_each_replace_ref(r, register_replace_ref, NULL);
 	r->objects->replace_map_initialized = 1;
@@ -74,7 +72,7 @@ const struct object_id *do_lookup_replace_object(struct repository *r,
 	/* Try to recursively replace the object */
 	while (depth-- > 0) {
 		struct replace_object *repl_obj =
-			oidmap_get(r->objects->replace_map, cur);
+			oidmap_get(&r->objects->replace_map, cur);
 		if (!repl_obj)
 			return cur;
 		cur = &repl_obj->replacement;
