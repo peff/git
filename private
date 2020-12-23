@@ -163,6 +163,9 @@ while read cmd args; do
 	exec)
 		eval "($args)" || fail
 		;;
+	*)
+		echo >&2 "unknown operation: $cmd"
+		fail
 	esac
 done <"$TODO_FILE"
 
