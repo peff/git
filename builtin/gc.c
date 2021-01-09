@@ -1688,7 +1688,7 @@ static int launchctl_add_plists(const char *cmd)
 		launchctl_schedule_plist(exec_path, SCHEDULE_WEEKLY, cmd);
 }
 
-static int launchctl_update_schedule(int run_maintenance, int fd, const char *cmd)
+static int launchctl_update_schedule(int run_maintenance, int UNUSED(fd), const char *cmd)
 {
 	if (run_maintenance)
 		return launchctl_add_plists(cmd);
@@ -1850,7 +1850,7 @@ static int schtasks_schedule_tasks(const char *cmd)
 		schtasks_schedule_task(exec_path, SCHEDULE_WEEKLY, cmd);
 }
 
-static int schtasks_update_schedule(int run_maintenance, int fd, const char *cmd)
+static int schtasks_update_schedule(int run_maintenance, int UNUSED(fd), const char *cmd)
 {
 	if (run_maintenance)
 		return schtasks_schedule_tasks(cmd);
