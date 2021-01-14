@@ -13,8 +13,6 @@ endif
 CFLAGS =
 
 ifdef SANITIZE
-CFLAGS += -fsanitize=$(SANITIZE) -fno-sanitize-recover=$(SANITIZE)
-CFLAGS += -fno-omit-frame-pointer
 ifeq ($(SANITIZE),memory)
 CFLAGS += -fsanitize-memory-track-origins
 endif
