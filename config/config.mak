@@ -30,9 +30,6 @@ CC = ccache $(COMPILER)
 export CCACHE_CPP2=1
 CFLAGS += -g -O$(O)
 CFLAGS += -Wall
-ifeq ($(patsubst clang-%,clang,$(COMPILER)), clang)
-CFLAGS += -Wtautological-constant-out-of-range-compare
-endif
 LDFLAGS = -g
 
 # Relax compilation on a detached HEAD (which is probably
