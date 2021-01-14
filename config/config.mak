@@ -12,12 +12,6 @@ endif
 
 CFLAGS =
 
-ifdef SANITIZE
-ifeq ($(SANITIZE),memory)
-CFLAGS += -fsanitize-memory-track-origins
-endif
-endif
-
 COMPILER ?= gcc
 O = 0
 CC = ccache $(COMPILER)
