@@ -32,8 +32,6 @@ CFLAGS += -g -O$(O)
 CFLAGS += -Wall
 ifeq ($(patsubst clang-%,clang,$(COMPILER)), clang)
 CFLAGS += -Wtautological-constant-out-of-range-compare
-else
-CFLAGS += -Wold-style-declaration
 endif
 LDFLAGS = -g
 
