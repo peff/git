@@ -27,16 +27,6 @@ tsort() {
 	'
 }
 
-find_base() {
-	for reflog in `git rev-list -g $1 2>/dev/null`; do
-		if test "$reflog" = "$(git merge-base $reflog "$2")"; then
-			echo $reflog
-			return
-		fi
-	done
-	git rev-parse -q --verify $1 2>/dev/null
-}
-
 cont=
 while test $# -gt 0; do
 case "$1" in
@@ -80,7 +70,7 @@ while read i upstream; do
 	fi
 
 	echo "===> Rebasing $i"
-	if ! git rebase --onto $upstream `find_base $upstream $i` $i; then
+	if ! git rebase --fork-point $upstream $i; then
 		if test -z "`git ls-files -u`" &&
 		   ! git diff-index --quiet HEAD &&
 		   git diff-files --quiet; then
