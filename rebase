@@ -34,7 +34,7 @@ find_base() {
 	fi
 
 	for reflog in `git rev-list -g $1 2>/dev/null`; do
-		if test "$reflog" = "$(git merge-base $reflog HEAD)"; then
+		if test "$reflog" = "$(git merge-base $reflog "$2")"; then
 			echo $reflog
 			return
 		fi
@@ -89,7 +89,7 @@ while read i upstream; do
 	fi
 
 	echo "===> Rebasing $i"
-	if ! git rebase --onto $upstream `find_base $upstream` $i; then
+	if ! git rebase --onto $upstream `find_base $upstream $i` $i; then
 		if test -z "`git ls-files -u`" &&
 		   ! git diff-index --quiet HEAD &&
 		   git diff-files --quiet; then
