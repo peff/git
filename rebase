@@ -28,11 +28,6 @@ tsort() {
 }
 
 find_base() {
-	if test "$rebase_on_upstream" = t; then
-		echo "@{u}"
-		return
-	fi
-
 	for reflog in `git rev-list -g $1 2>/dev/null`; do
 		if test "$reflog" = "$(git merge-base $reflog "$2")"; then
 			echo $reflog
@@ -43,14 +38,10 @@ find_base() {
 }
 
 cont=
-rebase_on_upstream=
 while test $# -gt 0; do
 case "$1" in
 --continue)
 	cont=t
-	;;
---upstream)
-	rebase_on_upstream=t
 	;;
 *)
 	echo >&2 "unknown option: $1"
