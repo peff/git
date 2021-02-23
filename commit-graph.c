@@ -314,7 +314,7 @@ static int graph_read_oid_lookup(const unsigned char *chunk_start,
 }
 
 static int graph_read_bloom_data(const unsigned char *chunk_start,
-				  size_t chunk_size, void *data)
+				  size_t UNUSED(chunk_size), void *data)
 {
 	struct commit_graph *g = data;
 	uint32_t hash_version;
