@@ -1,5 +1,5 @@
 [remote "origin"]
-	url = git://github.com/gitster/git.git
+	url = https://github.com/gitster/git.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 [remote "github"]
 	url = git@github.com:peff/git.git
