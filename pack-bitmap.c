@@ -1618,17 +1618,13 @@ static int in_bitmapped_pack(struct bitmap_index *bitmap_git,
 }
 
 static struct bitmap *find_tip_objects(struct bitmap_index *bitmap_git,
-				       struct object_list *tip_objects,
-				       enum object_type type)
+				       struct object_list *tip_objects)
 {
 	struct bitmap *result = bitmap_new();
 	struct object_list *p;
 
 	for (p = tip_objects; p; p = p->next) {
 		int pos;
-
-		if (p->item->type != type)
-			continue;
 
 		pos = bitmap_position(bitmap_git, &p->item->oid);
 		if (pos < 0)
@@ -1656,7 +1652,7 @@ static void filter_bitmap_exclude_type(struct bitmap_index *bitmap_git,
 	 * objects which the other side specifically asked for,
 	 * so we must match that behavior.
 	 */
-	tips = find_tip_objects(bitmap_git, tip_objects, type);
+	tips = find_tip_objects(bitmap_git, tip_objects);
 
 	/*
 	 * We can use the type-level bitmap for 'type' to work in whole
@@ -1745,7 +1741,7 @@ static void filter_bitmap_blob_limit(struct bitmap_index *bitmap_git,
 	eword_t mask;
 	uint32_t i;
 
-	tips = find_tip_objects(bitmap_git, tip_objects, OBJ_BLOB);
+	tips = find_tip_objects(bitmap_git, tip_objects);
 
 	for (i = 0, init_type_iterator(&it, bitmap_git, OBJ_BLOB);
 	     i < to_filter->word_alloc && ewah_iterator_next(&mask, &it);
