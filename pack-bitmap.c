@@ -1872,6 +1872,19 @@ static int filter_bitmap(struct bitmap_index *bitmap_git,
 		return 0;
 
 	r = filter_bitmap_dispatch(bitmap_git, tip_objects, to_filter, filter);
+	if (!r && to_filter) {
+		/*
+		 * Add back in any bits for objects that were explicitly asked
+		 * for, which matches the behavior of non-bitmap filters. Note
+		 * that it isn't sufficient to just avoid filtering them in the
+		 * first place; we must also add back in any removed by the
+		 * AND-NOT of the "have" side while preparing the bitmap, as
+		 * that is not aware of the filtering process.
+		 */
+		struct bitmap *tips = find_tip_objects(bitmap_git, tip_objects);
+		bitmap_or(to_filter, tips);
+		bitmap_free(tips);
+	}
 
 	return r;
 }
