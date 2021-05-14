@@ -1807,10 +1807,10 @@ static void filter_bitmap_object_type(struct bitmap_index *bitmap_git,
 		filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter, OBJ_BLOB);
 }
 
-static int filter_bitmap(struct bitmap_index *bitmap_git,
-			 struct object_list *tip_objects,
-			 struct bitmap *to_filter,
-			 struct list_objects_filter_options *filter)
+static int filter_bitmap_dispatch(struct bitmap_index *bitmap_git,
+				  struct object_list *tip_objects,
+				  struct bitmap *to_filter,
+				  struct list_objects_filter_options *filter)
 {
 	if (!filter || filter->choice == LOFC_DISABLED)
 		return 0;
@@ -1850,8 +1850,8 @@ static int filter_bitmap(struct bitmap_index *bitmap_git,
 	if (filter->choice == LOFC_COMBINE) {
 		int i;
 		for (i = 0; i < filter->sub_nr; i++) {
-			if (filter_bitmap(bitmap_git, tip_objects, to_filter,
-					  &filter->sub[i]) < 0)
+			if (filter_bitmap_dispatch(bitmap_git, tip_objects, to_filter,
+						   &filter->sub[i]) < 0)
 				return -1;
 		}
 		return 0;
@@ -1859,6 +1859,21 @@ static int filter_bitmap(struct bitmap_index *bitmap_git,
 
 	/* filter choice not handled */
 	return -1;
+}
+
+static int filter_bitmap(struct bitmap_index *bitmap_git,
+			 struct object_list *tip_objects,
+			 struct bitmap *to_filter,
+			 struct list_objects_filter_options *filter)
+{
+	int r;
+
+	if (!filter || filter->choice == LOFC_DISABLED)
+		return 0;
+
+	r = filter_bitmap_dispatch(bitmap_git, tip_objects, to_filter, filter);
+
+	return r;
 }
 
 static int can_filter_bitmap(struct list_objects_filter_options *filter)
