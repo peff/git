@@ -311,7 +311,7 @@ int xdl_recs_cmp(diffdata_t *dd1, long off1, long lim1,
 
 int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 		xdfenv_t *xe) {
-	long ndiags;
+	size_t ndiags;
 	long *kvd, *kvdf, *kvdb;
 	xdalgoenv_t xenv;
 	diffdata_t dd1, dd2;
@@ -333,8 +333,8 @@ int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 	 *
 	 * One is to store the forward path and one to store the backward path.
 	 */
-	ndiags = xe->xdf1.nreff + xe->xdf2.nreff + 3;
-	if (!(kvd = (long *) xdl_malloc((2 * ndiags + 2) * sizeof(long)))) {
+	ndiags = st_add3(xe->xdf1.nreff, xe->xdf2.nreff, 3);
+	if (!(kvd = (long *) xdl_malloc(st_mult(st_add(st_mult(2, ndiags), 2), sizeof(long))))) {
 
 		xdl_free_env(xe);
 		return -1;
