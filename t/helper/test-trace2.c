@@ -44,7 +44,7 @@ static int get_i(int *p_value, const char *data)
  * [] "def_param" events for all of the "interesting" pre-defined
  * config settings.
  */
-static int ut_001return(int argc, const char **argv)
+static int ut_001return(int UNUSED(argc), const char **argv)
 {
 	int rc;
 
@@ -64,7 +64,7 @@ static int ut_001return(int argc, const char **argv)
  * [] "def_param" events for all of the "interesting" pre-defined
  * config settings.
  */
-static int ut_002exit(int argc, const char **argv)
+static int ut_002exit(int UNUSED(argc), const char **argv)
 {
 	int rc;
 
@@ -198,7 +198,7 @@ static int ut_006data(int argc, const char **argv)
 	return 0;
 }
 
-static int ut_007bug(int argc, const char **argv)
+static int ut_007bug(int UNUSED(argc), const char **UNUSED(argv))
 {
 	/*
 	 * Exercise BUG() to ensure that the message is printed to trace2.

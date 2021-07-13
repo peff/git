@@ -154,6 +154,12 @@
 #define _NETBSD_SOURCE 1
 #define _SGI_SOURCE 1
 
+#if defined(__GNUC__)
+#define UNUSED(var) UNUSED_##var __attribute__((unused))
+#else
+#define UNUSED(var) UNUSED_##var
+#endif
+
 #if defined(WIN32) && !defined(__CYGWIN__) /* Both MinGW and MSVC */
 # if !defined(_WIN32_WINNT)
 #  define _WIN32_WINNT 0x0600
@@ -252,7 +258,9 @@ typedef unsigned long uintptr_t;
 #ifdef PRECOMPOSE_UNICODE
 #include "compat/precompose_utf8.h"
 #else
-static inline const char *precompose_argv_prefix(int argc, const char **argv, const char *prefix)
+static inline const char *precompose_argv_prefix(int UNUSED(argc),
+						 const char **UNUSED(argv),
+						 const char *prefix)
 {
 	return prefix;
 }
@@ -277,7 +285,9 @@ struct itimerval {
 #endif
 
 #ifdef NO_SETITIMER
-static inline int setitimer(int which, const struct itimerval *value, struct itimerval *newvalue) {
+static inline int setitimer(int UNUSED(which),
+			    const struct itimerval *UNUSED(value),
+			    struct itimerval *UNUSED(newvalue)) {
 	return 0; /* pretend success */
 }
 #endif
@@ -347,7 +357,9 @@ typedef uintmax_t timestamp_t;
 #endif
 
 #ifndef platform_core_config
-static inline int noop_core_config(const char *var, const char *value, void *cb)
+static inline int noop_core_config(const char *UNUSED(var),
+				   const char *UNUSED(value),
+				   void *UNUSED(cb))
 {
 	return 0;
 }
@@ -360,7 +372,7 @@ int lstat_cache_aware_rmdir(const char *path);
 #endif
 
 #ifndef has_dos_drive_prefix
-static inline int git_has_dos_drive_prefix(const char *path)
+static inline int git_has_dos_drive_prefix(const char *UNUSED(path))
 {
 	return 0;
 }
@@ -368,7 +380,7 @@ static inline int git_has_dos_drive_prefix(const char *path)
 #endif
 
 #ifndef skip_dos_drive_prefix
-static inline int git_skip_dos_drive_prefix(char **path)
+static inline int git_skip_dos_drive_prefix(char **UNUSED(path))
 {
 	return 0;
 }
@@ -1262,11 +1274,11 @@ int open_nofollow(const char *path, int flags);
 #endif
 
 #ifndef _POSIX_THREAD_SAFE_FUNCTIONS
-static inline void flockfile(FILE *fh)
+static inline void flockfile(FILE *UNUSED(fh))
 {
 	; /* nothing */
 }
-static inline void funlockfile(FILE *fh)
+static inline void funlockfile(FILE *UNUSED(fh))
 {
 	; /* nothing */
 }

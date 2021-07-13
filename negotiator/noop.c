@@ -3,22 +3,24 @@
 #include "../commit.h"
 #include "../fetch-negotiator.h"
 
-static void known_common(struct fetch_negotiator *n, struct commit *c)
+static void known_common(struct fetch_negotiator *UNUSED(n),
+			 struct commit *UNUSED(c))
 {
 	/* do nothing */
 }
 
-static void add_tip(struct fetch_negotiator *n, struct commit *c)
+static void add_tip(struct fetch_negotiator *UNUSED(n),
+		    struct commit *UNUSED(c))
 {
 	/* do nothing */
 }
 
-static const struct object_id *next(struct fetch_negotiator *n)
+static const struct object_id *next(struct fetch_negotiator *UNUSED(n))
 {
 	return NULL;
 }
 
-static int ack(struct fetch_negotiator *n, struct commit *c)
+static int ack(struct fetch_negotiator *UNUSED(n), struct commit *UNUSED(c))
 {
 	/*
 	 * This negotiator does not emit any commits, so there is no commit to
@@ -28,7 +30,7 @@ static int ack(struct fetch_negotiator *n, struct commit *c)
 	return 0;
 }
 
-static void release(struct fetch_negotiator *n)
+static void release(struct fetch_negotiator *UNUSED(n))
 {
 	/* nothing to release */
 }

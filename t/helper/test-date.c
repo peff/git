@@ -101,7 +101,7 @@ static void getnanos(const char **argv)
 	printf("%lf\n", seconds);
 }
 
-int cmd__date(int argc, const char **argv)
+int cmd__date(int UNUSED(argc), const char **argv)
 {
 	const char *x;
 

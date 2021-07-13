@@ -128,7 +128,8 @@ static void send_possibly_unborn_head(struct ls_refs_data *data)
 	strbuf_release(&namespaced);
 }
 
-static int ls_refs_config(const char *var, const char *value, void *data)
+static int ls_refs_config(const char *var, const char *value,
+			  void *UNUSED(data))
 {
 	/*
 	 * We only serve fetches over v2 for now, so respect only "uploadpack"
@@ -138,7 +139,8 @@ static int ls_refs_config(const char *var, const char *value, void *data)
 	return parse_hide_refs_config(var, value, "uploadpack");
 }
 
-int ls_refs(struct repository *r, struct strvec *keys,
+int ls_refs(struct repository *UNUSED(r),
+	    struct strvec *UNUSED(keys),
 	    struct packet_reader *request)
 {
 	struct ls_refs_data data;
@@ -176,7 +178,7 @@ int ls_refs(struct repository *r, struct strvec *keys,
 	return 0;
 }
 
-int ls_refs_advertise(struct repository *r, struct strbuf *value)
+int ls_refs_advertise(struct repository *UNUSED(r), struct strbuf *value)
 {
 	if (value) {
 		ensure_config_read();

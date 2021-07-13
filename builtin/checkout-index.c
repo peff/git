@@ -153,7 +153,7 @@ static const char * const builtin_checkout_index_usage[] = {
 	NULL
 };
 
-static int option_parse_stage(const struct option *opt,
+static int option_parse_stage(const struct option *UNUSED(opt),
 			      const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);

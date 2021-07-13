@@ -21,20 +21,20 @@ static enum trailer_where where;
 static enum trailer_if_exists if_exists;
 static enum trailer_if_missing if_missing;
 
-static int option_parse_where(const struct option *opt,
-			      const char *arg, int unset)
+static int option_parse_where(const struct option *UNUSED(opt),
+			      const char *arg, int UNUSED(unset))
 {
 	return trailer_set_where(&where, arg);
 }
 
-static int option_parse_if_exists(const struct option *opt,
-				  const char *arg, int unset)
+static int option_parse_if_exists(const struct option *UNUSED(opt),
+				  const char *arg, int UNUSED(unset))
 {
 	return trailer_set_if_exists(&if_exists, arg);
 }
 
-static int option_parse_if_missing(const struct option *opt,
-				   const char *arg, int unset)
+static int option_parse_if_missing(const struct option *UNUSED(opt),
+				   const char *arg, int UNUSED(unset))
 {
 	return trailer_set_if_missing(&if_missing, arg);
 }

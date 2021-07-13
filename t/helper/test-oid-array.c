@@ -2,13 +2,13 @@
 #include "cache.h"
 #include "oid-array.h"
 
-static int print_oid(const struct object_id *oid, void *data)
+static int print_oid(const struct object_id *oid, void *UNUSED(data))
 {
 	puts(oid_to_hex(oid));
 	return 0;
 }
 
-int cmd__oid_array(int argc, const char **argv)
+int cmd__oid_array(int UNUSED(argc), const char **UNUSED(argv))
 {
 	struct oid_array array = OID_ARRAY_INIT;
 	struct strbuf line = STRBUF_INIT;

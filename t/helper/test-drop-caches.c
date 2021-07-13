@@ -153,7 +153,7 @@ static int cmd_dropcaches(void)
 
 #endif
 
-int cmd__drop_caches(int argc, const char **argv)
+int cmd__drop_caches(int UNUSED(argc), const char **UNUSED(argv))
 {
 	cmd_sync();
 	return cmd_dropcaches();

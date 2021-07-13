@@ -376,7 +376,8 @@ struct path_exists_context {
 	struct archiver_args *args;
 };
 
-static int reject_entry(const struct object_id *oid, struct strbuf *base,
+static int reject_entry(const struct object_id *UNUSED(oid),
+			struct strbuf *base,
 			const char *filename, unsigned mode,
 			void *context)
 {
@@ -540,7 +541,7 @@ static void parse_treeish_arg(const char **argv,
 	ar_args->time = archive_time;
 }
 
-static void extra_file_info_clear(void *util, const char *str)
+static void extra_file_info_clear(void *util, const char *UNUSED(str))
 {
 	struct extra_file_info *info = util;
 	free(info->base);

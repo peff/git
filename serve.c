@@ -11,13 +11,13 @@
 
 static int advertise_sid;
 
-static int always_advertise(struct repository *r,
-			    struct strbuf *value)
+static int always_advertise(struct repository *UNUSED(r),
+			    struct strbuf *UNUSED(value))
 {
 	return 1;
 }
 
-static int agent_advertise(struct repository *r,
+static int agent_advertise(struct repository *UNUSED(r),
 			   struct strbuf *value)
 {
 	if (value)
@@ -33,7 +33,7 @@ static int object_format_advertise(struct repository *r,
 	return 1;
 }
 
-static int session_id_advertise(struct repository *r, struct strbuf *value)
+static int session_id_advertise(struct repository *UNUSED(r), struct strbuf *value)
 {
 	if (!advertise_sid)
 		return 0;

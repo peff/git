@@ -101,7 +101,8 @@ static int parse_decoration_style(const char *value)
 	return -1;
 }
 
-static int decorate_callback(const struct option *opt, const char *arg, int unset)
+static int decorate_callback(const struct option *UNUSED(opt), const char *arg,
+			     int unset)
 {
 	if (unset)
 		decoration_style = 0;
@@ -366,7 +367,7 @@ static void log_show_early(struct rev_info *revs, struct commit_list *list)
 	setitimer(ITIMER_REAL, &early_output_timer, NULL);
 }
 
-static void early_output(int signal)
+static void early_output(int UNUSED(signal))
 {
 	show_early_output = log_show_early;
 }
@@ -615,9 +616,10 @@ static int show_tag_object(const struct object_id *oid, struct rev_info *rev)
 	return 0;
 }
 
-static int show_tree_object(const struct object_id *oid,
-		struct strbuf *base,
-		const char *pathname, unsigned mode, void *context)
+static int show_tree_object(const struct object_id *UNUSED(oid),
+			    struct strbuf *UNUSED(base),
+			    const char *pathname, unsigned mode,
+			    void *context)
 {
 	FILE *file = context;
 	fprintf(file, "%s%s\n", pathname, S_ISDIR(mode) ? "/" : "");
@@ -625,7 +627,7 @@ static int show_tree_object(const struct object_id *oid,
 }
 
 static void show_setup_revisions_tweak(struct rev_info *rev,
-				       struct setup_revision_opt *opt)
+				       struct setup_revision_opt *UNUSED(opt))
 {
 	if (rev->first_parent_only)
 		diff_merges_default_to_first_parent(rev);
@@ -745,7 +747,7 @@ int cmd_log_reflog(int argc, const char **argv, const char *prefix)
 }
 
 static void log_setup_revisions_tweak(struct rev_info *rev,
-				      struct setup_revision_opt *opt)
+				      struct setup_revision_opt *UNUSED(opt))
 {
 	if (rev->diffopt.flags.default_follow_renames &&
 	    rev->prune_data.nr == 1)
@@ -1410,7 +1412,8 @@ static int inline_callback(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-static int header_callback(const struct option *opt, const char *arg, int unset)
+static int header_callback(const struct option *UNUSED(opt), const char *arg,
+			   int unset)
 {
 	if (unset) {
 		string_list_clear(&extra_hdr, 0);
@@ -1422,7 +1425,8 @@ static int header_callback(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-static int to_callback(const struct option *opt, const char *arg, int unset)
+static int to_callback(const struct option *UNUSED(opt), const char *arg,
+		       int unset)
 {
 	if (unset)
 		string_list_clear(&extra_to, 0);
@@ -1431,7 +1435,8 @@ static int to_callback(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-static int cc_callback(const struct option *opt, const char *arg, int unset)
+static int cc_callback(const struct option *UNUSED(opt), const char *arg,
+		       int unset)
 {
 	if (unset)
 		string_list_clear(&extra_cc, 0);

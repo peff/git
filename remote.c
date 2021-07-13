@@ -111,7 +111,7 @@ struct remotes_hash_key {
 	int len;
 };
 
-static int remotes_hash_cmp(const void *unused_cmp_data,
+static int remotes_hash_cmp(const void *UNUSED(cmp_data),
 			    const struct hashmap_entry *eptr,
 			    const struct hashmap_entry *entry_or_key,
 			    const void *keydata)
@@ -299,7 +299,7 @@ static void read_branches_file(struct remote *remote)
 	remote->fetch_tags = 1; /* always auto-follow */
 }
 
-static int handle_config(const char *key, const char *value, void *cb)
+static int handle_config(const char *key, const char *value, void *UNUSED(cb))
 {
 	const char *name;
 	size_t namelen;
@@ -2185,7 +2185,8 @@ int format_tracking_info(struct branch *branch, struct strbuf *sb,
 }
 
 static int one_local_ref(const char *refname, const struct object_id *oid,
-			 int flag, void *cb_data)
+			 int UNUSED(flag),
+			 void *cb_data)
 {
 	struct ref ***local_tail = cb_data;
 	struct ref *ref;
@@ -2441,19 +2442,22 @@ struct check_and_collect_until_cb_data {
 };
 
 /* Get the timestamp of the latest entry. */
-static int peek_reflog(struct object_id *o_oid, struct object_id *n_oid,
-		       const char *ident, timestamp_t timestamp,
-		       int tz, const char *message, void *cb_data)
+static int peek_reflog(struct object_id *UNUSED(o_oid),
+		       struct object_id *UNUSED(n_oid),
+		       const char *UNUSED(ident),
+		       timestamp_t timestamp, int UNUSED(tz),
+		       const char *UNUSED(message), void *cb_data)
 {
 	timestamp_t *ts = cb_data;
 	*ts = timestamp;
 	return 1;
 }
 
-static int check_and_collect_until(struct object_id *o_oid,
+static int check_and_collect_until(struct object_id *UNUSED(o_oid),
 				   struct object_id *n_oid,
-				   const char *ident, timestamp_t timestamp,
-				   int tz, const char *message, void *cb_data)
+				   const char *UNUSED(ident),
+				   timestamp_t timestamp, int UNUSED(tz),
+				   const char *UNUSED(message), void *cb_data)
 {
 	struct commit *commit;
 	struct check_and_collect_until_cb_data *cb = cb_data;

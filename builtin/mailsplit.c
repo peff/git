@@ -268,7 +268,7 @@ out:
 	return ret;
 }
 
-int cmd_mailsplit(int argc, const char **argv, const char *prefix)
+int cmd_mailsplit(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	int nr = 0, nr_prec = 4, num = 0;
 	int allow_bare = 0;

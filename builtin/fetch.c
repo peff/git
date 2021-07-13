@@ -126,7 +126,8 @@ static int git_fetch_config(const char *k, const char *v, void *cb)
 	return git_default_config(k, v, cb);
 }
 
-static int parse_refmap_arg(const struct option *opt, const char *arg, int unset)
+static int parse_refmap_arg(const struct option *UNUSED(opt),
+			    const char *arg, int unset)
 {
 	BUG_ON_OPT_NEG(unset);
 
@@ -291,7 +292,7 @@ struct refname_hash_entry {
 	char refname[FLEX_ARRAY];
 };
 
-static int refname_hash_entry_cmp(const void *hashmap_cmp_fn_data,
+static int refname_hash_entry_cmp(const void *UNUSED(hashmap_cmp_fn_data),
 				  const struct hashmap_entry *eptr,
 				  const struct hashmap_entry *entry_or_key,
 				  const void *keydata)
@@ -319,7 +320,7 @@ static struct refname_hash_entry *refname_hash_add(struct hashmap *map,
 
 static int add_one_refname(const char *refname,
 			   const struct object_id *oid,
-			   int flag, void *cbdata)
+			   int UNUSED(flag), void *cbdata)
 {
 	struct hashmap *refname_map = cbdata;
 
@@ -1408,8 +1409,9 @@ static void set_option(struct transport *transport, const char *name, const char
 }
 
 
-static int add_oid(const char *refname, const struct object_id *oid, int flags,
-		   void *cb_data)
+static int add_oid(const char *UNUSED(refname),
+		   const struct object_id *oid,
+		   int UNUSED(flags), void *cb_data)
 {
 	struct oid_array *oids = cb_data;
 
@@ -1748,7 +1750,8 @@ struct parallel_fetch_state {
 	int next, result;
 };
 
-static int fetch_next_remote(struct child_process *cp, struct strbuf *out,
+static int fetch_next_remote(struct child_process *cp,
+			     struct strbuf *UNUSED(out),
 			     void *cb, void **task_cb)
 {
 	struct parallel_fetch_state *state = cb;
@@ -1770,7 +1773,8 @@ static int fetch_next_remote(struct child_process *cp, struct strbuf *out,
 	return 1;
 }
 
-static int fetch_failed_to_start(struct strbuf *out, void *cb, void *task_cb)
+static int fetch_failed_to_start(struct strbuf *UNUSED(out),
+				 void *cb, void *task_cb)
 {
 	struct parallel_fetch_state *state = cb;
 	const char *remote = task_cb;

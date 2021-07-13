@@ -222,7 +222,7 @@ static void append_strategy(struct strategy *s)
 	use_strategies[use_strategies_nr++] = s;
 }
 
-static int option_parse_strategy(const struct option *opt,
+static int option_parse_strategy(const struct option *UNUSED(opt),
 				 const char *name, int unset)
 {
 	if (unset)
@@ -232,7 +232,7 @@ static int option_parse_strategy(const struct option *opt,
 	return 0;
 }
 
-static int option_parse_x(const struct option *opt,
+static int option_parse_x(const struct option *UNUSED(opt),
 			  const char *arg, int unset)
 {
 	if (unset)
@@ -243,7 +243,7 @@ static int option_parse_x(const struct option *opt,
 	return 0;
 }
 
-static int option_parse_n(const struct option *opt,
+static int option_parse_n(const struct option *UNUSED(opt),
 			  const char *arg, int unset)
 {
 	BUG_ON_OPT_ARG(arg);
@@ -767,7 +767,7 @@ static int try_merge_strategy(const char *strategy, struct commit_list *common,
 }
 
 static void count_diff_files(struct diff_queue_struct *q,
-			     struct diff_options *opt, void *data)
+			     struct diff_options *UNUSED(opt), void *data)
 {
 	int *count = data;
 

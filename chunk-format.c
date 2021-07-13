@@ -152,7 +152,7 @@ int read_table_of_contents(struct chunkfile *cf,
 }
 
 static int pair_chunk_fn(const unsigned char *chunk_start,
-			 size_t chunk_size,
+			 size_t UNUSED(chunk_size),
 			 void *data)
 {
 	const unsigned char **p = data;

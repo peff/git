@@ -42,7 +42,7 @@ static const char * const read_tree_usage[] = {
 	NULL
 };
 
-static int index_output_cb(const struct option *opt, const char *arg,
+static int index_output_cb(const struct option *UNUSED(opt), const char *arg,
 				 int unset)
 {
 	BUG_ON_OPT_NEG(unset);

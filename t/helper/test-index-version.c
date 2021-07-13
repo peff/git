@@ -1,7 +1,7 @@
 #include "test-tool.h"
 #include "cache.h"
 
-int cmd__index_version(int argc, const char **argv)
+int cmd__index_version(int UNUSED(argc), const char **UNUSED(argv))
 {
 	struct cache_header hdr;
 	int version;

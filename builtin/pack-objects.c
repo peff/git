@@ -758,8 +758,8 @@ static enum write_one_status write_one(struct hashfile *f,
 	return WRITE_ONE_WRITTEN;
 }
 
-static int mark_tagged(const char *path, const struct object_id *oid, int flag,
-		       void *cb_data)
+static int mark_tagged(const char *UNUSED(path), const struct object_id *oid,
+		       int UNUSED(flag), void *UNUSED(cb_data))
 {
 	struct object_id peeled;
 	struct object_entry *entry = packlist_find(&to_pack, oid);
@@ -1552,7 +1552,7 @@ static int add_object_entry(const struct object_id *oid, enum object_type type,
 
 static int add_object_entry_from_bitmap(const struct object_id *oid,
 					enum object_type type,
-					int flags, uint32_t name_hash,
+					int UNUSED(flags), uint32_t name_hash,
 					struct packed_git *pack, off_t offset)
 {
 	display_progress(progress_state, ++nr_seen);
@@ -2999,7 +2999,8 @@ static void add_tag_chain(const struct object_id *oid)
 	}
 }
 
-static int add_ref_tag(const char *tag, const struct object_id *oid, int flag, void *cb_data)
+static int add_ref_tag(const char *UNUSED(tag), const struct object_id *oid,
+		       int UNUSED(flag), void *UNUSED(cb_data))
 {
 	struct object_id peeled;
 
@@ -3213,13 +3214,14 @@ static int add_object_entry_from_pack(const struct object_id *oid,
 	return 0;
 }
 
-static void show_commit_pack_hint(struct commit *commit, void *_data)
+static void show_commit_pack_hint(struct commit *UNUSED(commit),
+				  void *UNUSED(data))
 {
 	/* nothing to do; commits don't have a namehash */
 }
 
 static void show_object_pack_hint(struct object *object, const char *name,
-				  void *_data)
+				  void *UNUSED(data))
 {
 	struct object_entry *oe = packlist_find(&to_pack, &object->oid);
 	if (!oe)
@@ -3391,7 +3393,7 @@ static void read_object_list_from_stdin(void)
 /* Remember to update object flag allocation in object.h */
 #define OBJECT_ADDED (1u<<20)
 
-static void show_commit(struct commit *commit, void *data)
+static void show_commit(struct commit *commit, void *UNUSED(data))
 {
 	add_object_entry(&commit->object.oid, OBJ_COMMIT, NULL, 0);
 	commit->object.flags |= OBJECT_ADDED;
@@ -3403,7 +3405,8 @@ static void show_commit(struct commit *commit, void *data)
 		propagate_island_marks(commit);
 }
 
-static void show_object(struct object *obj, const char *name, void *data)
+static void show_object(struct object *obj, const char *name,
+			void *UNUSED(data))
 {
 	add_preferred_base_object(name);
 	add_object_entry(&obj->oid, obj->type, name, 0);
@@ -3453,7 +3456,7 @@ static void show_object__ma_allow_promisor(struct object *obj, const char *name,
 	show_object(obj, name, data);
 }
 
-static int option_parse_missing_action(const struct option *opt,
+static int option_parse_missing_action(const struct option *UNUSED(opt),
 				       const char *arg, int unset)
 {
 	assert(arg);
@@ -3564,7 +3567,7 @@ static void add_objects_in_unpacked_packs(void)
 }
 
 static int add_loose_object(const struct object_id *oid, const char *path,
-			    void *data)
+			    void *UNUSED(data))
 {
 	enum object_type type = oid_object_info(the_repository, oid, NULL);
 
@@ -3703,20 +3706,21 @@ static int get_object_list_from_bitmap(struct rev_info *revs)
 }
 
 static void record_recent_object(struct object *obj,
-				 const char *name,
-				 void *data)
+				 const char *UNUSED(name),
+				 void *UNUSED(data))
 {
 	oid_array_append(&recent_objects, &obj->oid);
 }
 
-static void record_recent_commit(struct commit *commit, void *data)
+static void record_recent_commit(struct commit *commit, void *UNUSED(data))
 {
 	oid_array_append(&recent_objects, &commit->object.oid);
 }
 
 static int mark_bitmap_preferred_tip(const char *refname,
-				     const struct object_id *oid, int flags,
-				     void *_data)
+				     const struct object_id *oid,
+				     int UNUSED(flags),
+				     void *UNUSED(data))
 {
 	struct object_id peeled;
 	struct object *object;
@@ -3859,7 +3863,7 @@ static void add_extra_kept_packs(const struct string_list *names)
 	}
 }
 
-static int option_parse_index_version(const struct option *opt,
+static int option_parse_index_version(const struct option *UNUSED(opt),
 				      const char *arg, int unset)
 {
 	char *c;
@@ -3877,7 +3881,7 @@ static int option_parse_index_version(const struct option *opt,
 	return 0;
 }
 
-static int option_parse_unpack_unreachable(const struct option *opt,
+static int option_parse_unpack_unreachable(const struct option *UNUSED(opt),
 					   const char *arg, int unset)
 {
 	if (unset) {

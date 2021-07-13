@@ -314,7 +314,7 @@ static int reset_head(void)
 }
 
 static void add_diff_to_buf(struct diff_queue_struct *q,
-			    struct diff_options *options,
+			    struct diff_options *UNUSED(options),
 			    void *data)
 {
 	int i;
@@ -603,9 +603,12 @@ static int apply_stash(int argc, const char **argv, const char *prefix)
 	return ret;
 }
 
-static int reject_reflog_ent(struct object_id *ooid, struct object_id *noid,
-			     const char *email, timestamp_t timestamp, int tz,
-			     const char *message, void *cb_data)
+static int reject_reflog_ent(struct object_id *UNUSED(ooid),
+			     struct object_id *UNUSED(noid),
+			     const char *UNUSED(email),
+			     timestamp_t UNUSED(timestamp),
+			     int UNUSED(tz), const char *UNUSED(message),
+			     void *UNUSED(cb_data))
 {
 	return 1;
 }
@@ -1365,7 +1368,7 @@ done:
 	return ret;
 }
 
-static int create_stash(int argc, const char **argv, const char *prefix)
+static int create_stash(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	int ret = 0;
 	struct strbuf stash_msg_buf = STRBUF_INIT;

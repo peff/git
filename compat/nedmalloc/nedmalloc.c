@@ -283,7 +283,7 @@ static void tcfullsanitycheck(threadcache *tc) THROWSPEC
 }
 #endif
 
-static NOINLINE void RemoveCacheEntries(nedpool *p, threadcache *tc, unsigned int age) THROWSPEC
+static NOINLINE void RemoveCacheEntries(nedpool *UNUSED(p), threadcache *tc, unsigned int age) THROWSPEC
 {
 #ifdef FULLSANITYCHECKS
 	tcfullsanitycheck(tc);
@@ -372,7 +372,7 @@ static NOINLINE threadcache *AllocCache(nedpool *p) THROWSPEC
 	return tc;
 }
 
-static void *threadcache_malloc(nedpool *p, threadcache *tc, size_t *size) THROWSPEC
+static void *threadcache_malloc(nedpool *UNUSED(p), threadcache *tc, size_t *size) THROWSPEC
 {
 	void *ret=0;
 	unsigned int bestsize;
@@ -458,7 +458,7 @@ static void *threadcache_malloc(nedpool *p, threadcache *tc, size_t *size) THROW
 #endif
 	return ret;
 }
-static NOINLINE void ReleaseFreeInCache(nedpool *p, threadcache *tc, int mymspace) THROWSPEC
+static NOINLINE void ReleaseFreeInCache(nedpool *p, threadcache *tc, int UNUSED(mymspace)) THROWSPEC
 {
 	unsigned int age=THREADCACHEMAXFREESPACE/8192;
 	/*ACQUIRE_LOCK(&p->m[mymspace]->mutex);*/
@@ -889,7 +889,7 @@ struct mallinfo nedpmallinfo(nedpool *p) THROWSPEC
 	return ret;
 }
 #endif
-int    nedpmallopt(nedpool *p, int parno, int value) THROWSPEC
+int    nedpmallopt(nedpool *UNUSED(p), int parno, int value) THROWSPEC
 {
 	return mspace_mallopt(parno, value);
 }

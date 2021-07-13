@@ -75,7 +75,7 @@ static ssize_t process_input(int child_fd, int band)
 	return sz;
 }
 
-int cmd_upload_archive(int argc, const char **argv, const char *prefix)
+int cmd_upload_archive(int argc, const char **argv, const char *UNUSED(prefix))
 {
 	struct child_process writer = { argv };
 

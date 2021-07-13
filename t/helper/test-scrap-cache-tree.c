@@ -4,7 +4,7 @@
 #include "tree.h"
 #include "cache-tree.h"
 
-int cmd__scrap_cache_tree(int ac, const char **av)
+int cmd__scrap_cache_tree(int UNUSED(ac), const char **UNUSED(av))
 {
 	struct lock_file index_lock = LOCK_INIT;
 

@@ -139,27 +139,32 @@ static void git_hash_sha256_final_oid(struct object_id *oid, git_hash_ctx *ctx)
 	oid->algo = GIT_HASH_SHA256;
 }
 
-static void git_hash_unknown_init(git_hash_ctx *ctx)
+static void git_hash_unknown_init(git_hash_ctx *UNUSED(ctx))
 {
 	BUG("trying to init unknown hash");
 }
 
-static void git_hash_unknown_clone(git_hash_ctx *dst, const git_hash_ctx *src)
+static void git_hash_unknown_clone(git_hash_ctx *UNUSED(dst),
+				   const git_hash_ctx *UNUSED(src))
 {
 	BUG("trying to clone unknown hash");
 }
 
-static void git_hash_unknown_update(git_hash_ctx *ctx, const void *data, size_t len)
+static void git_hash_unknown_update(git_hash_ctx *UNUSED(ctx),
+				    const void *UNUSED(data),
+				    size_t UNUSED(len))
 {
 	BUG("trying to update unknown hash");
 }
 
-static void git_hash_unknown_final(unsigned char *hash, git_hash_ctx *ctx)
+static void git_hash_unknown_final(unsigned char *UNUSED(hash),
+				   git_hash_ctx *UNUSED(ctx))
 {
 	BUG("trying to finalize unknown hash");
 }
 
-static void git_hash_unknown_final_oid(struct object_id *oid, git_hash_ctx *ctx)
+static void git_hash_unknown_final_oid(struct object_id *UNUSED(oid),
+				       git_hash_ctx *UNUSED(ctx))
 {
 	BUG("trying to finalize unknown hash");
 }
@@ -2441,7 +2446,8 @@ int for_each_loose_object(each_loose_object_fn cb, void *data,
 	return 0;
 }
 
-static int append_loose_object(const struct object_id *oid, const char *path,
+static int append_loose_object(const struct object_id *oid,
+			       const char *UNUSED(path),
 			       void *data)
 {
 	oid_array_append(data, oid);

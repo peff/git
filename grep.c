@@ -14,7 +14,7 @@ static int grep_source_load(struct grep_source *gs);
 static int grep_source_is_binary(struct grep_source *gs,
 				 struct index_state *istate);
 
-static void std_output(struct grep_opt *opt, const void *buf, size_t size)
+static void std_output(struct grep_opt *UNUSED(opt), const void *buf, size_t size)
 {
 	fwrite(buf, size, 1, stdout);
 }
@@ -484,18 +484,20 @@ static void free_pcre2_pattern(struct grep_pat *p)
 	pcre2_general_context_free(p->pcre2_general_context);
 }
 #else /* !USE_LIBPCRE2 */
-static void compile_pcre2_pattern(struct grep_pat *p, const struct grep_opt *opt)
+static void compile_pcre2_pattern(struct grep_pat *UNUSED(p),
+				  const struct grep_opt *UNUSED(opt))
 {
 	die("cannot use Perl-compatible regexes when not compiled with USE_LIBPCRE");
 }
 
-static int pcre2match(struct grep_pat *p, const char *line, const char *eol,
-		regmatch_t *match, int eflags)
+static int pcre2match(struct grep_pat *UNUSED(p), const char *UNUSED(line),
+		      const char *UNUSED(eol), regmatch_t *UNUSED(match),
+		      int UNUSED(eflags))
 {
 	return 1;
 }
 
-static void free_pcre2_pattern(struct grep_pat *p)
+static void free_pcre2_pattern(struct grep_pat *UNUSED(p))
 {
 }
 

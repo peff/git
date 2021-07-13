@@ -50,7 +50,7 @@ struct data {
 	int non_common_revs;
 };
 
-static int compare(const void *a_, const void *b_, void *unused)
+static int compare(const void *a_, const void *b_, void *UNUSED(data))
 {
 	const struct entry *a = a_;
 	const struct entry *b = b_;
@@ -72,7 +72,8 @@ static struct entry *rev_list_push(struct data *data, struct commit *commit, int
 }
 
 static int clear_marks(const char *refname, const struct object_id *oid,
-		       int flag, void *cb_data)
+		       int UNUSED(flag),
+		       void *UNUSED(cb_data))
 {
 	struct object *o = deref_tag(the_repository, parse_object(the_repository, oid), refname, 0);
 

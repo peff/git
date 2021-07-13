@@ -321,7 +321,7 @@ static uint64_t estimate_repack_memory(struct packed_git *pack)
 	return os_cache + heap;
 }
 
-static int keep_one_pack(struct string_list_item *item, void *data)
+static int keep_one_pack(struct string_list_item *item, void *UNUSED(data))
 {
 	strvec_pushf(&repack, "--keep-pack=%s", basename(item->string));
 	return 0;
@@ -766,8 +766,9 @@ struct cg_auto_data {
 	int limit;
 };
 
-static int dfs_on_ref(const char *refname,
-		      const struct object_id *oid, int flags,
+static int dfs_on_ref(const char *UNUSED(refname),
+		      const struct object_id *oid,
+		      int UNUSED(flags),
 		      void *cb_data)
 {
 	struct cg_auto_data *data = (struct cg_auto_data *)cb_data;
@@ -948,9 +949,9 @@ struct write_loose_object_data {
 
 static int loose_object_auto_limit = 100;
 
-static int loose_object_count(const struct object_id *oid,
-			       const char *path,
-			       void *data)
+static int loose_object_count(const struct object_id *UNUSED(oid),
+			      const char *UNUSED(path),
+			      void *data)
 {
 	int *count = (int*)data;
 	if (++(*count) >= loose_object_auto_limit)
@@ -975,15 +976,15 @@ static int loose_object_auto_condition(void)
 					     NULL, NULL, &count);
 }
 
-static int bail_on_loose(const struct object_id *oid,
-			 const char *path,
-			 void *data)
+static int bail_on_loose(const struct object_id *UNUSED(oid),
+			 const char *UNUSED(path),
+			 void *UNUSED(data))
 {
 	return 1;
 }
 
 static int write_loose_object_to_stdin(const struct object_id *oid,
-				       const char *path,
+				       const char *UNUSED(path),
 				       void *data)
 {
 	struct write_loose_object_data *d = (struct write_loose_object_data *)data;
@@ -1375,7 +1376,7 @@ static void initialize_task_config(int schedule)
 	strbuf_release(&config_name);
 }
 
-static int task_option_parse(const struct option *opt,
+static int task_option_parse(const struct option *UNUSED(opt),
 			     const char *arg, int unset)
 {
 	int i, num_selected = 0;
@@ -1687,7 +1688,7 @@ static int launchctl_add_plists(const char *cmd)
 		launchctl_schedule_plist(exec_path, SCHEDULE_WEEKLY, cmd);
 }
 
-static int launchctl_update_schedule(int run_maintenance, int fd, const char *cmd)
+static int launchctl_update_schedule(int run_maintenance, int UNUSED(fd), const char *cmd)
 {
 	if (run_maintenance)
 		return launchctl_add_plists(cmd);
@@ -1849,7 +1850,7 @@ static int schtasks_schedule_tasks(const char *cmd)
 		schtasks_schedule_task(exec_path, SCHEDULE_WEEKLY, cmd);
 }
 
-static int schtasks_update_schedule(int run_maintenance, int fd, const char *cmd)
+static int schtasks_update_schedule(int run_maintenance, int UNUSED(fd), const char *cmd)
 {
 	if (run_maintenance)
 		return schtasks_schedule_tasks(cmd);

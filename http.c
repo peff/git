@@ -156,7 +156,7 @@ size_t fread_buffer(char *ptr, size_t eltsize, size_t nmemb, void *buffer_)
 	return size / eltsize;
 }
 
-curlioerr ioctl_buffer(CURL *handle, int cmd, void *clientp)
+curlioerr ioctl_buffer(CURL *UNUSED(handle), int cmd, void *clientp)
 {
 	struct buffer *buffer = clientp;
 
@@ -182,7 +182,8 @@ size_t fwrite_buffer(char *ptr, size_t eltsize, size_t nmemb, void *buffer_)
 	return nmemb;
 }
 
-size_t fwrite_null(char *ptr, size_t eltsize, size_t nmemb, void *strbuf)
+size_t fwrite_null(char *UNUSED(ptr), size_t UNUSED(eltsize), size_t nmemb,
+		   void *UNUSED(data))
 {
 	return nmemb;
 }
@@ -708,7 +709,9 @@ static void curl_dump_data(const char *text, unsigned char *ptr, size_t size)
 	strbuf_release(&out);
 }
 
-static int curl_trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp)
+static int curl_trace(CURL *UNUSED(handle), curl_infotype type,
+		      char *data, size_t size,
+		      void *UNUSED(userp))
 {
 	const char *text;
 	enum { NO_FILTER = 0, DO_FILTER = 1 };

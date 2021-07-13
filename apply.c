@@ -123,7 +123,7 @@ void clear_apply_state(struct apply_state *state)
 	/* &state->fn_table is cleared at the end of apply_patch() */
 }
 
-static void mute_routine(const char *msg, va_list params)
+static void mute_routine(const char *UNUSED(msg), va_list UNUSED(params))
 {
 	/* do nothing */
 }
@@ -885,9 +885,9 @@ static int parse_traditional_patch(struct apply_state *state,
 	return 0;
 }
 
-static int gitdiff_hdrend(struct gitdiff_data *state,
-			  const char *line,
-			  struct patch *patch)
+static int gitdiff_hdrend(struct gitdiff_data *UNUSED(state),
+			  const char *UNUSED(line),
+			  struct patch *UNUSED(patch))
 {
 	return 1;
 }
@@ -1037,7 +1037,7 @@ static int gitdiff_renamedst(struct gitdiff_data *state,
 	return 0;
 }
 
-static int gitdiff_similarity(struct gitdiff_data *state,
+static int gitdiff_similarity(struct gitdiff_data *UNUSED(state),
 			      const char *line,
 			      struct patch *patch)
 {
@@ -1047,7 +1047,7 @@ static int gitdiff_similarity(struct gitdiff_data *state,
 	return 0;
 }
 
-static int gitdiff_dissimilarity(struct gitdiff_data *state,
+static int gitdiff_dissimilarity(struct gitdiff_data *UNUSED(state),
 				 const char *line,
 				 struct patch *patch)
 {
@@ -1097,9 +1097,9 @@ static int gitdiff_index(struct gitdiff_data *state,
  * This is normal for a diff that doesn't change anything: we'll fall through
  * into the next diff. Tell the parser to break out.
  */
-static int gitdiff_unrecognized(struct gitdiff_data *state,
-				const char *line,
-				struct patch *patch)
+static int gitdiff_unrecognized(struct gitdiff_data *UNUSED(state),
+				const char *UNUSED(line),
+				struct patch *UNUSED(patch))
 {
 	return 1;
 }
