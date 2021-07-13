@@ -107,6 +107,6 @@ int cmd__oidmap(int argc, const char **argv)
 	}
 
 	strbuf_release(&line);
-	oidmap_free(&map, 1);
+	oidmap_clear(&map, 1);
 	return 0;
 }
