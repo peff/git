@@ -5,6 +5,7 @@
 #include "parse-options.h"
 #include "hashmap.h"
 #include "refspec.h"
+#include "commit.h"
 
 struct transport_ls_refs_options;
 
@@ -332,6 +333,9 @@ enum ahead_behind_flags {
 };
 
 /* Reporting of tracking info */
+int revision_ahead_behind(struct commit *tip, struct commit *base,
+			  int *ahead, int *behind,
+			  enum ahead_behind_flags abf);
 int stat_tracking_info(struct branch *branch, int *num_ours, int *num_theirs,
 		       const char **upstream_name, int for_push,
 		       enum ahead_behind_flags abf);
