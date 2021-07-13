@@ -1484,11 +1484,16 @@ static int loose_object_info(struct repository *r,
 		status = error(_("unable to parse %s header"), oid_to_hex(oid));
 
 	if (status >= 0 && oi->contentp) {
-		*oi->contentp = unpack_loose_rest(&stream, hdr,
-						  *oi->sizep, oid);
-		if (!*oi->contentp) {
+		if (!oi->content_limit || *oi->sizep < oi->content_limit) {
+			*oi->contentp = unpack_loose_rest(&stream, hdr,
+							  *oi->sizep, oid);
+			if (!*oi->contentp) {
+				git_inflate_end(&stream);
+				status = -1;
+			}
+		} else {
+			*oi->contentp = NULL;
 			git_inflate_end(&stream);
-			status = -1;
 		}
 	} else
 		git_inflate_end(&stream);
