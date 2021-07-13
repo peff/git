@@ -630,6 +630,24 @@ test_verify_prereq () {
 	BUG "'$test_prereq' does not look like a prereq"
 }
 
+# assign the variable named by "$1" with the contents of "$2";
+# if "$2" is "-", then read stdin into "$1" instead
+test_body_or_stdin () {
+	if test "$2" != "-"
+	then
+		eval "$1=\$2"
+		return
+	fi
+
+	# start with a newline, to match hanging newline from open-quote style
+	eval "$1=\$LF"
+	local test_line
+	while IFS= read -r test_line
+	do
+		eval "$1=\${$1}\${test_line}\${LF}"
+	done
+}
+
 test_expect_failure () {
 	test_start_
 	test "$#" = 3 && { test_prereq=$1; shift; } || test_prereq=
@@ -639,8 +657,10 @@ test_expect_failure () {
 	export test_prereq
 	if ! test_skip "$@"
 	then
-		say >&3 "checking known breakage of $TEST_NUMBER.$test_count '$1': $2"
-		if test_run_ "$2" expecting_failure
+		local test_body
+		test_body_or_stdin test_body "$2"
+		say >&3 "checking known breakage of $TEST_NUMBER.$test_count '$1': $test_body"
+		if test_run_ "$test_body" expecting_failure
 		then
 			test_known_broken_ok_ "$1"
 		else
@@ -659,8 +679,10 @@ test_expect_success () {
 	export test_prereq
 	if ! test_skip "$@"
 	then
-		say >&3 "expecting success of $TEST_NUMBER.$test_count '$1': $2"
-		if test_run_ "$2"
+		local test_body
+		test_body_or_stdin test_body "$2"
+		say >&3 "expecting success of $TEST_NUMBER.$test_count '$1': $test_body"
+		if test_run_ "$test_body"
 		then
 			test_ok_ "$1"
 		else
