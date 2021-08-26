@@ -7,11 +7,13 @@ fi
 export GIT_EDITOR
 GIT_EDITOR=:
 
+upstream=
 while test $# -gt 0; do
 	case "$1" in
 	-c) GIT_META_TEST='git test run -t compile' ;;
 	-t) GIT_META_TEST="make -j16 && (cd t && ./t${2#t}-*.sh)"; shift ;;
 	-r) GIT_META_TEST=$2; shift ;;
+	-u) upstream=$2; shift ;;
 	--retest) GIT_META_TEST='git test run --retest HEAD' ;;
 	--edit) unset GIT_EDITOR ;;
 	*) break ;;
@@ -19,8 +21,7 @@ while test $# -gt 0; do
 	shift
 done
 
-if test $# -lt 1; then
+if test -z "$upstream"; then
   upstream=`git rev-parse --symbolic-full-name @{u} 2>/dev/null`
-  set -- ${upstream:-origin}
 fi
-git rebase -i -x "$GIT_META_TEST" "$@"
+git rebase -i -x "$GIT_META_TEST" "${upstream:-origin}"
