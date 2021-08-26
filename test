@@ -1,6 +1,5 @@
 #!/bin/sh
 
-export GIT_META_TEST
 if test -z "$GIT_META_TEST"; then
 	GIT_META_TEST='git test run HEAD'
 fi
