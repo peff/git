@@ -50,7 +50,6 @@ GNU_ROFF = Yes
 
 NO_GETTEXT = Nope
 NO_TCLTK = Nope
-XDL_FAST_HASH =
 
 GIT_PERF_MAKE_OPTS = O=2 strict= -j16
 GIT_INTEROP_MAKE_OPTS = strict= -j16
