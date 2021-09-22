@@ -23,9 +23,9 @@ LDFLAGS = -g
 # Relax compilation on a detached HEAD (which is probably
 # historical, and may contain compiler warnings that later
 # got fixed).
-head = $(shell git symbolic-ref HEAD 2>/dev/null)
-rebasing = $(shell test -d "`git rev-parse --git-dir`/"rebase-* && echo yes)
-private = $(shell grep -sq Meta/private "`git rev-parse --git-dir`/continue" && echo yes)
+head := $(shell git symbolic-ref HEAD 2>/dev/null)
+rebasing := $(shell test -d "`git rev-parse --git-dir`/"rebase-* && echo yes)
+private := $(shell grep -sq Meta/private "`git rev-parse --git-dir`/continue" && echo yes)
 strict = $(or $(rebasing), $(head), $(private))
 ifeq ($(strict),)
   CFLAGS += -Wno-error
