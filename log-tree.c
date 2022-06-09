@@ -1196,6 +1196,10 @@ static int log_tree_diff(struct rev_info *opt, struct commit *commit, struct log
 	if (!all_need_diff && !opt->merges_need_diff)
 		return 0;
 
+	if (opt->diffopt.output_format == DIFF_FORMAT_NO_OUTPUT &&
+	    opt->always_show_header)
+		return 0;
+
 	if (opt->line_level_traverse) {
 		line_log_queue_pairs(opt, commit);
 		log_tree_diff_flush(opt);
