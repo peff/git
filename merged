@@ -5,7 +5,7 @@ show() {
 }
 
 check_merge() {
-	if test -z "`git cherry $2 $1 $3 | grep -v ^-`"; then
+	if test -z "`git cherry $2 $1 | grep -v ^-`"; then
 		show $1 "merged to $2"
 		return 0
 	fi
@@ -26,16 +26,9 @@ for i in `Meta/topics -t`; do
 		;;
 	esac
 
-	upstream=`git for-each-ref --format='%(upstream)' refs/heads/$i`
-	if test -n "$upstream" &&
-	   ! git rev-parse --quiet --verify "$upstream" >/dev/null; then
-		show $i 'upstream broken'
-		continue
-	fi
-
-	check_merge $i origin/master ${upstream:-origin} ||
-	check_merge $i origin/next ${upstream:-origin} ||
-	{ test -n "$check_pu" && check_merge $i origin/pu ${upstream:-origin}; } ||
+	check_merge $i origin/master ||
+	check_merge $i origin/next ||
+	{ test -n "$check_pu" && check_merge $i origin/pu; } ||
 	show $i 'not merged'
 done
 exit 0
