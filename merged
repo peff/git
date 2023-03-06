@@ -12,10 +12,10 @@ check_merge() {
 	return 1
 }
 
-check_pu=
+check_seen=
 case "$1" in
---pu)
-	check_pu=t
+--seen)
+	check_seen=t
 	;;
 esac
 
@@ -28,7 +28,7 @@ for i in `Meta/topics -t`; do
 
 	check_merge $i origin/master ||
 	check_merge $i origin/next ||
-	{ test -n "$check_pu" && check_merge $i origin/pu; } ||
+	{ test -n "$check_seen" && check_merge $i origin/seen; } ||
 	show $i 'not merged'
 done
 exit 0
