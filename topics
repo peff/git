@@ -28,7 +28,7 @@ while test $# -gt 0; do
 done
 
 git for-each-ref --sort=$sortby --format="$format" refs/heads |
-egrep '^[a-z]*/' |
+grep -E '^[a-z]*/' |
 if test -n "$pretty"; then
 	perl -pe '
 		s/(\S+) /$& . " " x (30 - length($1))/e; # line up subjects
