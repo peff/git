@@ -2652,9 +2652,9 @@ static int index_mem(struct index_state *istate,
 
 		opts.strict = 1;
 		opts.error_func = hash_format_check_report;
-		if (fsck_buffer(null_oid(), type, buf, size, &opts))
+		if (fsck_buffer(null_oid(), type, buf, size, &opts) ||
+		    fsck_finish(&opts))
 			die(_("refusing to create malformed object"));
-		fsck_finish(&opts);
 	}
 
 	if (write_object)
