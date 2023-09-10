@@ -9,7 +9,7 @@ while test $# -gt 0; do
 	case "$1" in
 	-c) cmd='git test run -t compile' ;;
 	-t) cmd="make -j16 && (cd t && ./t${2#t}-*.sh)"; shift ;;
-	-r) cmd=$2; shift ;;
+	-x) cmd=$2; shift ;;
 	-u) upstream=$2; shift ;;
 	--retest) cmd='git test run --retest HEAD' ;;
 	--edit) unset GIT_EDITOR ;;
