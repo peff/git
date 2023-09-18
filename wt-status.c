@@ -1288,7 +1288,10 @@ static void show_am_in_progress(struct wt_status *s,
 static char *read_line_from_git_path(const char *filename)
 {
 	struct strbuf buf = STRBUF_INIT;
-	FILE *fp = fopen_or_warn(git_path("%s", filename), "r");
+	char *path = git_pathdup("%s", filename);
+	FILE *fp = fopen_or_warn(path, "r");
+
+	FREE_AND_NULL(path);
 
 	if (!fp) {
 		strbuf_release(&buf);
@@ -1383,13 +1386,15 @@ static void abbrev_oid_in_line(struct strbuf *line)
 static int read_rebase_todolist(const char *fname, struct string_list *lines)
 {
 	struct strbuf line = STRBUF_INIT;
-	FILE *f = fopen(git_path("%s", fname), "r");
+	char *path = git_pathdup("%s", fname);
+	FILE *f = fopen(path, "r");
 
 	if (!f) {
-		if (errno == ENOENT)
+		if (errno == ENOENT) {
+			free(path);
 			return -1;
-		die_errno("Could not open file %s for reading",
-			  git_path("%s", fname));
+		}
+		die_errno("Could not open file %s for reading", path);
 	}
 	while (!strbuf_getline_lf(&line, f)) {
 		if (starts_with(line.buf, comment_line_str))
@@ -1401,6 +1406,7 @@ static int read_rebase_todolist(const char *fname, struct string_list *lines)
 		string_list_append(lines, line.buf);
 	}
 	fclose(f);
+	free(path);
 	strbuf_release(&line);
 	return 0;
 }
