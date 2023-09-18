@@ -784,7 +784,6 @@ int cmd_rev_parse(int argc,
 			if (!strcmp(arg, "--git-path")) {
 				if (!argv[i + 1])
 					die(_("--git-path requires an argument"));
-				strbuf_reset(&buf);
 				print_path(git_path("%s", argv[i + 1]), prefix,
 						format,
 						DEFAULT_RELATIVE_IF_SHARED);
