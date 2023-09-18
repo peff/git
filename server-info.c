@@ -360,12 +360,15 @@ int update_server_info(int force)
 	 * intended audiences.
 	 */
 	int errs = 0;
+	char *path;
 
 	errs = errs | update_info_refs(force);
 	errs = errs | update_info_packs(force);
 
 	/* remove leftover rev-cache file if there is any */
-	unlink_or_warn(git_path("info/rev-cache"));
+	path = git_pathdup("info/rev-cache");
+	unlink_or_warn(path);
+	free(path);
 
 	return errs;
 }
