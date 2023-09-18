@@ -1031,8 +1031,7 @@ int cmd_rev_parse(int argc,
 			if (!strcmp(arg, "--git-dir") ||
 			    !strcmp(arg, "--absolute-git-dir")) {
 				const char *gitdir = getenv(GIT_DIR_ENVIRONMENT);
-				char *cwd;
-				int len;
+				struct strbuf path = STRBUF_INIT;
 				enum format_type wanted = format;
 				if (arg[2] == 'g') {	/* --git-dir */
 					if (gitdir) {
@@ -1055,12 +1054,12 @@ int cmd_rev_parse(int argc,
 						continue;
 					}
 				}
-				cwd = xgetcwd();
-				len = strlen(cwd);
-				strbuf_reset(&buf);
-				strbuf_addf(&buf, "%s%s.git", cwd, len && cwd[len-1] != '/' ? "/" : "");
-				free(cwd);
-				print_path(buf.buf, prefix, wanted, DEFAULT_CANONICAL);
+				if (strbuf_getcwd(&path))
+					die_errno(_("unable to get current working directory"));
+				strbuf_complete(&path, '/');
+				strbuf_addstr(&path, ".git");
+				print_path(path.buf, prefix, wanted, DEFAULT_CANONICAL);
+				strbuf_release(&path);
 				continue;
 			}
 			if (!strcmp(arg, "--git-common-dir")) {
