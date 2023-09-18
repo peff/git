@@ -1433,9 +1433,12 @@ static void show_rebase_information(struct wt_status *s,
 				i < have_done.nr;
 				i++)
 				status_printf_ln(s, color, "   %s", have_done.items[i].string);
-			if (have_done.nr > nr_lines_to_show && s->hints)
+			if (have_done.nr > nr_lines_to_show && s->hints) {
+				char *path = git_pathdup("rebase-merge/done");
 				status_printf_ln(s, color,
-					_("  (see more in file %s)"), git_path("rebase-merge/done"));
+					_("  (see more in file %s)"), path);
+				free(path);
+			}
 		}
 
 		if (yet_to_do.nr == 0)

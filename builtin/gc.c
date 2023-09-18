@@ -97,8 +97,10 @@ static void process_log_file(void)
 		commit_lock_file(&log_lock);
 	} else {
 		/* No error, clean up any old gc.log */
-		unlink(git_path("gc.log"));
+		char *log = git_pathdup("gc.log");
+		unlink(log);
 		rollback_lock_file(&log_lock);
+		free(log);
 	}
 }
 
@@ -286,8 +288,11 @@ static int too_many_loose_objects(struct gc_config *cfg)
 	int num_loose = 0;
 	int needed = 0;
 	const unsigned hexsz_loose = the_hash_algo->hexsz - 2;
+	char *path;
 
-	dir = opendir(git_path("objects/17"));
+	path = git_pathdup("objects/17");
+	dir = opendir(path);
+	FREE_AND_NULL(path);
 	if (!dir)
 		return 0;
 
@@ -808,9 +813,9 @@ struct repository *repo UNUSED)
 	}
 
 	if (daemonized) {
-		hold_lock_file_for_update(&log_lock,
-					  git_path("gc.log"),
-					  LOCK_DIE_ON_ERROR);
+		char *path = git_pathdup("gc.log");
+		hold_lock_file_for_update(&log_lock, path, LOCK_DIE_ON_ERROR);
+		free(path);
 		dup2(get_lock_file_fd(&log_lock), 2);
 		atexit(process_log_file_at_exit);
 	}
@@ -874,8 +879,11 @@ struct repository *repo UNUSED)
 		warning(_("There are too many unreachable loose objects; "
 			"run 'git prune' to remove them."));
 
-	if (!daemonized)
-		unlink(git_path("gc.log"));
+	if (!daemonized) {
+		char *path = git_pathdup("gc.log");
+		unlink(path);
+		free(path);
+	}
 
 out:
 	gc_config_release(&cfg);

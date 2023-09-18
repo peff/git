@@ -781,11 +781,13 @@ int cmd_rev_parse(int argc,
 
 		if (!seen_end_of_options && *arg == '-') {
 			if (!strcmp(arg, "--git-path")) {
+				char *path;
 				if (!argv[i + 1])
 					die(_("--git-path requires an argument"));
-				print_path(git_path("%s", argv[i + 1]), prefix,
-						format,
-						DEFAULT_RELATIVE_IF_SHARED);
+				path = git_pathdup("%s", argv[i + 1]);
+				print_path(path, prefix, format,
+					   DEFAULT_RELATIVE_IF_SHARED);
+				free(path);
 				i++;
 				continue;
 			}
@@ -1075,8 +1077,9 @@ int cmd_rev_parse(int argc,
 					die(_("Could not read the index"));
 				if (the_repository->index->split_index) {
 					const struct object_id *oid = &the_repository->index->split_index->base_oid;
-					const char *path = git_path("sharedindex.%s", oid_to_hex(oid));
+					char *path = git_pathdup("sharedindex.%s", oid_to_hex(oid));
 					print_path(path, prefix, format, DEFAULT_RELATIVE);
+					free(path);
 				}
 				continue;
 			}
