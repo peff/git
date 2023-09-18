@@ -885,9 +885,11 @@ int should_prune_worktree(const char *id, struct strbuf *reason, char **wtpath, 
 	int fd;
 	size_t len;
 	ssize_t read_result;
+	struct strbuf pathbuf = STRBUF_INIT;
 
 	*wtpath = NULL;
-	strbuf_realpath(&repo, git_common_path("worktrees/%s", id), 1);
+	strbuf_git_common_path(&pathbuf, the_repository, "worktrees/%s", id);
+	strbuf_realpath(&repo, pathbuf.buf, 1);
 	strbuf_addf(&gitdir, "%s/gitdir", repo.buf);
 	if (!is_directory(repo.buf)) {
 		strbuf_addstr(reason, _("not a valid directory"));
@@ -957,6 +959,7 @@ done:
 	strbuf_release(&gitdir);
 	strbuf_release(&repo);
 	strbuf_release(&file);
+	strbuf_release(&pathbuf);
 	return rc;
 }
 
