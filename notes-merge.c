@@ -274,13 +274,14 @@ static void diff_tree_local(struct notes_merge_options *o,
 
 static void check_notes_merge_worktree(struct notes_merge_options *o)
 {
+	char *path = git_pathdup(NOTES_MERGE_WORKTREE);
+
 	if (!o->has_worktree) {
 		/*
 		 * Must establish NOTES_MERGE_WORKTREE.
 		 * Abort if NOTES_MERGE_WORKTREE already exists
 		 */
-		if (file_exists(git_path(NOTES_MERGE_WORKTREE)) &&
-		    !is_empty_dir(git_path(NOTES_MERGE_WORKTREE))) {
+		if (file_exists(path) && !is_empty_dir(path)) {
 			if (advice_enabled(ADVICE_RESOLVE_CONFLICT))
 				die(_("You have not concluded your previous "
 				    "notes merge (%s exists).\nPlease, use "
@@ -295,13 +296,13 @@ static void check_notes_merge_worktree(struct notes_merge_options *o)
 
 		if (safe_create_leading_directories_const(git_path(
 				NOTES_MERGE_WORKTREE "/.test")))
-			die_errno("unable to create directory %s",
-				  git_path(NOTES_MERGE_WORKTREE));
+			die_errno("unable to create directory %s", path);
 		o->has_worktree = 1;
-	} else if (!file_exists(git_path(NOTES_MERGE_WORKTREE)))
+	} else if (!file_exists(path))
 		/* NOTES_MERGE_WORKTREE should already be established */
-		die("missing '%s'. This should not happen",
-		    git_path(NOTES_MERGE_WORKTREE));
+		die("missing '%s'. This should not happen", path);
+
+	free(path);
 }
 
 static void write_buf_to_worktree(const struct object_id *obj,
