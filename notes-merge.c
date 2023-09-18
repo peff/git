@@ -277,6 +277,7 @@ static void check_notes_merge_worktree(struct notes_merge_options *o)
 	char *path = git_pathdup(NOTES_MERGE_WORKTREE);
 
 	if (!o->has_worktree) {
+		struct strbuf tmp = STRBUF_INIT;
 		/*
 		 * Must establish NOTES_MERGE_WORKTREE.
 		 * Abort if NOTES_MERGE_WORKTREE already exists
@@ -288,16 +289,19 @@ static void check_notes_merge_worktree(struct notes_merge_options *o)
 				    "'git notes merge --commit' or 'git notes "
 				    "merge --abort' to commit/abort the "
 				    "previous merge before you start a new "
-				    "notes merge."), git_path("NOTES_MERGE_*"));
+				    "notes merge."),
+				    git_path_buf(&tmp, "NOTES_MERGE_*"));
 			else
 				die(_("You have not concluded your notes merge "
-				    "(%s exists)."), git_path("NOTES_MERGE_*"));
+				    "(%s exists)."),
+				    git_path_buf(&tmp, "NOTES_MERGE_*"));
 		}
 
-		if (safe_create_leading_directories_const(git_path(
+		if (safe_create_leading_directories_const(git_path_buf(&tmp,
 				NOTES_MERGE_WORKTREE "/.test")))
 			die_errno("unable to create directory %s", path);
 		o->has_worktree = 1;
+		strbuf_release(&tmp);
 	} else if (!file_exists(path))
 		/* NOTES_MERGE_WORKTREE should already be established */
 		die("missing '%s'. This should not happen", path);
