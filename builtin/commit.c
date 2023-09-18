@@ -349,6 +349,7 @@ static const char *prepare_index(const char **argv, const char *prefix,
 	struct pathspec pathspec;
 	int refresh_flags = REFRESH_QUIET;
 	const char *ret;
+	struct strbuf pathbuf = STRBUF_INIT;
 
 	if (is_status)
 		refresh_flags |= REFRESH_UNMERGED;
@@ -522,8 +523,9 @@ static const char *prepare_index(const char **argv, const char *prefix,
 		die(_("unable to write new index file"));
 
 	hold_lock_file_for_update(&false_lock,
-				  git_path("next-index-%"PRIuMAX,
-					   (uintmax_t) getpid()),
+				  git_path_buf(&pathbuf,
+					       "next-index-%"PRIuMAX,
+					       (uintmax_t) getpid()),
 				  LOCK_DIE_ON_ERROR);
 
 	create_base_index(current_head);
@@ -539,6 +541,7 @@ static const char *prepare_index(const char **argv, const char *prefix,
 out:
 	string_list_clear(&partial, 0);
 	clear_pathspec(&pathspec);
+	strbuf_release(&pathbuf);
 	return ret;
 }
 
