@@ -3,6 +3,9 @@
 export GIT_EDITOR
 GIT_EDITOR=:
 
+t=$(getopt -o ct:x:u: --long retest,edit -- "$@") || exit 1
+eval "set -- $t"
+
 cmd=
 upstream=
 while test $# -gt 0; do
@@ -13,6 +16,7 @@ while test $# -gt 0; do
 	-u) upstream=$2; shift ;;
 	--retest) cmd='git test run --retest HEAD' ;;
 	--edit) unset GIT_EDITOR ;;
+	--) shift; break ;;
 	*) break ;;
 	esac
 	shift
