@@ -3559,6 +3559,7 @@ static void read_packs_list_from_stdin(void)
 	strbuf_release(&buf);
 	string_list_clear(&include_packs, 0);
 	string_list_clear(&exclude_packs, 0);
+	release_revisions(&revs);
 }
 
 static void add_cruft_object_entry(const struct object_id *oid, enum object_type type,
@@ -3710,6 +3711,7 @@ static void enumerate_and_traverse_cruft_objects(struct string_list *fresh_packs
 	traverse_commit_list(&revs, show_cruft_commit, show_cruft_object, NULL);
 
 	stop_progress(&progress_state);
+	release_revisions(&revs);
 }
 
 static void read_cruft_objects(void)
