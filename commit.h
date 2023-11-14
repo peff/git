@@ -7,6 +7,7 @@
 struct signature_check;
 struct strbuf;
 struct tree;
+struct prio_queue;
 
 #define COMMIT_NOT_FROM_GRAPH 0xFFFFFFFF
 #define GENERATION_NUMBER_INFINITY ((1ULL << 63) - 1)
@@ -192,6 +193,9 @@ struct commit_list **commit_list_append(struct commit *commit,
 					struct commit_list **next);
 unsigned commit_list_count(const struct commit_list *l);
 void commit_list_sort_by_date(struct commit_list **list);
+
+struct commit_list *commit_list_from_queue(struct prio_queue *q);
+void commit_list_to_queue(struct commit_list *list, struct prio_queue *q);
 
 /* Shallow copy of the input list */
 struct commit_list *commit_list_copy(const struct commit_list *list);
