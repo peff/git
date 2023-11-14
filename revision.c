@@ -49,8 +49,6 @@
 #include "parse-options.h"
 #include "wildmatch.h"
 
-volatile show_early_output_fn_t show_early_output;
-
 static const char *term_bad;
 static const char *term_good;
 
@@ -1485,7 +1483,6 @@ static int limit_list(struct rev_info *revs)
 	while (original_list) {
 		struct commit *commit = pop_commit(&original_list);
 		struct object *obj = &commit->object;
-		show_early_output_fn_t show;
 
 		if (commit == interesting_cache)
 			interesting_cache = NULL;
@@ -1509,13 +1506,6 @@ static int limit_list(struct rev_info *revs)
 			continue;
 		date = commit->date;
 		p = &commit_list_insert(commit, p)->next;
-
-		show = show_early_output;
-		if (!show)
-			continue;
-
-		show(revs, newlist);
-		show_early_output = NULL;
 	}
 	if (revs->cherry_pick || revs->cherry_mark)
 		cherry_pick_list(newlist, revs);
@@ -2441,13 +2431,6 @@ static int handle_revision_opt(struct rev_info *revs, int argc, const char **arg
 		revs->topo_order = 1;
 	} else if (!strcmp(arg, "--author-date-order")) {
 		revs->sort_order = REV_SORT_BY_AUTHOR_DATE;
-		revs->topo_order = 1;
-	} else if (!strcmp(arg, "--early-output")) {
-		revs->early_output = 100;
-		revs->topo_order = 1;
-	} else if (skip_prefix(arg, "--early-output=", &optarg)) {
-		if (strtoul_ui(optarg, 10, &revs->early_output) < 0)
-			die("'%s': not a non-negative integer", optarg);
 		revs->topo_order = 1;
 	} else if (!strcmp(arg, "--parents")) {
 		revs->rewrite_parents = 1;
