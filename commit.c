@@ -1960,3 +1960,24 @@ int run_commit_hook(int editor_is_used, const char *index_file,
 	opt.invoked_hook = invoked_hook;
 	return run_hooks_opt(the_repository, name, &opt);
 }
+
+struct commit_list *commit_list_from_queue(struct prio_queue *q)
+{
+	struct commit_list *ret = NULL, **tail = &ret;
+	struct commit *commit;
+
+	while ((commit = prio_queue_get(q)))
+		tail = commit_list_append(commit, tail);
+
+	return ret;
+}
+
+void commit_list_to_queue(struct commit_list *list, struct prio_queue *q)
+{
+	struct commit *commit;
+	clear_prio_queue(q);
+	q->compare = NULL;
+	while ((commit = pop_commit(&list)))
+		prio_queue_put(q, commit);
+	prio_queue_reverse(q);
+}
