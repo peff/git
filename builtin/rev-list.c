@@ -330,14 +330,17 @@ static int show_bisect_vars(struct rev_list_info *info, int reaches, int all)
 	int cnt, flags = info->flags;
 	char hex[GIT_MAX_HEXSZ + 1] = "";
 	struct commit_list *tried;
+	struct commit_list *tmp_list;
 	struct rev_info *revs = info->revs;
 
-	if (!revs->commits)
+	if (!revs->commits.nr)
 		return 1;
 
-	revs->commits = filter_skipped(revs->commits, &tried,
-				       flags & BISECT_SHOW_ALL,
-				       NULL, NULL);
+	tmp_list = commit_list_from_queue(&revs->commits);
+	tmp_list = filter_skipped(tmp_list, &tried,
+				  flags & BISECT_SHOW_ALL,
+				  NULL, NULL);
+	commit_list_to_queue(tmp_list, &revs->commits);
 
 	/*
 	 * revs->commits can reach "reaches" commits among
@@ -352,8 +355,10 @@ static int show_bisect_vars(struct rev_list_info *info, int reaches, int all)
 	if (cnt < reaches)
 		cnt = reaches;
 
-	if (revs->commits)
-		oid_to_hex_r(hex, &revs->commits->item->object.oid);
+	if (revs->commits.nr) {
+		struct commit *c = prio_queue_peek(&revs->commits);
+		oid_to_hex_r(hex, &c->object.oid);
+	}
 
 	if (flags & BISECT_SHOW_ALL) {
 		traverse_commit_list(revs, show_commit, show_object, info);
@@ -704,7 +709,7 @@ int cmd_rev_list(int argc,
 		/* Only --header was specified */
 		revs.commit_format = CMIT_FMT_RAW;
 
-	if ((!revs.commits && reflog_walk_empty(revs.reflog_info) &&
+	if ((!revs.commits.nr && reflog_walk_empty(revs.reflog_info) &&
 	     (!(revs.tag_objects || revs.tree_objects || revs.blob_objects) &&
 	      !revs.pending.nr) &&
 	     !revs.rev_input_given && !revs.read_from_stdin) ||
@@ -745,6 +750,7 @@ int cmd_rev_list(int argc,
 	if (bisect_list) {
 		int reaches, all;
 		unsigned bisect_flags = 0;
+		struct commit_list *tmp_list;
 
 		if (bisect_find_all)
 			bisect_flags |= FIND_BISECTION_ALL;
@@ -752,7 +758,9 @@ int cmd_rev_list(int argc,
 		if (revs.first_parent_only)
 			bisect_flags |= FIND_BISECTION_FIRST_PARENT_ONLY;
 
-		find_bisection(&revs.commits, &reaches, &all, bisect_flags);
+		tmp_list = commit_list_from_queue(&revs.commits);
+		find_bisection(&tmp_list, &reaches, &all, bisect_flags);
+		commit_list_to_queue(tmp_list, &revs.commits);
 
 		if (bisect_show_vars) {
 			ret = show_bisect_vars(&info, reaches, all);
@@ -761,13 +769,14 @@ int cmd_rev_list(int argc,
 	}
 
 	if (filter_provided_objects) {
-		struct commit_list *c;
 		for (i = 0; i < revs.pending.nr; i++) {
 			struct object_array_entry *pending = revs.pending.objects + i;
 			pending->item->flags |= NOT_USER_GIVEN;
 		}
-		for (c = revs.commits; c; c = c->next)
-			c->item->object.flags |= NOT_USER_GIVEN;
+		for (i = 0; i < revs.commits.nr; i++) {
+			struct commit *c = revs.commits.array[i].data;
+			c->object.flags |= NOT_USER_GIVEN;
+		}
 	}
 
 	if (arg_print_omitted)

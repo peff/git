@@ -881,7 +881,7 @@ static int check_ancestors(struct repository *r, int rev_nr,
 	bisect_rev_setup(r, &revs, &rev_argv, prefix, "^%s", "%s", 0);
 
 	bisect_common(&revs);
-	res = (revs.commits != NULL);
+	res = !!revs.commits.nr;
 
 	/* Clean up objects used, as they will be reused. */
 	clear_commit_marks_many(rev_nr, rev, ALL_REV_FLAGS);
@@ -1029,6 +1029,7 @@ enum bisect_error bisect_next_all(struct repository *r, const char *prefix)
 	enum bisect_error res = BISECT_OK;
 	struct object_id *bisect_rev;
 	char *steps_msg;
+	struct commit_list *tmp_list;
 	/*
 	 * If no_checkout is non-zero, the bisection process does not
 	 * checkout the trial commit but instead simply updates BISECT_HEAD.
@@ -1058,10 +1059,12 @@ enum bisect_error bisect_next_all(struct repository *r, const char *prefix)
 
 	bisect_common(&revs);
 
-	find_bisection(&revs.commits, &reaches, &all, bisect_flags);
-	revs.commits = managed_skipped(revs.commits, &tried);
+	tmp_list = commit_list_from_queue(&revs.commits);
+	find_bisection(&tmp_list, &reaches, &all, bisect_flags);
+	tmp_list = managed_skipped(tmp_list, &tried);
+	commit_list_to_queue(tmp_list, &revs.commits);
 
-	if (!revs.commits) {
+	if (!revs.commits.nr) {
 		/*
 		 * We should return error here only if the "bad"
 		 * commit is also a "skip" commit.
@@ -1086,7 +1089,7 @@ enum bisect_error bisect_next_all(struct repository *r, const char *prefix)
 		goto cleanup;
 	}
 
-	bisect_rev = &revs.commits->item->object.oid;
+	bisect_rev = &((struct commit *)prio_queue_peek(&revs.commits))->object.oid;
 
 	if (oideq(bisect_rev, current_bad_oid)) {
 		res = error_if_skipped_commits(tried, current_bad_oid);
@@ -1095,7 +1098,7 @@ enum bisect_error bisect_next_all(struct repository *r, const char *prefix)
 		printf("%s is the first %s commit\n", oid_to_hex(bisect_rev),
 			term_bad);
 
-		show_commit(revs.commits->item);
+		show_commit(prio_queue_peek(&revs.commits));
 		/*
 		 * This means the bisection process succeeded.
 		 * Using BISECT_INTERNAL_SUCCESS_1ST_BAD_FOUND (-10)
