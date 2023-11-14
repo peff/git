@@ -709,13 +709,13 @@ static void prepare_to_use_bloom_filter(struct rev_info *revs)
 {
 	release_revisions_bloom_keyvecs(revs);
 
-	if (!revs->commits)
+	if (!prio_queue_size(&revs->commits))
 		return;
 
 	if (forbid_bloom_filters(&revs->prune_data))
 		return;
 
-	repo_parse_commit(revs->repo, revs->commits->item);
+	repo_parse_commit(revs->repo, prio_queue_peek(&revs->commits));
 
 	revs->bloom_filter_settings = get_bloom_filter_settings(revs->repo);
 	if (!revs->bloom_filter_settings)
@@ -1417,13 +1417,14 @@ static void limit_to_ancestry(struct commit_list *bottoms, struct commit_list *l
  * to filter the result of "A..B" further to the ones that can actually
  * reach A.
  */
-static void collect_bottom_commits(struct commit_list *list,
+static void collect_bottom_commits(const struct prio_queue *q,
 				   struct commit_list **bottom)
 {
-	struct commit_list *elem;
-	for (elem = list; elem; elem = elem->next)
-		if (elem->item->object.flags & BOTTOM)
-			commit_list_insert(elem->item, bottom);
+	struct commit *c;
+	prio_queue_for_each(q, c) {
+		if (c->object.flags & BOTTOM)
+			commit_list_insert(c, bottom);
+	}
 }
 
 /* Assumes either left_only or right_only is set */
@@ -1447,25 +1448,18 @@ static int limit_list(struct rev_info *revs)
 {
 	int slop = SLOP;
 	timestamp_t date = TIME_MAX;
-	struct commit_list *original_list = revs->commits;
 	struct commit_list *newlist = NULL;
 	struct commit_list **p = &newlist;
 	struct commit *commit, *interesting_cache = NULL;
-	struct prio_queue queue = { .compare = compare_commits_by_commit_date };
 
 	if (revs->ancestry_path_implicit_bottoms) {
-		collect_bottom_commits(original_list,
+		collect_bottom_commits(&revs->commits,
 				       &revs->ancestry_path_bottoms);
 		if (!revs->ancestry_path_bottoms)
 			die("--ancestry-path given but there are no bottom commits");
 	}
 
-	while (original_list) {
-		struct commit *commit = pop_commit(&original_list);
-		prio_queue_put(&queue, commit);
-	}
-
-	while ((commit = prio_queue_get(&queue))) {
+	while ((commit = prio_queue_get(&revs->commits))) {
 		struct object *obj = &commit->object;
 
 		if (commit == interesting_cache)
@@ -1473,13 +1467,13 @@ static int limit_list(struct rev_info *revs)
 
 		if (revs->max_age != -1 && (commit->date < revs->max_age))
 			obj->flags |= UNINTERESTING;
-		if (process_parents(revs, commit, &queue) < 0) {
-			clear_prio_queue(&queue);
+		if (process_parents(revs, commit, &revs->commits) < 0) {
+			clear_prio_queue(&revs->commits);
 			return -1;
 		}
 		if (obj->flags & UNINTERESTING) {
 			mark_parents_uninteresting(revs, commit);
-			slop = still_interesting(&queue, date, slop, &interesting_cache);
+			slop = still_interesting(&revs->commits, date, slop, &interesting_cache);
 			if (slop)
 				continue;
 			break;
@@ -1516,8 +1510,7 @@ static int limit_list(struct rev_info *revs)
 		}
 	}
 
-	clear_prio_queue(&queue);
-	revs->commits = newlist;
+	commit_list_to_queue(newlist, &revs->commits);
 	return 0;
 }
 
@@ -3302,8 +3295,7 @@ static void free_void_commit_list(void *list)
 
 void release_revisions(struct rev_info *revs)
 {
-	commit_list_free(revs->commits);
-	clear_prio_queue(&revs->commit_queue);
+	clear_prio_queue(&revs->commits);
 	commit_list_free(revs->ancestry_path_bottoms);
 	release_display_notes(&revs->notes_opt);
 	object_array_clear(&revs->pending);
@@ -3643,6 +3635,7 @@ static struct commit_list **simplify_one(struct rev_info *revs, struct commit *c
 
 static void simplify_merges(struct rev_info *revs)
 {
+	struct commit_list *orig;
 	struct commit_list *list, *next;
 	struct commit_list *yet_to_do, **tail;
 	struct commit *commit;
@@ -3650,9 +3643,15 @@ static void simplify_merges(struct rev_info *revs)
 	if (!revs->prune)
 		return;
 
+	/*
+	 * feels like we could probably do with one less copy here,
+	 * but let's start simple
+	 */
+	orig = commit_list_from_queue(&revs->commits);
+
 	/* feed the list reversed */
 	yet_to_do = NULL;
-	for (list = revs->commits; list; list = next) {
+	for (list = orig; list; list = next) {
 		commit = list->item;
 		next = list->next;
 		/*
@@ -3672,9 +3671,9 @@ static void simplify_merges(struct rev_info *revs)
 	}
 
 	/* clean up the result, removing the simplified ones */
-	list = revs->commits;
-	revs->commits = NULL;
-	tail = &revs->commits;
+	list = orig;
+	orig = NULL;
+	tail = &orig;
 	while (list) {
 		struct merge_simplify_state *st;
 
@@ -3683,13 +3682,14 @@ static void simplify_merges(struct rev_info *revs)
 		if (st->simplified == commit)
 			tail = &commit_list_insert(commit, tail)->next;
 	}
+
+	commit_list_to_queue(orig, &revs->commits);
 }
 
 static void set_children(struct rev_info *revs)
 {
-	struct commit_list *l;
-	for (l = revs->commits; l; l = l->next) {
-		struct commit *commit = l->item;
+	struct commit *commit;
+	prio_queue_for_each(&revs->commits, commit) {
 		struct commit_list *p;
 
 		for (p = commit->parents; p; p = p->next)
@@ -3860,7 +3860,7 @@ static void reset_topo_walk(struct rev_info *revs)
 static void init_topo_walk(struct rev_info *revs)
 {
 	struct topo_walk_info *info;
-	struct commit_list *list;
+	struct commit *c;
 	if (revs->topo_walk_info)
 		reset_topo_walk(revs);
 
@@ -3891,8 +3891,7 @@ static void init_topo_walk(struct rev_info *revs)
 	info->indegree_queue.compare = compare_commits_by_gen_then_commit_date;
 
 	info->min_generation = GENERATION_NUMBER_INFINITY;
-	for (list = revs->commits; list; list = list->next) {
-		struct commit *c = list->item;
+	prio_queue_for_each(&revs->commits, c) {
 		timestamp_t generation;
 
 		if (repo_parse_commit_gently(revs->repo, c, 1))
@@ -3912,9 +3911,7 @@ static void init_topo_walk(struct rev_info *revs)
 	}
 	compute_indegrees_to_depth(revs, info->min_generation);
 
-	for (list = revs->commits; list; list = list->next) {
-		struct commit *c = list->item;
-
+	prio_queue_for_each(&revs->commits, c) {
 		if (*(indegree_slab_at(&info->indegree, c)) == 1)
 			prio_queue_put(&info->topo_queue, c);
 	}
@@ -3986,18 +3983,14 @@ static void expand_topo_walk(struct rev_info *revs, struct commit *commit)
 	}
 }
 
-void rev_info_commit_list_to_queue(struct rev_info *revs)
-{
-	while (revs->commits)
-		prio_queue_put(&revs->commit_queue, pop_commit(&revs->commits));
-}
-
-
 int prepare_revision_walk(struct rev_info *revs)
 {
 	int i;
 	struct object_array old_pending;
-	struct commit_list **next = &revs->commits;
+
+	revs->commits.compare = revs->unsorted_input ?
+				NULL :
+				compare_commits_by_commit_date;
 
 	memcpy(&old_pending, &revs->pending, sizeof(old_pending));
 	revs->pending.nr = 0;
@@ -4009,7 +4002,7 @@ int prepare_revision_walk(struct rev_info *revs)
 		if (commit) {
 			if (!(commit->object.flags & SEEN)) {
 				commit->object.flags |= SEEN;
-				next = commit_list_append(commit, next);
+				prio_queue_put(&revs->commits, commit);
 			}
 		}
 	}
@@ -4026,15 +4019,18 @@ int prepare_revision_walk(struct rev_info *revs)
 
 	if (!revs->reflog_info)
 		prepare_to_use_bloom_filter(revs);
-	if (!revs->unsorted_input)
-		commit_list_sort_by_date(&revs->commits);
+	if (revs->unsorted_input)
+		prio_queue_reverse(&revs->commits);
 	if (revs->no_walk)
 		return 0;
 	if (revs->limited) {
 		if (limit_list(revs) < 0)
 			return -1;
-		if (revs->topo_order)
-			sort_in_topological_order(&revs->commits, revs->sort_order);
+		if (revs->topo_order) {
+			struct commit_list *list = commit_list_from_queue(&revs->commits);
+			sort_in_topological_order(&list, revs->sort_order);
+			commit_list_to_queue(list, &revs->commits);
+		}
 	} else if (revs->topo_order)
 		init_topo_walk(revs);
 	if (revs->line_level_traverse && want_ancestry(revs))
@@ -4054,14 +4050,13 @@ int prepare_revision_walk(struct rev_info *revs)
 	return 0;
 }
 
-static enum rewrite_result rewrite_one_1(struct rev_info *revs,
-					 struct commit **pp,
-					 struct prio_queue *queue)
+static enum rewrite_result rewrite_one(struct rev_info *revs,
+				       struct commit **pp)
 {
 	for (;;) {
 		struct commit *p = *pp;
 		if (!revs->limited)
-			if (process_parents(revs, p, queue) < 0)
+			if (process_parents(revs, p, &revs->commits) < 0)
 				return rewrite_one_error;
 		if (p->object.flags & UNINTERESTING)
 			return rewrite_one_ok;
@@ -4073,23 +4068,6 @@ static enum rewrite_result rewrite_one_1(struct rev_info *revs,
 			return rewrite_one_ok;
 		*pp = p;
 	}
-}
-
-static void merge_queue_into_prio_queue(struct prio_queue *from,
-					struct prio_queue *to)
-{
-	struct commit *item;
-	while ((item = prio_queue_get(from)))
-		prio_queue_put(to, item);
-}
-
-static enum rewrite_result rewrite_one(struct rev_info *revs, struct commit **pp)
-{
-	struct prio_queue queue = { compare_commits_by_commit_date };
-	enum rewrite_result ret = rewrite_one_1(revs, pp, &queue);
-	merge_queue_into_prio_queue(&queue, &revs->commit_queue);
-	clear_prio_queue(&queue);
-	return ret;
 }
 
 int rewrite_parents(struct rev_info *revs, struct commit *commit,
@@ -4417,9 +4395,6 @@ static struct commit *get_revision_1(struct rev_info *revs)
 {
 	enum rev_walk_mode mode = get_walk_mode(revs);
 
-	if (mode == REV_WALK_STREAMING && revs->commits)
-		rev_info_commit_list_to_queue(revs);
-
 	while (1) {
 		struct commit *commit;
 
@@ -4432,15 +4407,22 @@ static struct commit *get_revision_1(struct rev_info *revs)
 			break;
 		case REV_WALK_LIMITED:
 		case REV_WALK_NO_WALK:
-			commit = pop_commit(&revs->commits);
-			break;
 		case REV_WALK_STREAMING:
-			commit = prio_queue_get(&revs->commit_queue);
+			commit = prio_queue_get(&revs->commits);
 			break;
 		}
 
-		if (!commit)
+		if (!commit) {
+			/*
+			 * We know it is empty, but clean up the array
+			 * so that callers can get away with not calling
+			 * release_revisions(), as they could when
+			 * revs->commits was just a linked list.
+			 */
+			if (!prio_queue_size(&revs->commits))
+				clear_prio_queue(&revs->commits);
 			return NULL;
+		}
 
 		if (mode == REV_WALK_REFLOG)
 			commit->object.flags &= ~(ADDED | SEEN | SHOWN);
@@ -4465,7 +4447,7 @@ static struct commit *get_revision_1(struct rev_info *revs)
 			break;
 		case REV_WALK_STREAMING:
 			if (process_parents(revs, commit,
-					    &revs->commit_queue) < 0) {
+					    &revs->commits) < 0) {
 				if (!revs->ignore_missing_links)
 					die("Failed to traverse parents of commit %s",
 					    oid_to_hex(&commit->object.oid));
@@ -4514,6 +4496,7 @@ static void create_boundary_commit_list(struct rev_info *revs)
 	struct commit *c;
 	struct object_array *array = &revs->boundary_commits;
 	struct object_array_entry *objects = array->objects;
+	struct commit_list *tmp_list;
 
 	/*
 	 * If revs->commits is non-NULL at this point, an error occurred in
@@ -4521,8 +4504,9 @@ static void create_boundary_commit_list(struct rev_info *revs)
 	 * boundary commits anyway.  (This is what the code has always
 	 * done.)
 	 */
-	commit_list_free(revs->commits);
-	revs->commits = NULL;
+	clear_prio_queue(&revs->commits);
+	/* keep existing order of boundaries */
+	revs->commits.compare = NULL;
 
 	/*
 	 * Put all of the actual boundary commits from revs->boundary_commits
@@ -4537,14 +4521,16 @@ static void create_boundary_commit_list(struct rev_info *revs)
 		if (c->object.flags & (SHOWN | BOUNDARY))
 			continue;
 		c->object.flags |= BOUNDARY;
-		commit_list_insert(c, &revs->commits);
+		prio_queue_put(&revs->commits, c);
 	}
 
 	/*
 	 * If revs->topo_order is set, sort the boundary commits
 	 * in topological order
 	 */
-	sort_in_topological_order(&revs->commits, revs->sort_order);
+	tmp_list = commit_list_from_queue(&revs->commits);
+	sort_in_topological_order(&tmp_list, revs->sort_order);
+	commit_list_to_queue(tmp_list, &revs->commits);
 }
 
 static struct commit *get_revision_internal(struct rev_info *revs)
@@ -4559,7 +4545,7 @@ static struct commit *get_revision_internal(struct rev_info *revs)
 		 * create_boundary_commit_list() has populated
 		 * revs->commits with the remaining commits to return.
 		 */
-		c = pop_commit(&revs->commits);
+		c = prio_queue_get(&revs->commits);
 		if (c)
 			c->object.flags |= SHOWN;
 		return c;
@@ -4710,7 +4696,7 @@ static struct commit *next_commit_to_show(struct rev_info *revs)
 	if (!revs->max_count_stage)
 		return get_revision_internal(revs);
 
-	c = pop_commit(&revs->commits);
+	c = prio_queue_get(&revs->commits);
 	if (c) {
 		c->object.flags |= SHOWN;
 		if (!(c->object.flags & BOUNDARY))
@@ -4724,31 +4710,30 @@ struct commit *get_revision(struct rev_info *revs)
 {
 	struct commit *c;
 	struct commit_list *reversed;
-	struct commit_list *queue = NULL;
 
 	if (revs->max_count_type == 1 && !revs->max_count_stage) {
+		struct commit_list *queue = NULL;
 		retrieve_oldest_commits(revs, &queue);
-		commit_list_free(revs->commits);
-		revs->commits = queue;
+		commit_list_to_queue(queue, &revs->commits);
 		revs->max_count_stage = 1;
 	}
 
 	if (revs->reverse) {
+		/* use prio_queue_reverse() here? */
 		reversed = NULL;
 		if (revs->max_count_type == 1)
-			while ((c = pop_commit(&revs->commits)))
+			while ((c = prio_queue_get(&revs->commits)))
 				commit_list_insert(c, &reversed);
 		else
 			while ((c = get_revision_internal(revs)))
 				commit_list_insert(c, &reversed);
-		commit_list_free(revs->commits);
-		revs->commits = reversed;
+		commit_list_to_queue(reversed, &revs->commits);
 		revs->reverse = 0;
 		revs->reverse_output_stage = 1;
 	}
 
 	if (revs->reverse_output_stage) {
-		c = pop_commit(&revs->commits);
+		c = prio_queue_get(&revs->commits);
 		if (revs->track_linear)
 			revs->linear = !!(c && c->object.flags & TRACK_LINEAR);
 		return c;

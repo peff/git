@@ -14,6 +14,7 @@
 #include "list-objects-filter-options.h"
 #include "prio-queue.h"
 #include "strvec.h"
+#include "prio-queue.h"
 
 /**
  * The revision walking API offers functions to build a list of revisions
@@ -124,13 +125,7 @@ struct oidset;
 struct topo_walk_info;
 
 struct rev_info {
-	/*
-	 * Work queue of commits, stored as either a linked list or a
-	 * priority queue, but never both at the same time.
-	 * rev_info_commit_list_to_queue() converts list to queue.
-	 */
-	struct commit_list *commits;
-	struct prio_queue commit_queue;
+	struct prio_queue commits;
 
 	struct object_array pending;
 	struct repository *repo;
@@ -416,7 +411,6 @@ struct rev_info {
  * uninitialized.
  */
 #define REV_INFO_INIT { \
-	.commit_queue = { .compare = compare_commits_by_commit_date }, \
 	.abbrev = DEFAULT_ABBREV, \
 	.simplify_history = 1, \
 	.pruning.flags.recursive = 1, \
