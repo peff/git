@@ -348,7 +348,6 @@ static int last_modified_run(struct last_modified *lm)
 	struct commit *c, *n;
 	struct prio_queue queue = { compare_commits_by_gen_then_commit_date };
 	struct prio_queue not_queue = { compare_commits_by_gen_then_commit_date };
-	struct commit_list *list;
 	struct last_modified_callback_data data = { .lm = lm };
 
 	lm->rev.diffopt.output_format = DIFF_FORMAT_CALLBACK;
@@ -368,9 +367,7 @@ static int last_modified_run(struct last_modified *lm)
 	 *
 	 * Loop through each such commit, and place it in the appropriate queue.
 	 */
-	for (list = lm->rev.commits; list; list = list->next) {
-		struct commit *c = list->item;
-
+	prio_queue_for_each(&lm->rev.commits, c) {
 		if (c->object.flags & BOTTOM) {
 			prio_queue_put(&not_queue, c);
 			c->object.flags |= PARENT2;
