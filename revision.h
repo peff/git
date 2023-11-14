@@ -12,6 +12,7 @@
 #include "ident.h"
 #include "list-objects-filter-options.h"
 #include "strvec.h"
+#include "prio-queue.h"
 
 /**
  * The revision walking API offers functions to build a list of revisions
@@ -120,7 +121,7 @@ struct topo_walk_info;
 
 struct rev_info {
 	/* Starting list */
-	struct commit_list *commits;
+	struct prio_queue commits;
 	struct object_array pending;
 	struct repository *repo;
 
