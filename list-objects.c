@@ -284,14 +284,14 @@ void mark_edges_uninteresting(struct rev_info *revs,
 			      show_edge_fn show_edge,
 			      int sparse)
 {
-	struct commit_list *list;
-
 	if (sparse) {
+		struct commit *commit;
 		struct oidset set;
 		oidset_init(&set, 16);
 
-		for (list = revs->commits; list; list = list->next) {
-			struct commit *commit = list->item;
+		/* this will be a different order; is that OK? We might need an
+		 * iteration helper */
+		prio_queue_for_each(&revs->commits, commit) {
 			struct tree *tree = repo_get_commit_tree(the_repository,
 								 commit);
 
@@ -305,8 +305,8 @@ void mark_edges_uninteresting(struct rev_info *revs,
 		mark_trees_uninteresting_sparse(revs->repo, &set);
 		oidset_clear(&set);
 	} else {
-		for (list = revs->commits; list; list = list->next) {
-			struct commit *commit = list->item;
+		struct commit *commit;
+		prio_queue_for_each(&revs->commits, commit) {
 			if (commit->object.flags & UNINTERESTING) {
 				mark_tree_uninteresting(revs->repo,
 							repo_get_commit_tree(the_repository, commit));
