@@ -496,8 +496,7 @@ static void check_object(struct object *obj, const char *name UNUSED, void *vdat
 	 * but we can end the traversal early.
 	 */
 	if (obj == data->obj) {
-		free_commit_list(data->revs.commits);
-		data->revs.commits = NULL;
+		clear_prio_queue(&data->revs.commits);
 
 		free(data->revs.pending.objects);
 		data->revs.pending.nr = 0;
