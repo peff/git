@@ -856,7 +856,8 @@ static int split_mail_stgit_series(struct am_state *state, const char **paths,
 		if (*sb.buf == '#')
 			continue; /* skip comment lines */
 
-		strvec_push(&patches, mkpath("%s/%s", series_dir, sb.buf));
+		strvec_push_nodup(&patches,
+				  mkpathdup("%s/%s", series_dir, sb.buf));
 	}
 
 	fclose(fp);
@@ -2498,7 +2499,8 @@ int cmd_am(int argc,
 			if (is_absolute_path(argv[i]) || !prefix)
 				strvec_push(&paths, argv[i]);
 			else
-				strvec_push(&paths, mkpath("%s/%s", prefix, argv[i]));
+				strvec_push_nodup(&paths,
+						  mkpathdup("%s/%s", prefix, argv[i]));
 		}
 
 		if (state.interactive && !paths.nr)
