@@ -1439,6 +1439,13 @@ test_cmp_fspath () {
 # from 1.
 
 test_seq () {
+	local fmt="%d"
+	case "$1" in
+	-f)
+		fmt="$2"
+		shift 2
+		;;
+	esac
 	case $# in
 	1)	set 1 "$@" ;;
 	2)	;;
@@ -1447,7 +1454,7 @@ test_seq () {
 	test_seq_counter__=$1
 	while test "$test_seq_counter__" -le "$2"
 	do
-		echo "$test_seq_counter__"
+		printf "$fmt\n" "$test_seq_counter__"
 		test_seq_counter__=$(( $test_seq_counter__ + 1 ))
 	done
 }
