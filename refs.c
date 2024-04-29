@@ -810,7 +810,7 @@ static int is_root_ref_syntax(const char *refname)
 	const char *c;
 
 	for (c = refname; *c; c++) {
-		if (!isupper(*c) && *c != '-' && *c != '_')
+		if (!isupper(*c) && *c != '_')
 			return 0;
 	}
 
