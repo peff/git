@@ -166,6 +166,8 @@ void update_ref_namespace(enum ref_namespace namespace, char *ref)
 	info->ref_updated = 1;
 }
 
+static int is_root_ref_syntax(const char *refname);
+
 /*
  * Try to read one refname component from the front of refname.
  * Return the length of the component found, or -1 if the component is
@@ -353,12 +355,7 @@ int refname_is_safe(const char *refname)
 		return result;
 	}
 
-	do {
-		if (!isupper(*refname) && *refname != '_')
-			return 0;
-		refname++;
-	} while (*refname);
-	return 1;
+	return is_root_ref_syntax(refname);
 }
 
 /*
