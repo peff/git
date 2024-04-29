@@ -276,6 +276,15 @@ static int check_or_sanitize_refname(const char *refname, int flags,
 {
 	int component_len, component_count = 0;
 
+	if ((flags & REFNAME_FULLY_QUALIFIED)) {
+		const char *bare_ref;
+
+		parse_worktree_ref(refname, NULL, NULL, &bare_ref);
+		if (!starts_with(bare_ref, "refs/") &&
+		    !is_root_ref_syntax(bare_ref))
+			return -1;
+	}
+
 	if (!strcmp(refname, "@")) {
 		/* Refname is a single character '@'. */
 		if (sanitized)
@@ -310,8 +319,11 @@ static int check_or_sanitize_refname(const char *refname, int flags,
 		else
 			return -1;
 	}
-	if (!(flags & REFNAME_ALLOW_ONELEVEL) && component_count < 2)
+
+	if (!(flags & (REFNAME_ALLOW_ONELEVEL | REFNAME_FULLY_QUALIFIED)) &&
+	    component_count < 2)
 		return -1; /* Refname has only one component. */
+
 	return 0;
 }
 
