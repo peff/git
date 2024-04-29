@@ -399,4 +399,14 @@ test_expect_success 'update-ref refuses non-underscore punctuation outside of re
 	test_grep "refusing to update ref with bad name" err
 '
 
+test_expect_success 'rev-parse refuses non-root-ref outside of refs/' '
+	git rev-parse HEAD >.git/bad &&
+	test_must_fail git rev-parse --verify bad
+'
+
+test_expect_success 'rev-parse recognizes non-root-ref via worktree' '
+	git rev-parse HEAD >.git/bad &&
+	test_must_fail git rev-parse --verify main-worktree/bad
+'
+
 test_done
