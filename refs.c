@@ -1842,7 +1842,7 @@ const char *refs_resolve_ref_unsafe(struct ref_store *refs,
 
 	*flags = 0;
 
-	if (check_refname_format(refname, REFNAME_ALLOW_ONELEVEL)) {
+	if (check_refname_format(refname, REFNAME_FULLY_QUALIFIED)) {
 		if (!(resolve_flags & RESOLVE_REF_ALLOW_BAD_NAME) ||
 		    !refname_is_safe(refname))
 			return NULL;
@@ -1901,7 +1901,7 @@ const char *refs_resolve_ref_unsafe(struct ref_store *refs,
 			oidclr(oid, refs->repo->hash_algo);
 			return refname;
 		}
-		if (check_refname_format(refname, REFNAME_ALLOW_ONELEVEL)) {
+		if (check_refname_format(refname, REFNAME_FULLY_QUALIFIED)) {
 			if (!(resolve_flags & RESOLVE_REF_ALLOW_BAD_NAME) ||
 			    !refname_is_safe(refname))
 				return NULL;
