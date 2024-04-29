@@ -1390,7 +1390,7 @@ static int transaction_refname_valid(const char *refname,
 		strbuf_addf(err, refusal_msg, refname);
 		return 0;
 	} else if ((new_oid && !is_null_oid(new_oid)) ?
-		 check_refname_format(refname, REFNAME_ALLOW_ONELEVEL) :
+		 check_refname_format(refname, REFNAME_FULLY_QUALIFIED) :
 		 !refname_is_safe(refname)) {
 		const char *refusal_msg;
 		if (flags & REF_LOG_ONLY)
