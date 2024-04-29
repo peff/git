@@ -390,4 +390,14 @@ test_expect_success 'branch -m can rename refs/heads/-dash' '
 	git show-ref refs/heads/dash
 '
 
+test_expect_success 'update-ref refuses lowercase outside of refs/' '
+	test_must_fail git update-ref lowercase HEAD 2>err &&
+	test_grep "refusing to update ref with bad name" err
+'
+
+test_expect_success 'update-ref refuses non-underscore outside of refs/' '
+	test_must_fail git update-ref FOO/HEAD HEAD 2>err &&
+	test_grep "refusing to update ref with bad name" err
+'
+
 test_done
