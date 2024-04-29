@@ -341,11 +341,11 @@ test_expect_success 'ref transaction: env var disables compaction' '
 	for i in $(test_seq $iterations)
 	do
 		GIT_TEST_REFTABLE_AUTOCOMPACTION=false \
-		git -C repo update-ref branch-$i HEAD || return 1
+		git -C repo update-ref refs/heads/branch-$i HEAD || return 1
 	done &&
 	test_line_count = $expected repo/.git/reftable/tables.list &&
 
-	git -C repo update-ref foo HEAD &&
+	git -C repo update-ref refs/heads/foo HEAD &&
 	test_line_count -lt $expected repo/.git/reftable/tables.list
 '
 
