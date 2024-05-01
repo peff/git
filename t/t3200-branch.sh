@@ -808,9 +808,9 @@ test_expect_success 'deleting a symref' '
 '
 
 test_expect_success 'deleting a dangling symref' '
-	git symbolic-ref refs/heads/dangling-symref nowhere &&
+	git symbolic-ref refs/heads/dangling-symref refs/does/not/exist &&
 	git symbolic-ref --no-recurse refs/heads/dangling-symref &&
-	echo "Deleted branch dangling-symref (was nowhere)." >expect &&
+	echo "Deleted branch dangling-symref (was refs/does/not/exist)." >expect &&
 	git branch -d dangling-symref >actual &&
 	test_ref_missing refs/heads/dangling-symref &&
 	test_cmp expect actual
