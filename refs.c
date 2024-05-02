@@ -1377,6 +1377,7 @@ struct ref_update *ref_transaction_add_update(
 
 static int transaction_refname_valid(const char *refname,
 				     const struct object_id *new_oid,
+				     const char *new_target,
 				     unsigned int flags, struct strbuf *err)
 {
 	if (flags & REF_SKIP_REFNAME_VERIFICATION)
@@ -1390,7 +1391,7 @@ static int transaction_refname_valid(const char *refname,
 			refusal_msg = _("refusing to update pseudoref '%s'");
 		strbuf_addf(err, refusal_msg, refname);
 		return 0;
-	} else if ((new_oid && !is_null_oid(new_oid)) ?
+	} else if (((new_oid && !is_null_oid(new_oid)) || new_target) ?
 		 check_refname_format(refname, REFNAME_FULLY_QUALIFIED) :
 		 !refname_is_safe(refname)) {
 		const char *refusal_msg;
@@ -1424,7 +1425,8 @@ enum ref_transaction_error ref_transaction_update(struct ref_transaction *transa
 		return REF_TRANSACTION_ERROR_GENERIC;
 	}
 
-	if (!transaction_refname_valid(refname, new_oid, flags, err))
+	if (!transaction_refname_valid(refname, new_oid, new_target, flags,
+				       err))
 		return REF_TRANSACTION_ERROR_GENERIC;
 
 	if (flags & ~REF_TRANSACTION_UPDATE_ALLOWED_FLAGS)
@@ -1488,7 +1490,7 @@ int ref_transaction_update_reflog(struct ref_transaction *transaction,
 	flags = REF_HAVE_OLD | REF_HAVE_NEW | REF_LOG_ONLY | REF_FORCE_CREATE_REFLOG | REF_NO_DEREF |
 		REF_LOG_USE_PROVIDED_OIDS;
 
-	if (!transaction_refname_valid(refname, new_oid, flags, err))
+	if (!transaction_refname_valid(refname, new_oid, NULL, flags, err))
 		return -1;
 
 	update = ref_transaction_add_update(transaction, refname, flags,
