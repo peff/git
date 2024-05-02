@@ -2138,6 +2138,10 @@ int refs_update_symref(struct ref_store *refs, const char *ref,
 	    check_refname_format(ref, REFNAME_FULLY_QUALIFIED) < 0)
 		return error(_("refusing to update symbolic ref with bad name '%s'"),
 			     ref);
+	if (!(flags & REF_SKIP_REFNAME_VERIFICATION) &&
+	    check_refname_format(target, REFNAME_FULLY_QUALIFIED) < 0)
+		return error(_("refusing to set '%s' to invalid ref '%s'"),
+			     ref, target);
 
 	transaction = ref_store_transaction_begin(refs, &err);
 	if (!transaction ||
