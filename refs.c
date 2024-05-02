@@ -1429,6 +1429,14 @@ enum ref_transaction_error ref_transaction_update(struct ref_transaction *transa
 				       err))
 		return REF_TRANSACTION_ERROR_GENERIC;
 
+	if (new_target && !(flags & REF_SKIP_OID_VERIFICATION) &&
+	    check_refname_format(new_target, REFNAME_FULLY_QUALIFIED) < 0) {
+		strbuf_addf(err,
+			    _("refusing to set '%s' to invalid ref '%s'"),
+			    refname, new_target);
+		return -1;
+	}
+
 	if (flags & ~REF_TRANSACTION_UPDATE_ALLOWED_FLAGS)
 		BUG("illegal flags 0x%x passed to ref_transaction_update()", flags);
 

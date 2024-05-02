@@ -369,7 +369,7 @@ test_expect_success 'log diagnoses bogus HEAD hash' '
 
 test_expect_success 'log diagnoses bogus HEAD symref' '
 	git init empty &&
-	test-tool -C empty ref-store main create-symref 0 HEAD refs/heads/invalid.lock &&
+	test-tool -C empty ref-store main create-symref REF_SKIP_OID_VERIFICATION HEAD refs/heads/invalid.lock &&
 	test_must_fail git -C empty log 2>stderr &&
 	test_grep broken stderr &&
 	test_must_fail git -C empty log --default totally-bogus 2>stderr &&
