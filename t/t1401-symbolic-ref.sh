@@ -176,7 +176,7 @@ test_expect_success 'symbolic-ref allows top-level target for non-HEAD' '
 
 test_expect_success 'symbolic-ref rejects invalid root ref as target' - <<\EOT
 	test_must_fail git symbolic-ref refs/heads/invalid FOO 2>err &&
-	test_grep "Refusing to set 'refs/heads/invalid' to invalid ref 'FOO'" err
+	test_grep "refusing to set 'refs/heads/invalid' to invalid ref 'FOO'" err
 EOT
 
 test_expect_success 'symbolic-ref pointing at another' '
