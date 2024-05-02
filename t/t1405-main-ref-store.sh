@@ -16,7 +16,7 @@ test_expect_success 'setup' '
 '
 
 test_expect_success 'create_symref(FOO_HEAD, refs/heads/main)' '
-	$RUN create-symref FOO_HEAD refs/heads/main nothing &&
+	$RUN create-symref 0 FOO_HEAD refs/heads/main nothing &&
 	echo refs/heads/main >expected &&
 	git symbolic-ref FOO_HEAD >actual &&
 	test_cmp expected actual

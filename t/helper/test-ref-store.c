@@ -114,15 +114,6 @@ static const char **get_store(const char **argv, struct ref_store **refs)
 	return argv + 1;
 }
 
-static int cmd_create_symref(struct ref_store *refs, const char **argv)
-{
-	const char *refname = notnull(*argv++, "refname");
-	const char *target = notnull(*argv++, "target");
-	const char *logmsg = *argv++;
-
-	return refs_update_symref(refs, refname, target, logmsg);
-}
-
 static struct flag_definition transaction_flags[] = {
 	FLAG_DEF(REF_NO_DEREF),
 	FLAG_DEF(REF_FORCE_CREATE_REFLOG),
@@ -131,6 +122,16 @@ static struct flag_definition transaction_flags[] = {
 	FLAG_DEF(REF_SKIP_CREATE_REFLOG),
 	{ NULL, 0 }
 };
+
+static int cmd_create_symref(struct ref_store *refs, const char **argv)
+{
+	unsigned int flags = arg_flags(*argv++, "flags", transaction_flags);
+	const char *refname = notnull(*argv++, "refname");
+	const char *target = notnull(*argv++, "target");
+	const char *logmsg = *argv++;
+
+	return refs_update_symref(refs, refname, target, logmsg, flags);
+}
 
 static int cmd_delete_refs(struct ref_store *refs, const char **argv)
 {
