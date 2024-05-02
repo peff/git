@@ -250,7 +250,7 @@ test_expect_success 'broken main worktree still at the top' '
 		EOF
 		cd linked &&
 		echo "worktree $(pwd)" >expected &&
-		(cd ../ && test-tool ref-store main create-symref HEAD .broken ) &&
+		(cd ../ && test-tool ref-store 0 main create-symref HEAD .broken ) &&
 		git worktree list --porcelain >out &&
 		head -n 3 out >actual &&
 		test_cmp ../expected actual &&

@@ -571,8 +571,12 @@ int refs_rename_ref(struct ref_store *refs, const char *oldref,
 int refs_copy_existing_ref(struct ref_store *refs, const char *oldref,
 		    const char *newref, const char *logmsg);
 
+/*
+ * This uses the same flag namespace as ref_transaction_update(), etc,
+ * but only REF_SKIP_REFNAME_VERIFICATION is currently supported.
+ */
 int refs_update_symref(struct ref_store *refs, const char *refname,
-		       const char *target, const char *logmsg);
+		       const char *target, const char *logmsg, unsigned flags);
 
 enum action_on_err {
 	UPDATE_REFS_MSG_ON_ERR,
