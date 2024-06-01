@@ -281,7 +281,8 @@ static int check_or_sanitize_refname(const char *refname, int flags,
 
 		parse_worktree_ref(refname, NULL, NULL, &bare_ref);
 		if (!starts_with(bare_ref, "refs/") &&
-		    !is_root_ref_syntax(bare_ref))
+		    !is_pseudo_ref(bare_ref) &&
+		    !is_root_ref(bare_ref))
 			return -1;
 	}
 
