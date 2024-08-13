@@ -708,4 +708,37 @@ test_expect_success 'describe --broken --dirty with a file with changed stat' '
 	)
 '
 
+test_expect_success 'long describe name can be resolved' '
+	name=$(git describe --long A) &&
+	git rev-parse "A^{commit}" >expect &&
+	git rev-parse "$name" >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success 'resolving describe name does not depend on tag' '
+	hash=$(git rev-parse A^{commit}) &&
+	abbrev=$(echo $hash | cut -c1-30) &&
+	echo "$hash" >expect &&
+	git rev-parse "does-not-exist-g$abbrev" >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success 'resolving describe name only valid at end' '
+	hash=$(git rev-parse A^{commit}) &&
+	abbrev=$(echo $hash | cut -c1-30) &&
+	test_must_fail git rev-parse "foo-g$abbrev-bar"
+'
+
+test_expect_success 'resolving describe name requires minimum abbrev (auto)' '
+	hash=$(git rev-parse A^{commit}) &&
+	abbrev=$(echo $hash | cut -c1-6) &&
+	test_must_fail git -c core.abbrev=auto rev-parse "foo-g$abbrev"
+'
+
+test_expect_success 'resolving describe name requires minimum abbrev (config)' '
+	hash=$(git rev-parse A^{commit}) &&
+	abbrev=$(echo $hash | cut -c1-20) &&
+	test_must_fail git -c core.abbrev=25 rev-parse "foo-g$abbrev"
+'
+
 test_done
