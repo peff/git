@@ -3,7 +3,7 @@
 export GIT_EDITOR
 GIT_EDITOR=:
 
-t=$(getopt -o ct:x:u: --long retest,edit -- "$@") || exit 1
+t=$(getopt -o +ct:x:u: --long retest,edit -- "$@") || exit 1
 eval "set -- $t"
 
 cmd=
