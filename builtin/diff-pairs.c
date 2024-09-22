@@ -26,9 +26,10 @@ static unsigned parse_mode_or_die(const char *mode, const char **endp)
 	return ret;
 }
 
-static void parse_oid(const char *p, struct object_id *oid, const char **endp)
+static void parse_oid(const char *p, struct object_id *oid, const char **endp,
+		      const struct git_hash_algo *algop)
 {
-	if (parse_oid_hex(p, oid, endp) || *(*endp)++ != ' ')
+	if (parse_oid_hex_algop(p, oid, endp, algop) || *(*endp)++ != ' ')
 		die("unable to parse object id: %s", p);
 }
 
@@ -65,7 +66,8 @@ static void set_pair_status(char status)
 	diff_queued_diff.queue[0]->status = status;
 }
 
-int cmd_diff_pairs(int argc, const char **argv, const char *prefix)
+int cmd_diff_pairs(int argc, const char **argv, const char *prefix,
+		   struct repository *repo)
 {
 	struct rev_info revs;
 	struct strbuf meta = STRBUF_INIT;
@@ -75,8 +77,8 @@ int cmd_diff_pairs(int argc, const char **argv, const char *prefix)
 	if (argc > 1 && !strcmp(argv[1], "-h"))
 		usage(diff_pairs_usage);
 
-	repo_init_revisions(the_repository, &revs, prefix);
-	git_config(git_diff_basic_config, NULL);
+	repo_init_revisions(repo, &revs, prefix);
+	repo_config(repo, git_diff_basic_config, NULL);
 	revs.disable_stdin = 1;
 	argc = setup_revisions(argc, argv, &revs, NULL);
 
@@ -103,8 +105,8 @@ int cmd_diff_pairs(int argc, const char **argv, const char *prefix)
 		mode_a = parse_mode_or_die(p, &p);
 		mode_b = parse_mode_or_die(p, &p);
 
-		parse_oid(p, &oid_a, &p);
-		parse_oid(p, &oid_b, &p);
+		parse_oid(p, &oid_a, &p, repo->hash_algo);
+		parse_oid(p, &oid_b, &p, repo->hash_algo);
 
 		status = *p++;
 
