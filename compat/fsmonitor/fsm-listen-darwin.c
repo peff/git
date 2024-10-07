@@ -510,6 +510,7 @@ void fsm_listen__loop(struct fsmonitor_daemon_state *state)
 	FSEventStreamSetDispatchQueue(data->stream, data->dq);
 	data->stream_scheduled = 1;
 
+	sleep(1);
 	if (!FSEventStreamStart(data->stream)) {
 		error(_("Failed to start the FSEventStream"));
 		goto force_error_stop_without_loop;
