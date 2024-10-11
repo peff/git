@@ -13,7 +13,7 @@ endif
 CFLAGS =
 
 COMPILER ?= gcc
-O = 0
+O ?= 0
 CC = ccache $(COMPILER)
 export CCACHE_CPP2=1
 CFLAGS += -g -O$(O)
