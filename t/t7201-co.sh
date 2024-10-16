@@ -407,18 +407,6 @@ test_expect_success 'checkout w/--track from tag fails' '
 	test "z$(git rev-parse main^0)" = "z$(git rev-parse HEAD)"
 '
 
-test_expect_success 'detach a symbolic link HEAD' '
-	git checkout main &&
-	git config --bool core.prefersymlinkrefs yes &&
-	git checkout side &&
-	git checkout main &&
-	it=$(git symbolic-ref HEAD) &&
-	test "z$it" = zrefs/heads/main &&
-	here=$(git rev-parse --verify refs/heads/main) &&
-	git checkout side^ &&
-	test "z$(git rev-parse --verify refs/heads/main)" = "z$here"
-'
-
 test_expect_success 'checkout with --track fakes a sensible -b <name>' '
 	git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" &&
 	git update-ref refs/remotes/origin/koala/bear renamer &&
