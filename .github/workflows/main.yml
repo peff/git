@@ -21,7 +21,15 @@ concurrency:
 jobs:
   ci-config:
     name: config
-    if: vars.CI_BRANCHES == '' || contains(vars.CI_BRANCHES, github.ref_name)
+    if: |
+      (fromJSON(vars.CI_CONFIG).allow == '' ||
+       contains(fromJSON(vars.CI_CONFIG).allow, github.ref_name)) &&
+      (fromJSON(vars.CI_CONFIG).reject == '' ||
+       !contains(fromJSON(vars.CI_CONFIG).reject, github.ref_name)) &&
+      (fromJSON(vars.CI_CONFIG).allow-prefix == '' ||
+       startsWith(github.ref_name, fromJSON(vars.CI_CONFIG).allow-prefix)) &&
+      (fromJSON(vars.CI_CONFIG).reject-prefix == '' ||
+       !startsWith(github.ref_name, fromJSON(vars.CI_CONFIG).reject-prefix))
     runs-on: ubuntu-latest
     outputs:
       enabled: ${{ steps.check-ref.outputs.enabled }}${{ steps.skip-if-redundant.outputs.enabled }}

@@ -6,7 +6,9 @@ GitHub web interface. These can be found at:
 
 The following variables can be used:
 
- - CI_BRANCHES
+ - CI_CONFIG
+
+   ...
 
    By default, CI is run when any branch is pushed. If this variable is
    non-empty, then only the branches it lists will run CI. Branch names
