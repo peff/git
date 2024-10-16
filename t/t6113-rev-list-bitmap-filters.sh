@@ -157,4 +157,18 @@ test_expect_success 'bitmap traversal with --unpacked' '
 	test_cmp expect actual
 '
 
+test_expect_success 'filter with negative tips' '
+	git rev-list --objects --filter=blob:none one..two >expect &&
+	git rev-list --use-bitmap-index \
+		     --objects --filter=blob:none one..two >actual &&
+	test_bitmap_traversal expect actual
+'
+
+test_expect_failure 'filter with negative tips and specified blob' '
+	git rev-list --objects --filter=blob:none one..two one:one.t >expect &&
+	git rev-list --use-bitmap-index \
+		     --objects --filter=blob:none one..two one:one.t >actual &&
+	test_bitmap_traversal expect actual
+'
+
 test_done

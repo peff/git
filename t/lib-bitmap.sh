@@ -217,6 +217,16 @@ basic_bitmap_tests () {
 		)
 	'
 
+	test_expect_success 'follow-up fetch from bitmapped repository' '
+		test_config uploadpack.allowfilter true &&
+		(
+			cd partial-clone.git &&
+			blob=$(git rev-parse HEAD:file-1.t) &&
+			git fetch origin "$blob" &&
+			git cat-file -t "$blob"
+		)
+	'
+
 	test_expect_success 'setup further non-bitmapped commits' '
 		test_commit_bulk --id=further 10
 	'
