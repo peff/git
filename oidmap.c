@@ -22,11 +22,8 @@ void oidmap_init(struct oidmap *map, size_t initial_size)
 	hashmap_init(&map->map, oidmap_neq, NULL, initial_size);
 }
 
-void oidmap_free(struct oidmap *map, int free_entries)
+void oidmap_clear(struct oidmap *map, int free_entries)
 {
-	if (!map)
-		return;
-
 	/* TODO: make oidmap itself not depend on struct layouts */
 	hashmap_clear_(&map->map, free_entries ? 0 : -1);
 }
