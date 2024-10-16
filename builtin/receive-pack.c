@@ -40,6 +40,7 @@
 #include "worktree.h"
 #include "shallow.h"
 #include "parse-options.h"
+#include "advice.h"
 
 static const char * const receive_pack_usage[] = {
 	N_("git receive-pack <git-dir>"),
@@ -2122,8 +2123,10 @@ static struct command *read_head_info(struct packet_reader *reader,
 				report_status_v2 = 1;
 			if (parse_feature_request(feature_list, "side-band-64k"))
 				use_sideband = LARGE_PACKET_MAX;
-			if (parse_feature_request(feature_list, "quiet"))
+			if (parse_feature_request(feature_list, "quiet")) {
 				quiet = 1;
+				disable_advice();
+			}
 			if (advertise_atomic_push
 			    && parse_feature_request(feature_list, "atomic"))
 				use_atomic = 1;

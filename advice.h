@@ -82,4 +82,10 @@ void advise_on_updating_sparse_paths(struct string_list *pathspec_list);
 void detach_advice(const char *new_name);
 void advise_on_moving_dirty_path(struct string_list *pathspec_list);
 
+/*
+ * Turn off all advice flags; this can be used to centrally enforce a --quiet
+ * option.
+ */
+void disable_advice(void);
+
 #endif /* ADVICE_H */
