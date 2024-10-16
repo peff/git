@@ -1316,6 +1316,7 @@ int format_set_trailers_options(struct process_trailer_options *opts,
 	for (;;) {
 		const char *argval;
 		size_t arglen;
+		int bool_arg;
 
 		if (**arg == ')')
 			break;
@@ -1337,6 +1338,15 @@ int format_set_trailers_options(struct process_trailer_options *opts,
 			opts->separator = expand_string_arg(sepbuf, argval, arglen);
 		} else if (match_placeholder_arg_value(*arg, "key_value_separator", arg, &argval, &arglen)) {
 			opts->key_value_separator = expand_string_arg(kvsepbuf, argval, arglen);
+		} else if (match_placeholder_bool_arg(*arg, "mailmap", arg, &bool_arg)) {
+			if (bool_arg) {
+				/* yuck but this is how mailmap_name() above does it */
+				static struct string_list mailmap = STRING_LIST_INIT_DUP;
+				read_mailmap(&mailmap);
+				opts->mailmap = &mailmap;
+			} else {
+				opts->mailmap = NULL;
+			}
 		} else if (!match_placeholder_bool_arg(*arg, "only", arg, &opts->only_trailers) &&
 			   !match_placeholder_bool_arg(*arg, "unfold", arg, &opts->unfold) &&
 			   !match_placeholder_bool_arg(*arg, "keyonly", arg, &opts->key_only) &&
