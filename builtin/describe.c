@@ -505,8 +505,7 @@ static void process_object(struct object *obj, const char *path, void *data)
 		reset_revision_walk();
 		describe_commit(&pcd->current_commit, pcd->dst);
 		strbuf_addf(pcd->dst, ":%s", path);
-		free_commit_list(pcd->revs->commits);
-		pcd->revs->commits = NULL;
+		clear_prio_queue(&pcd->revs->commits);
 	}
 }
 
