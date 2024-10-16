@@ -674,6 +674,9 @@ int start_command(struct child_process *cmd)
 	int failed_errno;
 	const char *str;
 
+	if (cmd->git_cmd && is_bare_repository_cfg >= 0)
+		trace_config_for(the_repository, cmd->args.v[0], &cmd->env);
+
 	/*
 	 * In case of errors we must keep the promise to close FDs
 	 * that have been passed in via ->in and ->out.
