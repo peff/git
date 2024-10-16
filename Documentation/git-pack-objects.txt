@@ -149,6 +149,29 @@ depth is 4095.
 	`--window-memory=0` makes memory usage unlimited.  The default
 	is taken from the `pack.windowMemory` configuration variable.
 
+--window-slot-limit=<n>::
+	This option provides an additional limit on top of `--window`.
+	Some delta candidates within the window can be rejected quickly
+	by heuristics, and some require comparing the bytes of the two
+	objects, which is expensive in CPU. This option limits us to
+	`<n>` "expensive" comparisons for each object. When using delta
+	islands, we may cheaply reject many delta candidates due to
+	island restrictions. In that case it is useful to increase the
+	`--window` parameter higher (to look further for delta
+	candidates) but use `--window-slot-limit` to avoid spending too
+	much CPU. The default is taken from the `pack.windowSlotLimit`
+	configuration variable.
+
+--window-byte-limit=<n>::
+	Provides a similar limit to `--window-slot-limit`, but scaled by
+	the number of bytes in each candidate object. For example, a
+	window byte limit of one megabyte would be equivalent to a slot
+	limit of 10 for an object of 100 kilobytes, or 100 for an object
+	of 10 kilobytes. This can provide better results (less CPU
+	and/or smaller packs) than a slot limit. The size can be
+	suffixed with "k", "m", or "g" for kilobytes, etc. The default
+	is taken from the `pack.windowByteLimit` configuration variable.
+
 --max-pack-size=<n>::
 	In unusual scenarios, you may not be able to create files
 	larger than a certain size on your filesystem, and this option
