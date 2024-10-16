@@ -872,7 +872,7 @@ static struct diff_filespec *pool_alloc_filespec(struct mem_pool *pool,
 	spec->path = (char*)path; /* spec won't modify it */
 
 	spec->count = 1;
-	spec->is_binary = -1;
+	spec->content_type = DIFF_CONTENT_UNKNOWN;
 	return spec;
 }
 
