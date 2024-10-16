@@ -134,7 +134,7 @@ test_expect_success REFFILES 'HEAD link pointing at a funny object' '
 
 test_expect_success 'HEAD link pointing at a funny place' '
 	test_when_finished "git update-ref --no-deref HEAD $orig_head" &&
-	test-tool ref-store main create-symref HEAD refs/funny/place &&
+	test-tool ref-store main create-symref 0 HEAD refs/funny/place &&
 	# avoid corrupt/broken HEAD from interfering with repo discovery
 	test_must_fail env GIT_DIR=.git git fsck 2>out &&
 	test_grep "HEAD points to something strange" out

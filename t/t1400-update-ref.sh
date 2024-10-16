@@ -202,11 +202,11 @@ test_expect_success 'delete symref without dereference' '
 	echo foo >foo.c &&
 	git add foo.c &&
 	git commit -m foo &&
-	git symbolic-ref SYMREF $m &&
-	git update-ref --no-deref -d SYMREF &&
+	git symbolic-ref SYMREF_HEAD $m &&
+	git update-ref --no-deref -d SYMREF_HEAD &&
 	git show-ref --verify -q $m &&
-	test_must_fail git show-ref --verify -q SYMREF &&
-	test_must_fail git symbolic-ref SYMREF
+	test_must_fail git show-ref --verify -q SYMREF_HEAD &&
+	test_must_fail git symbolic-ref SYMREF_HEAD
 '
 
 test_expect_success 'delete symref without dereference when the referred ref is packed' '
@@ -214,12 +214,12 @@ test_expect_success 'delete symref without dereference when the referred ref is 
 	echo foo >foo.c &&
 	git add foo.c &&
 	git commit -m foo &&
-	git symbolic-ref SYMREF $m &&
+	git symbolic-ref SYMREF_HEAD $m &&
 	git pack-refs --all &&
-	git update-ref --no-deref -d SYMREF &&
+	git update-ref --no-deref -d SYMREF_HEAD &&
 	git show-ref --verify -q $m &&
-	test_must_fail git show-ref --verify -q SYMREF &&
-	test_must_fail git symbolic-ref SYMREF
+	test_must_fail git show-ref --verify -q SYMREF_HEAD &&
+	test_must_fail git symbolic-ref SYMREF_HEAD
 '
 
 test_expect_success 'update-ref -d is not confused by self-reference' '
