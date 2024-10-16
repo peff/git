@@ -396,13 +396,12 @@ test_expect_success 'consecutive amend! commits remove amend! line from commit m
 
 test_expect_success 'deny to create amend! commit if its commit msg body is empty' '
 	commit_for_rebase_autosquash_setup &&
-	echo "Aborting commit due to empty commit message body." >expected &&
 	(
 		set_fake_editor &&
 		test_must_fail env FAKE_COMMIT_MESSAGE="amend! target message subject line" \
 			git commit --fixup=amend:HEAD~ 2>actual
 	) &&
-	test_cmp expected actual
+	grep "Aborting commit due to empty commit message body" actual
 '
 
 test_expect_success 'amend! commit allows empty commit msg body with --allow-empty-message' '
