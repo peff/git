@@ -1104,6 +1104,10 @@ static int log_tree_diff(struct rev_info *opt, struct commit *commit, struct log
 	if (!all_need_diff && !opt->merges_need_diff)
 		return 0;
 
+	if (opt->diffopt.output_format == DIFF_FORMAT_NO_OUTPUT &&
+	    opt->always_show_header)
+		return 0;
+
 	parse_commit_or_die(commit);
 	oid = get_commit_tree_oid(commit);
 
