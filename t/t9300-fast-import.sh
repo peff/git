@@ -379,7 +379,7 @@ test_expect_success 'B: fail on invalid blob sha1' '
 
 test_expect_success 'B: accept branch name "TEMP_TAG"' '
 	cat >input <<-INPUT_END &&
-	commit TEMP_TAG
+	commit refs/tags/TEMP_TAG
 	committer $GIT_COMMITTER_NAME <$GIT_COMMITTER_EMAIL> $GIT_COMMITTER_DATE
 	data <<COMMIT
 	tag base
@@ -389,9 +389,9 @@ test_expect_success 'B: accept branch name "TEMP_TAG"' '
 
 	INPUT_END
 
-	test_when_finished "rm -f .git/TEMP_TAG && git gc --prune=now" &&
+	test_when_finished "git tag -d TEMP_TAG && git gc --prune=now" &&
 	git fast-import <input &&
-	test $(test-tool ref-store main resolve-ref TEMP_TAG 0 | cut -f1 -d " " ) != "$ZERO_OID" &&
+	test $(test-tool ref-store main resolve-ref refs/tags/TEMP_TAG 0 | cut -f1 -d " " ) != "$ZERO_OID" &&
 	test $(git rev-parse main) = $(git rev-parse TEMP_TAG^)
 '
 
