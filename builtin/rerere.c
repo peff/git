@@ -9,6 +9,7 @@
 #include "xdiff/xdiff.h"
 #include "xdiff-interface.h"
 #include "pathspec.h"
+#include "strbuf.h"
 
 static const char * const rerere_usage[] = {
 	N_("git rerere [clear | forget <pathspec>... | diff | status | remaining | gc]"),
@@ -111,15 +112,18 @@ int cmd_rerere(int argc,
 				merge_rr.items[i].util = NULL;
 		}
 	} else if (!strcmp(argv[0], "diff")) {
+		struct strbuf pathbuf = STRBUF_INIT;
 		if (setup_rerere(the_repository, &merge_rr,
 				 flags | RERERE_READONLY) < 0)
 			return 0;
 		for (i = 0; i < merge_rr.nr; i++) {
 			const char *path = merge_rr.items[i].string;
 			const struct rerere_id *id = merge_rr.items[i].util;
-			if (diff_two(rerere_path(id, "preimage"), path, path, path))
-				die(_("unable to generate diff for '%s'"), rerere_path(id, NULL));
+			if (diff_two(rerere_path(&pathbuf, id, "preimage"), path, path, path))
+				die(_("unable to generate diff for '%s'"),
+				    rerere_path(&pathbuf, id, NULL));
 		}
+		strbuf_release(&pathbuf);
 	} else
 		usage_with_options(rerere_usage, options);
 
