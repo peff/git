@@ -862,7 +862,7 @@ test_expect_success 'reflog: expiry empties reflog' '
 		cat >expect <<-EOF &&
 		commit: fileB
 		commit: fileA
-		branch: Created from HEAD
+		branch: Created from refs/heads/main
 		EOF
 		git reflog show --format="%gs" refs/heads/branch >actual &&
 		test_cmp expect actual &&
