@@ -731,11 +731,11 @@ static const char *get_upstream_branch(const char *remote)
  * FIXME: The current implementation assumes the default mapping of
  * refs/heads/<branch_name> to refs/remotes/<remote_name>/<branch_name>.
  */
-static const char *get_tracking_branch(const char *remote, const char *refspec)
+static char *get_tracking_branch(const char *remote, const char *refspec)
 {
 	struct refspec_item spec;
 	const char *spec_src;
-	const char *merge_branch;
+	char *merge_branch;
 
 	refspec_item_init_or_die(&spec, refspec, REFSPEC_FETCH);
 	spec_src = spec.src;
@@ -752,9 +752,9 @@ static const char *get_tracking_branch(const char *remote, const char *refspec)
 
 	if (*spec_src) {
 		if (!strcmp(remote, "."))
-			merge_branch = mkpath("refs/heads/%s", spec_src);
+			merge_branch = mkpathdup("refs/heads/%s", spec_src);
 		else
-			merge_branch = mkpath("refs/remotes/%s/%s", remote, spec_src);
+			merge_branch = mkpathdup("refs/remotes/%s/%s", remote, spec_src);
 	} else
 		merge_branch = NULL;
 
@@ -773,6 +773,7 @@ static int get_rebase_fork_point(struct object_id *fork_point, const char *repo,
 	int ret;
 	struct branch *curr_branch;
 	const char *remote_branch;
+	char *to_free = NULL;
 	struct child_process cp = CHILD_PROCESS_INIT;
 	struct strbuf sb = STRBUF_INIT;
 
@@ -781,7 +782,7 @@ static int get_rebase_fork_point(struct object_id *fork_point, const char *repo,
 		return -1;
 
 	if (refspec)
-		remote_branch = get_tracking_branch(repo, refspec);
+		remote_branch = to_free = get_tracking_branch(repo, refspec);
 	else
 		remote_branch = get_upstream_branch(repo);
 
@@ -804,6 +805,7 @@ static int get_rebase_fork_point(struct object_id *fork_point, const char *repo,
 
 cleanup:
 	strbuf_release(&sb);
+	free(to_free);
 	return ret ? -1 : 0;
 }
 

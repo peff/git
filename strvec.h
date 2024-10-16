@@ -50,6 +50,12 @@ const char *strvec_push(struct strvec *, const char *);
 void strvec_push_nodup(struct strvec *array, char *value);
 
 /**
+ * Like strvec_push(), but transfer ownership of the
+ * allocated string to the strvec.
+ */
+void strvec_push_nodup(struct strvec *, char *);
+
+/**
  * Format a string and push it onto the end of the array. This is a
  * convenience wrapper combining `strbuf_addf` and `strvec_push`.
  */
