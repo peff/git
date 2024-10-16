@@ -70,12 +70,12 @@ extern "C" {
 
 typedef struct s_mmfile {
 	char *ptr;
-	long size;
+	size_t size;
 } mmfile_t;
 
 typedef struct s_mmbuffer {
 	char *ptr;
-	long size;
+	size_t size;
 } mmbuffer_t;
 
 typedef struct s_xpparam {
@@ -113,11 +113,6 @@ typedef struct s_xdemitconf {
 	void *find_func_priv;
 	xdl_emit_hunk_consume_func_t hunk_func;
 } xdemitconf_t;
-
-typedef struct s_bdiffparam {
-	long bsize;
-} bdiffparam_t;
-
 
 #define xdl_malloc(x) xmalloc(x)
 #define xdl_calloc(n, sz) xcalloc(n, sz)
