@@ -333,3 +333,26 @@ void tmp_objdir_reapply_primary_odb(struct tmp_objdir *t, const char *old_cwd,
 	free(path);
 	tmp_objdir_replace_primary_odb(t, t->will_destroy);
 }
+
+FILE *fopen_quarantine(const char *filename, const char *mode)
+{
+	const char *root;
+	char *path;
+	FILE *ret;
+
+	root = getenv(GIT_QUARANTINE_ENVIRONMENT);
+	if (!root)
+		die("BUG: fopen_quarantine called without %s set",
+		    GIT_QUARANTINE_ENVIRONMENT);
+
+	path = xstrfmt("%s/%s", root, filename);
+	ret = xfopen(path, mode);
+
+	free(path);
+	return ret;
+}
+
+int git_is_quarantined(void)
+{
+	return !!getenv(GIT_QUARANTINE_ENVIRONMENT);
+}
