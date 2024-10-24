@@ -2124,11 +2124,24 @@ int peel_iterated_oid(struct repository *r, const struct object_id *base, struct
 }
 
 int refs_update_symref(struct ref_store *refs, const char *ref,
-		       const char *target, const char *logmsg)
+		       const char *target, const char *logmsg,
+		       unsigned int flags)
 {
 	struct ref_transaction *transaction;
 	struct strbuf err = STRBUF_INIT;
 	int ret = 0;
+
+	if ((flags & ~REF_SKIP_REFNAME_VERIFICATION))
+		BUG("refs_create_symref got unknown flag: %u", flags);
+
+	if (!(flags & REF_SKIP_REFNAME_VERIFICATION) &&
+	    check_refname_format(ref, REFNAME_FULLY_QUALIFIED) < 0)
+		return error(_("refusing to update symbolic ref with bad name '%s'"),
+			     ref);
+	if (!(flags & REF_SKIP_REFNAME_VERIFICATION) &&
+	    check_refname_format(target, REFNAME_FULLY_QUALIFIED) < 0)
+		return error(_("refusing to set '%s' to invalid ref '%s'"),
+			     ref, target);
 
 	transaction = ref_store_transaction_begin(refs, &err);
 	if (!transaction ||
