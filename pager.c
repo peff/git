@@ -8,6 +8,7 @@
 #include "sigchain.h"
 #include "alias.h"
 #include "compat/pipe-id.h"
+#include "environment.h"
 
 int pager_use_color = 1;
 
@@ -15,6 +16,7 @@ int pager_use_color = 1;
 #define DEFAULT_PAGER "less"
 #endif
 
+FILE *original_stderr;
 static struct child_process pager_process;
 static char *pager_program;
 static int old_fd1 = -1, old_fd2 = -1;
@@ -181,6 +183,7 @@ void setup_pager(void)
 	dup2(pager_process.in, 1);
 	if (isatty(2)) {
 		old_fd2 = dup(2);
+		original_stderr = fdopen(old_fd2, "w");
 		dup2(pager_process.in, 2);
 	}
 	close(pager_process.in);
