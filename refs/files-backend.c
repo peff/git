@@ -2019,24 +2019,6 @@ static int commit_ref_update(struct files_ref_store *refs,
 	return 0;
 }
 
-#ifdef NO_SYMLINK_HEAD
-#define create_ref_symlink(a, b) (-1)
-#else
-static int create_ref_symlink(struct ref_lock *lock, const char *target)
-{
-	int ret = -1;
-
-	char *ref_path = get_locked_file_path(&lock->lk);
-	unlink(ref_path);
-	ret = symlink(target, ref_path);
-	free(ref_path);
-
-	if (ret)
-		fprintf(stderr, "no symlink - falling back to symbolic ref\n");
-	return ret;
-}
-#endif
-
 static int create_symref_lock(struct ref_lock *lock, const char *target,
 			      struct strbuf *err)
 {
@@ -3008,14 +2990,6 @@ static int files_transaction_finish(struct ref_store *ref_store,
 				goto cleanup;
 			}
 		}
-
-		/*
-		 * We try creating a symlink, if that succeeds we continue to the
-		 * next update. If not, we try and create a regular symref.
-		 */
-		if (update->new_target && refs->prefer_symlink_refs)
-			if (!create_ref_symlink(lock, update->new_target))
-				continue;
 
 		if (update->flags & REF_NEEDS_COMMIT) {
 			clear_loose_ref_cache(refs);
