@@ -1984,6 +1984,7 @@ void repo_init_revisions(struct repository *r,
 	list_objects_filter_init(&revs->filter);
 	init_ref_exclusions(&revs->ref_excludes);
 	oidset_init(&revs->missing_commits, 0);
+	strbuf_init(&revs->last_commit_header, 0);
 }
 
 static void add_pending_commit_list(struct rev_info *revs,
@@ -2563,6 +2564,8 @@ static int handle_revision_opt(struct rev_info *revs, int argc, const char **arg
 		revs->verbose_header = 1;
 		revs->pretty_given = 1;
 		get_commit_format(optarg, revs);
+	} else if (skip_prefix(arg, "--commit-header=", &arg)) {
+		revs->commit_header = arg;
 	} else if (!strcmp(arg, "--expand-tabs")) {
 		revs->expand_tabs_in_log = 8;
 	} else if (!strcmp(arg, "--no-expand-tabs")) {
