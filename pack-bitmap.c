@@ -1650,17 +1650,13 @@ static int in_bitmapped_pack(struct bitmap_index *bitmap_git,
 }
 
 static struct bitmap *find_tip_objects(struct bitmap_index *bitmap_git,
-				       struct object_list *tip_objects,
-				       enum object_type type)
+				       struct object_list *tip_objects)
 {
 	struct bitmap *result = bitmap_new();
 	struct object_list *p;
 
 	for (p = tip_objects; p; p = p->next) {
 		int pos;
-
-		if (p->item->type != type)
-			continue;
 
 		pos = bitmap_position(bitmap_git, &p->item->oid);
 		if (pos < 0)
@@ -1673,22 +1669,13 @@ static struct bitmap *find_tip_objects(struct bitmap_index *bitmap_git,
 }
 
 static void filter_bitmap_exclude_type(struct bitmap_index *bitmap_git,
-				       struct object_list *tip_objects,
 				       struct bitmap *to_filter,
 				       enum object_type type)
 {
 	struct eindex *eindex = &bitmap_git->ext_index;
-	struct bitmap *tips;
 	struct ewah_iterator it;
 	eword_t mask;
 	uint32_t i;
-
-	/*
-	 * The non-bitmap version of this filter never removes
-	 * objects which the other side specifically asked for,
-	 * so we must match that behavior.
-	 */
-	tips = find_tip_objects(bitmap_git, tip_objects, type);
 
 	/*
 	 * We can use the type-level bitmap for 'type' to work in whole
@@ -1698,8 +1685,6 @@ static void filter_bitmap_exclude_type(struct bitmap_index *bitmap_git,
 	for (i = 0, init_type_iterator(&it, bitmap_git, type);
 	     i < to_filter->word_alloc && ewah_iterator_next(&mask, &it);
 	     i++) {
-		if (i < tips->word_alloc)
-			mask &= ~tips->words[i];
 		to_filter->words[i] &= ~mask;
 	}
 
@@ -1711,20 +1696,15 @@ static void filter_bitmap_exclude_type(struct bitmap_index *bitmap_git,
 	for (i = 0; i < eindex->count; i++) {
 		size_t pos = st_add(i, bitmap_num_objects(bitmap_git));
 		if (eindex->objects[i]->type == type &&
-		    bitmap_get(to_filter, pos) &&
-		    !bitmap_get(tips, pos))
+		    bitmap_get(to_filter, pos))
 			bitmap_unset(to_filter, pos);
 	}
-
-	bitmap_free(tips);
 }
 
 static void filter_bitmap_blob_none(struct bitmap_index *bitmap_git,
-				    struct object_list *tip_objects,
 				    struct bitmap *to_filter)
 {
-	filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter,
-				   OBJ_BLOB);
+	filter_bitmap_exclude_type(bitmap_git, to_filter, OBJ_BLOB);
 }
 
 static unsigned long get_size_by_pos(struct bitmap_index *bitmap_git,
@@ -1767,17 +1747,13 @@ static unsigned long get_size_by_pos(struct bitmap_index *bitmap_git,
 }
 
 static void filter_bitmap_blob_limit(struct bitmap_index *bitmap_git,
-				     struct object_list *tip_objects,
 				     struct bitmap *to_filter,
 				     unsigned long limit)
 {
 	struct eindex *eindex = &bitmap_git->ext_index;
-	struct bitmap *tips;
 	struct ewah_iterator it;
 	eword_t mask;
 	uint32_t i;
-
-	tips = find_tip_objects(bitmap_git, tip_objects, OBJ_BLOB);
 
 	for (i = 0, init_type_iterator(&it, bitmap_git, OBJ_BLOB);
 	     i < to_filter->word_alloc && ewah_iterator_next(&mask, &it);
@@ -1793,8 +1769,7 @@ static void filter_bitmap_blob_limit(struct bitmap_index *bitmap_git,
 			offset += ewah_bit_ctz64(word >> offset);
 			pos = i * BITS_IN_EWORD + offset;
 
-			if (!bitmap_get(tips, pos) &&
-			    get_size_by_pos(bitmap_git, pos) >= limit)
+			if (get_size_by_pos(bitmap_git, pos) >= limit)
 				bitmap_unset(to_filter, pos);
 		}
 	}
@@ -1803,30 +1778,23 @@ static void filter_bitmap_blob_limit(struct bitmap_index *bitmap_git,
 		size_t pos = st_add(i, bitmap_num_objects(bitmap_git));
 		if (eindex->objects[i]->type == OBJ_BLOB &&
 		    bitmap_get(to_filter, pos) &&
-		    !bitmap_get(tips, pos) &&
 		    get_size_by_pos(bitmap_git, pos) >= limit)
 			bitmap_unset(to_filter, pos);
 	}
-
-	bitmap_free(tips);
 }
 
 static void filter_bitmap_tree_depth(struct bitmap_index *bitmap_git,
-				     struct object_list *tip_objects,
 				     struct bitmap *to_filter,
 				     unsigned long limit)
 {
 	if (limit)
 		BUG("filter_bitmap_tree_depth given non-zero limit");
 
-	filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter,
-				   OBJ_TREE);
-	filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter,
-				   OBJ_BLOB);
+	filter_bitmap_exclude_type(bitmap_git, to_filter, OBJ_TREE);
+	filter_bitmap_exclude_type(bitmap_git, to_filter, OBJ_BLOB);
 }
 
 static void filter_bitmap_object_type(struct bitmap_index *bitmap_git,
-				      struct object_list *tip_objects,
 				      struct bitmap *to_filter,
 				      enum object_type object_type)
 {
@@ -1834,34 +1802,28 @@ static void filter_bitmap_object_type(struct bitmap_index *bitmap_git,
 		BUG("filter_bitmap_object_type given invalid object");
 
 	if (object_type != OBJ_TAG)
-		filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter, OBJ_TAG);
+		filter_bitmap_exclude_type(bitmap_git, to_filter, OBJ_TAG);
 	if (object_type != OBJ_COMMIT)
-		filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter, OBJ_COMMIT);
+		filter_bitmap_exclude_type(bitmap_git, to_filter, OBJ_COMMIT);
 	if (object_type != OBJ_TREE)
-		filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter, OBJ_TREE);
+		filter_bitmap_exclude_type(bitmap_git, to_filter, OBJ_TREE);
 	if (object_type != OBJ_BLOB)
-		filter_bitmap_exclude_type(bitmap_git, tip_objects, to_filter, OBJ_BLOB);
+		filter_bitmap_exclude_type(bitmap_git, to_filter, OBJ_BLOB);
 }
 
-static int filter_bitmap(struct bitmap_index *bitmap_git,
-			 struct object_list *tip_objects,
-			 struct bitmap *to_filter,
-			 struct list_objects_filter_options *filter)
+static int filter_bitmap_dispatch(struct bitmap_index *bitmap_git,
+				  struct bitmap *to_filter,
+				  struct list_objects_filter_options *filter)
 {
-	if (!filter || filter->choice == LOFC_DISABLED)
-		return 0;
-
 	if (filter->choice == LOFC_BLOB_NONE) {
 		if (bitmap_git)
-			filter_bitmap_blob_none(bitmap_git, tip_objects,
-						to_filter);
+			filter_bitmap_blob_none(bitmap_git, to_filter);
 		return 0;
 	}
 
 	if (filter->choice == LOFC_BLOB_LIMIT) {
 		if (bitmap_git)
-			filter_bitmap_blob_limit(bitmap_git, tip_objects,
-						 to_filter,
+			filter_bitmap_blob_limit(bitmap_git, to_filter,
 						 filter->blob_limit_value);
 		return 0;
 	}
@@ -1869,16 +1831,14 @@ static int filter_bitmap(struct bitmap_index *bitmap_git,
 	if (filter->choice == LOFC_TREE_DEPTH &&
 	    filter->tree_exclude_depth == 0) {
 		if (bitmap_git)
-			filter_bitmap_tree_depth(bitmap_git, tip_objects,
-						 to_filter,
+			filter_bitmap_tree_depth(bitmap_git, to_filter,
 						 filter->tree_exclude_depth);
 		return 0;
 	}
 
 	if (filter->choice == LOFC_OBJECT_TYPE) {
 		if (bitmap_git)
-			filter_bitmap_object_type(bitmap_git, tip_objects,
-						  to_filter,
+			filter_bitmap_object_type(bitmap_git, to_filter,
 						  filter->object_type);
 		return 0;
 	}
@@ -1886,8 +1846,8 @@ static int filter_bitmap(struct bitmap_index *bitmap_git,
 	if (filter->choice == LOFC_COMBINE) {
 		int i;
 		for (i = 0; i < filter->sub_nr; i++) {
-			if (filter_bitmap(bitmap_git, tip_objects, to_filter,
-					  &filter->sub[i]) < 0)
+			if (filter_bitmap_dispatch(bitmap_git, to_filter,
+						   &filter->sub[i]) < 0)
 				return -1;
 		}
 		return 0;
@@ -1895,6 +1855,34 @@ static int filter_bitmap(struct bitmap_index *bitmap_git,
 
 	/* filter choice not handled */
 	return -1;
+}
+
+static int filter_bitmap(struct bitmap_index *bitmap_git,
+			 struct object_list *tip_objects,
+			 struct bitmap *to_filter,
+			 struct list_objects_filter_options *filter)
+{
+	int r;
+
+	if (!filter || filter->choice == LOFC_DISABLED)
+		return 0;
+
+	r = filter_bitmap_dispatch(bitmap_git, to_filter, filter);
+	if (!r && to_filter) {
+		/*
+		 * Add back in any bits for objects that were explicitly asked
+		 * for, which matches the behavior of non-bitmap filters. Note
+		 * that it isn't sufficient to just avoid filtering them in the
+		 * first place; we must also add back in any removed by the
+		 * AND-NOT of the "have" side while preparing the bitmap, as
+		 * that is not aware of the filtering process.
+		 */
+		struct bitmap *tips = find_tip_objects(bitmap_git, tip_objects);
+		bitmap_or(to_filter, tips);
+		bitmap_free(tips);
+	}
+
+	return r;
 }
 
 static int can_filter_bitmap(struct list_objects_filter_options *filter)
