@@ -250,6 +250,7 @@ static char *credential_ask_one(const char *what, struct credential *c,
 
 	strbuf_release(&desc);
 	strbuf_release(&prompt);
+	c->interactive = 1;
 	return xstrdup(r);
 }
 
@@ -369,6 +370,8 @@ int credential_read(struct credential *c, FILE *fp,
 			credential_from_url(c, value);
 		} else if (!strcmp(key, "quit")) {
 			c->quit = !!git_config_bool("quit", value);
+		} else if (!strcmp(key, "interactive")) {
+			c->interactive = !!atoi(value);
 		}
 		/*
 		 * Ignore other lines; we don't know what they mean, but
@@ -426,6 +429,8 @@ void credential_write(const struct credential *c, FILE *fp,
 		for (size_t i = 0; i < c->state_headers_to_send.nr; i++)
 			credential_write_item(fp, "state[]", c->state_headers_to_send.v[i], 0);
 	}
+	if (c->interactive)
+		credential_write_item(fp, "interactive", "1", 0);
 }
 
 static int run_credential_helper(struct credential *c,

@@ -168,6 +168,7 @@ struct credential {
 		 multistage: 1,
 		 quit:1,
 		 use_http_path:1,
+		 interactive:1,
 		 username_from_proto:1;
 
 	struct credential_capability capa_authtype;
