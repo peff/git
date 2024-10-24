@@ -12,6 +12,7 @@
 #include "ident.h"
 #include "list-objects-filter-options.h"
 #include "strvec.h"
+#include "prio-queue.h"
 
 /**
  * The revision walking API offers functions to build a list of revisions
@@ -120,7 +121,7 @@ struct topo_walk_info;
 
 struct rev_info {
 	/* Starting list */
-	struct commit_list *commits;
+	struct prio_queue commits;
 	struct object_array pending;
 	struct repository *repo;
 
@@ -159,8 +160,6 @@ struct rev_info {
 
 	/* topo-sort */
 	enum rev_sort_order sort_order;
-
-	unsigned int early_output;
 
 	unsigned int	ignore_missing:1,
 			ignore_missing_links:1;
@@ -558,11 +557,5 @@ int rewrite_parents(struct rev_info *revs,
  * history simplification is off.
  */
 struct commit_list *get_saved_parents(struct rev_info *revs, const struct commit *commit);
-
-/**
- * Global for the (undocumented) "--early-output" flag for "git log".
- */
-typedef void (*show_early_output_fn_t)(struct rev_info *, struct commit_list *);
-extern volatile show_early_output_fn_t show_early_output;
 
 #endif
