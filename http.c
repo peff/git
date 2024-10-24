@@ -747,7 +747,7 @@ static void set_curl_keepalive(CURL *c)
 #endif
 
 /* Return 1 if redactions have been made, 0 otherwise. */
-static int redact_sensitive_header(struct strbuf *header, size_t offset)
+static int redact_http_header(struct strbuf *header, size_t offset)
 {
 	int ret = 0;
 	const char *sensitive_header;
@@ -844,14 +844,67 @@ static void redact_sensitive_info_header(struct strbuf *header)
 
 	if (trace_curl_redact &&
 	    match_curl_h2_trace(header->buf, &sensitive_header)) {
-		if (redact_sensitive_header(header, sensitive_header - header->buf)) {
+		if (redact_http_header(header, sensitive_header - header->buf)) {
 			/* redaction ate our closing bracket */
 			strbuf_addch(header, ']');
 		}
 	}
 }
 
-static void curl_dump_header(const char *text, unsigned char *ptr, size_t size, int hide_sensitive_header)
+static void redact_imap_header(struct strbuf *header)
+{
+	const char *p;
+
+	/* skip past the command tag */
+	p = strchr(header->buf, ' ');
+	if (!p)
+		return; /* no tag */
+	p++;
+
+	if (skip_prefix(p, "AUTHENTICATE ", &p)) {
+		/* the first token is the auth type, which is OK to log */
+		while (*p && !isspace(*p))
+			p++;
+		/* the rest is an opaque blob; fall through to redact */
+	} else if (skip_prefix(p, "LOGIN ", &p)) {
+		/* fall through to redact both login and password */
+	} else {
+		/* not a sensitive header */
+		return;
+	}
+
+	strbuf_setlen(header, p - header->buf);
+	strbuf_addstr(header, " <redacted>");
+}
+
+static void redact_sensitive_header(CURL *handle, struct strbuf *header)
+{
+	const char *url;
+	int ret;
+
+	ret = curl_easy_getinfo(handle, CURLINFO_EFFECTIVE_URL, &url);
+	if (!ret && url) {
+		if (starts_with(url, "http")) {
+			redact_http_header(header, 0);
+			return;
+		}
+		if (starts_with(url, "imap")) {
+			redact_imap_header(header);
+			return;
+		}
+	}
+
+	/*
+	 * We weren't able to figure out the protocol. Err on the side of
+	 * redacting too much.
+	 */
+	redact_http_header(header, 0);
+	redact_imap_header(header);
+}
+
+static void curl_dump_header(CURL *handle, const char *text,
+			     unsigned char *ptr, size_t size,
+			     int hide_sensitive_header)
 {
 	struct strbuf out = STRBUF_INIT;
 	struct strbuf **headers, **header;
@@ -865,7 +918,7 @@ static void curl_dump_header(const char *text, unsigned char *ptr, size_t size, 
 
 	for (header = headers; *header; header++) {
 		if (hide_sensitive_header)
-			redact_sensitive_header(*header, 0);
+			redact_sensitive_header(handle, *header);
 		strbuf_insertstr((*header), 0, text);
 		strbuf_insertstr((*header), strlen(text), ": ");
 		strbuf_rtrim((*header));
@@ -916,7 +969,7 @@ static void curl_dump_info(char *data, size_t size)
 	strbuf_release(&buf);
 }
 
-static int curl_trace(CURL *handle UNUSED, curl_infotype type,
+static int curl_trace(CURL *handle, curl_infotype type,
 		      char *data, size_t size,
 		      void *userp UNUSED)
 {
@@ -929,7 +982,7 @@ static int curl_trace(CURL *handle UNUSED, curl_infotype type,
 		break;
 	case CURLINFO_HEADER_OUT:
 		text = "=> Send header";
-		curl_dump_header(text, (unsigned char *)data, size, DO_FILTER);
+		curl_dump_header(handle, text, (unsigned char *)data, size, DO_FILTER);
 		break;
 	case CURLINFO_DATA_OUT:
 		if (trace_curl_data) {
@@ -945,7 +998,7 @@ static int curl_trace(CURL *handle UNUSED, curl_infotype type,
 		break;
 	case CURLINFO_HEADER_IN:
 		text = "<= Recv header";
-		curl_dump_header(text, (unsigned char *)data, size, NO_FILTER);
+		curl_dump_header(handle, text, (unsigned char *)data, size, NO_FILTER);
 		break;
 	case CURLINFO_DATA_IN:
 		if (trace_curl_data) {
