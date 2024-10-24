@@ -1285,8 +1285,20 @@ static int get_describe_name(struct repository *r,
 			 * for it to be describe output.
 			 */
 			if (ch == 'g' && cp[-1] == '-') {
+				/*
+				 * To reduce the chance of false positives,
+				 * assume that any "-g<hex>" must have some
+				 * minimum number of <hex> that matches what
+				 * we'd produce when abbreviating.
+				 */
+				int min_len = default_abbrev;
+				if (min_len < 0)
+					min_len = FALLBACK_DEFAULT_ABBREV;
+
 				cp++;
 				len -= cp - name;
+				if (len < min_len)
+					return -1;
 				return get_short_oid(r,
 						     cp, len, oid, flags);
 			}
