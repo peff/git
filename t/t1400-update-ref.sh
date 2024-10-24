@@ -492,58 +492,58 @@ test_expect_success 'git cat-file blob main@{2005-05-26 23:42}:F (expect OTHER)'
 # Test adding and deleting pseudorefs
 
 test_expect_success 'given old value for missing pseudoref, do not create' '
-	test_must_fail git update-ref PSEUDOREF $A $B 2>err &&
-	test_must_fail git rev-parse PSEUDOREF &&
+	test_must_fail git update-ref PSEUDO_HEAD $A $B 2>err &&
+	test_must_fail git rev-parse PSEUDO_HEAD &&
 	test_grep "unable to resolve reference" err
 '
 
 test_expect_success 'create pseudoref' '
-	git update-ref PSEUDOREF $A &&
-	test $A = $(git show-ref -s --verify PSEUDOREF)
+	git update-ref PSEUDO_HEAD $A &&
+	test $A = $(git show-ref -s --verify PSEUDO_HEAD)
 '
 
 test_expect_success 'overwrite pseudoref with no old value given' '
-	git update-ref PSEUDOREF $B &&
-	test $B = $(git show-ref -s --verify PSEUDOREF)
+	git update-ref PSEUDO_HEAD $B &&
+	test $B = $(git show-ref -s --verify PSEUDO_HEAD)
 '
 
 test_expect_success 'overwrite pseudoref with correct old value' '
-	git update-ref PSEUDOREF $C $B &&
-	test $C = $(git show-ref -s --verify PSEUDOREF)
+	git update-ref PSEUDO_HEAD $C $B &&
+	test $C = $(git show-ref -s --verify PSEUDO_HEAD)
 '
 
 test_expect_success 'do not overwrite pseudoref with wrong old value' '
-	test_must_fail git update-ref PSEUDOREF $D $E 2>err &&
-	test $C = $(git show-ref -s --verify PSEUDOREF) &&
+	test_must_fail git update-ref PSEUDO_HEAD $D $E 2>err &&
+	test $C = $(git show-ref -s --verify PSEUDO_HEAD) &&
 	test_grep "cannot lock ref.*expected" err
 '
 
 test_expect_success 'delete pseudoref' '
-	git update-ref -d PSEUDOREF &&
-	test_must_fail git show-ref -s --verify PSEUDOREF
+	git update-ref -d PSEUDO_HEAD &&
+	test_must_fail git show-ref -s --verify PSEUDO_HEAD
 '
 
 test_expect_success 'do not delete pseudoref with wrong old value' '
-	git update-ref PSEUDOREF $A &&
-	test_must_fail git update-ref -d PSEUDOREF $B 2>err &&
-	test $A = $(git show-ref -s --verify PSEUDOREF) &&
+	git update-ref PSEUDO_HEAD $A &&
+	test_must_fail git update-ref -d PSEUDO_HEAD $B 2>err &&
+	test $A = $(git show-ref -s --verify PSEUDO_HEAD) &&
 	test_grep "cannot lock ref.*expected" err
 '
 
 test_expect_success 'delete pseudoref with correct old value' '
-	git update-ref -d PSEUDOREF $A &&
-	test_must_fail git show-ref -s --verify PSEUDOREF
+	git update-ref -d PSEUDO_HEAD $A &&
+	test_must_fail git show-ref -s --verify PSEUDO_HEAD
 '
 
 test_expect_success 'create pseudoref with old OID zero' '
-	git update-ref PSEUDOREF $A $Z &&
-	test $A = $(git show-ref -s --verify PSEUDOREF)
+	git update-ref PSEUDO_HEAD $A $Z &&
+	test $A = $(git show-ref -s --verify PSEUDO_HEAD)
 '
 
 test_expect_success 'do not overwrite pseudoref with old OID zero' '
-	test_when_finished git update-ref -d PSEUDOREF &&
-	test_must_fail git update-ref PSEUDOREF $B $Z 2>err &&
-	test $A = $(git show-ref -s --verify PSEUDOREF) &&
+	test_when_finished git update-ref -d PSEUDO_HEAD &&
+	test_must_fail git update-ref PSEUDO_HEAD $B $Z 2>err &&
+	test $A = $(git show-ref -s --verify PSEUDO_HEAD) &&
 	test_grep "already exists" err
 '
 
@@ -812,13 +812,13 @@ test_expect_success 'stdin delete ref fails with zero old value' '
 '
 
 test_expect_success 'stdin update symref works option no-deref' '
-	git symbolic-ref TESTSYMREF $b &&
+	git symbolic-ref TESTSYMREF_HEAD $b &&
 	cat >stdin <<-EOF &&
 	option no-deref
-	update TESTSYMREF $a $b
+	update TESTSYMREF_HEAD $a $b
 	EOF
 	git update-ref --stdin <stdin &&
-	git rev-parse TESTSYMREF >expect &&
+	git rev-parse TESTSYMREF_HEAD >expect &&
 	git rev-parse $a >actual &&
 	test_cmp expect actual &&
 	git rev-parse $m~1 >expect &&
@@ -827,27 +827,27 @@ test_expect_success 'stdin update symref works option no-deref' '
 '
 
 test_expect_success 'stdin delete symref works option no-deref' '
-	git symbolic-ref TESTSYMREF $b &&
+	git symbolic-ref TESTSYMREF_HEAD $b &&
 	cat >stdin <<-EOF &&
 	option no-deref
-	delete TESTSYMREF $b
+	delete TESTSYMREF_HEAD $b
 	EOF
 	git update-ref --stdin <stdin &&
-	test_must_fail git rev-parse --verify -q TESTSYMREF &&
+	test_must_fail git rev-parse --verify -q TESTSYMREF_HEAD &&
 	git rev-parse $m~1 >expect &&
 	git rev-parse $b >actual &&
 	test_cmp expect actual
 '
 
 test_expect_success 'stdin update symref works flag --no-deref' '
-	git symbolic-ref TESTSYMREFONE $b &&
-	git symbolic-ref TESTSYMREFTWO $b &&
+	git symbolic-ref TESTSYMREFONE_HEAD $b &&
+	git symbolic-ref TESTSYMREFTWO_HEAD $b &&
 	cat >stdin <<-EOF &&
-	update TESTSYMREFONE $a $b
-	update TESTSYMREFTWO $a $b
+	update TESTSYMREFONE_HEAD $a $b
+	update TESTSYMREFTWO_HEAD $a $b
 	EOF
 	git update-ref --no-deref --stdin <stdin &&
-	git rev-parse TESTSYMREFONE TESTSYMREFTWO >expect &&
+	git rev-parse TESTSYMREFONE_HEAD TESTSYMREFTWO_HEAD >expect &&
 	git rev-parse $a $a >actual &&
 	test_cmp expect actual &&
 	git rev-parse $m~1 >expect &&
@@ -856,15 +856,15 @@ test_expect_success 'stdin update symref works flag --no-deref' '
 '
 
 test_expect_success 'stdin delete symref works flag --no-deref' '
-	git symbolic-ref TESTSYMREFONE $b &&
-	git symbolic-ref TESTSYMREFTWO $b &&
+	git symbolic-ref TESTSYMREFONE_HEAD $b &&
+	git symbolic-ref TESTSYMREFTWO_HEAD $b &&
 	cat >stdin <<-EOF &&
-	delete TESTSYMREFONE $b
-	delete TESTSYMREFTWO $b
+	delete TESTSYMREFONE_HEAD $b
+	delete TESTSYMREFTWO_HEAD $b
 	EOF
 	git update-ref --no-deref --stdin <stdin &&
-	test_must_fail git rev-parse --verify -q TESTSYMREFONE &&
-	test_must_fail git rev-parse --verify -q TESTSYMREFTWO &&
+	test_must_fail git rev-parse --verify -q TESTSYMREFONE_HEAD &&
+	test_must_fail git rev-parse --verify -q TESTSYMREFTWO_HEAD &&
 	git rev-parse $m~1 >expect &&
 	git rev-parse $b >actual &&
 	test_cmp expect actual
@@ -1224,10 +1224,10 @@ test_expect_success 'stdin -z delete ref fails with zero old value' '
 '
 
 test_expect_success 'stdin -z update symref works option no-deref' '
-	git symbolic-ref TESTSYMREF $b &&
-	printf $F "option no-deref" "update TESTSYMREF" "$a" "$b" >stdin &&
+	git symbolic-ref TESTSYMREF_HEAD $b &&
+	printf $F "option no-deref" "update TESTSYMREF_HEAD" "$a" "$b" >stdin &&
 	git update-ref -z --stdin <stdin &&
-	git rev-parse TESTSYMREF >expect &&
+	git rev-parse TESTSYMREF_HEAD >expect &&
 	git rev-parse $a >actual &&
 	test_cmp expect actual &&
 	git rev-parse $m~1 >expect &&
@@ -1236,10 +1236,10 @@ test_expect_success 'stdin -z update symref works option no-deref' '
 '
 
 test_expect_success 'stdin -z delete symref works option no-deref' '
-	git symbolic-ref TESTSYMREF $b &&
-	printf $F "option no-deref" "delete TESTSYMREF" "$b" >stdin &&
+	git symbolic-ref TESTSYMREF_HEAD $b &&
+	printf $F "option no-deref" "delete TESTSYMREF_HEAD" "$b" >stdin &&
 	git update-ref -z --stdin <stdin &&
-	test_must_fail git rev-parse --verify -q TESTSYMREF &&
+	test_must_fail git rev-parse --verify -q TESTSYMREF_HEAD &&
 	git rev-parse $m~1 >expect &&
 	git rev-parse $b >actual &&
 	test_cmp expect actual

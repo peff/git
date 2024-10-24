@@ -533,6 +533,7 @@ int refs_for_each_reflog(struct ref_store *refs, each_reflog_fn fn, void *cb_dat
 
 #define REFNAME_ALLOW_ONELEVEL 1
 #define REFNAME_REFSPEC_PATTERN 2
+#define REFNAME_FULLY_QUALIFIED 4
 
 /*
  * Return 0 iff refname has the correct format for a refname according

@@ -15,21 +15,21 @@ test_expect_success 'setup' '
 	test_commit one
 '
 
-test_expect_success 'create_symref(FOO, refs/heads/main)' '
-	$RUN create-symref FOO refs/heads/main nothing &&
+test_expect_success 'create_symref(FOO_HEAD, refs/heads/main)' '
+	$RUN create-symref FOO_HEAD refs/heads/main nothing &&
 	echo refs/heads/main >expected &&
-	git symbolic-ref FOO >actual &&
+	git symbolic-ref FOO_HEAD >actual &&
 	test_cmp expected actual
 '
 
-test_expect_success 'delete_refs(FOO, refs/tags/new-tag)' '
+test_expect_success 'delete_refs(FOO_HEAD, refs/tags/new-tag)' '
 	git tag -a -m new-tag new-tag HEAD &&
-	git rev-parse FOO -- &&
+	git rev-parse FOO_HEAD -- &&
 	git rev-parse refs/tags/new-tag -- &&
 	m=$(git rev-parse main) &&
-	$RUN delete-refs REF_NO_DEREF nothing FOO refs/tags/new-tag &&
-	test_must_fail git rev-parse --symbolic-full-name FOO &&
-	test_must_fail git rev-parse FOO -- &&
+	$RUN delete-refs REF_NO_DEREF nothing FOO_HEAD refs/tags/new-tag &&
+	test_must_fail git rev-parse --symbolic-full-name FOO_HEAD &&
+	test_must_fail git rev-parse FOO_HEAD -- &&
 	test_must_fail git rev-parse refs/tags/new-tag --
 '
 

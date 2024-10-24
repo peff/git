@@ -46,24 +46,24 @@ test_expect_success 'HEAD cannot be removed' '
 reset_to_sane
 
 test_expect_success 'symbolic-ref can be deleted' '
-	git symbolic-ref NOTHEAD refs/heads/foo &&
-	git symbolic-ref -d NOTHEAD &&
+	git symbolic-ref NOT_HEAD refs/heads/foo &&
+	git symbolic-ref -d NOT_HEAD &&
 	git rev-parse refs/heads/foo &&
-	test_must_fail git symbolic-ref NOTHEAD
+	test_must_fail git symbolic-ref NOT_HEAD
 '
 reset_to_sane
 
 test_expect_success 'symbolic-ref can delete dangling symref' '
-	git symbolic-ref NOTHEAD refs/heads/missing &&
-	git symbolic-ref -d NOTHEAD &&
+	git symbolic-ref NOT_HEAD refs/heads/missing &&
+	git symbolic-ref -d NOT_HEAD &&
 	test_must_fail git rev-parse refs/heads/missing &&
-	test_must_fail git symbolic-ref NOTHEAD
+	test_must_fail git symbolic-ref NOT_HEAD
 '
 reset_to_sane
 
-test_expect_success 'symbolic-ref fails to delete missing FOO' '
-	echo "fatal: Cannot delete FOO, not a symbolic ref" >expect &&
-	test_must_fail git symbolic-ref -d FOO >actual 2>&1 &&
+test_expect_success 'symbolic-ref fails to delete missing ref' '
+	echo "fatal: Cannot delete refs/heads/does-not-exist, not a symbolic ref" >expect &&
+	test_must_fail git symbolic-ref -d refs/heads/does-not-exist >actual 2>&1 &&
 	test_cmp expect actual
 '
 reset_to_sane
@@ -191,34 +191,34 @@ test_expect_success 'symbolic-ref pointing at another' '
 
 test_expect_success 'symbolic-ref --short handles complex utf8 case' '
 	name="测试-加-增加-加-增加" &&
-	git symbolic-ref TEST_SYMREF "refs/heads/$name" &&
+	git symbolic-ref TEST_SYMREF_HEAD "refs/heads/$name" &&
 	# In the real world, we saw problems with this case only
 	# when the locale includes UTF-8. Set it here to try to make things as
 	# hard as possible for us to pass, but in practice we should do the
 	# right thing regardless (and of course some platforms may not even
 	# have this locale).
-	LC_ALL=en_US.UTF-8 git symbolic-ref --short TEST_SYMREF >actual &&
+	LC_ALL=en_US.UTF-8 git symbolic-ref --short TEST_SYMREF_HEAD >actual &&
 	echo "$name" >expect &&
 	test_cmp expect actual
 '
 
 test_expect_success 'symbolic-ref --short handles name with suffix' '
-	git symbolic-ref TEST_SYMREF "refs/remotes/origin/HEAD" &&
-	git symbolic-ref --short TEST_SYMREF >actual &&
+	git symbolic-ref TEST_SYMREF_HEAD "refs/remotes/origin/HEAD" &&
+	git symbolic-ref --short TEST_SYMREF_HEAD >actual &&
 	echo "origin" >expect &&
 	test_cmp expect actual
 '
 
 test_expect_success 'symbolic-ref --short handles almost-matching name' '
-	git symbolic-ref TEST_SYMREF "refs/headsXfoo" &&
-	git symbolic-ref --short TEST_SYMREF >actual &&
+	git symbolic-ref TEST_SYMREF_HEAD "refs/headsXfoo" &&
+	git symbolic-ref --short TEST_SYMREF_HEAD >actual &&
 	echo "headsXfoo" >expect &&
 	test_cmp expect actual
 '
 
 test_expect_success 'symbolic-ref --short handles name with percent' '
-	git symbolic-ref TEST_SYMREF "refs/heads/%foo" &&
-	git symbolic-ref --short TEST_SYMREF >actual &&
+	git symbolic-ref TEST_SYMREF_HEAD "refs/heads/%foo" &&
+	git symbolic-ref --short TEST_SYMREF_HEAD >actual &&
 	echo "%foo" >expect &&
 	test_cmp expect actual
 '

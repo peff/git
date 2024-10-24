@@ -390,4 +390,34 @@ test_expect_success 'branch -m can rename refs/heads/-dash' '
 	git show-ref refs/heads/dash
 '
 
+test_expect_success 'update-ref refuses lowercase outside of refs/' '
+	test_must_fail git update-ref lowercase HEAD 2>err &&
+	test_grep "refusing to update ref with bad name" err
+'
+
+test_expect_success 'update-ref refuses non-underscore outside of refs/' '
+	test_must_fail git update-ref FOO/HEAD HEAD 2>err &&
+	test_grep "refusing to update ref with bad name" err
+'
+
+test_expect_success 'update-ref enforces root ref naming convention' '
+	test_must_fail git update-ref FOO_BAR HEAD 2>err &&
+	test_grep "refusing to update ref with bad name" err
+'
+
+test_expect_success 'rev-parse refuses non-pseudoref outside of refs/' '
+	git rev-parse HEAD >.git/bad &&
+	test_must_fail git rev-parse --verify bad
+'
+
+test_expect_success 'rev-parse recognizes non-pseudoref via worktree' '
+	git rev-parse HEAD >.git/bad &&
+	test_must_fail git rev-parse --verify main-worktree/bad
+'
+
+test_expect_success 'rev-parse enforces root ref naming convention' '
+	git rev-parse HEAD >.git/BAD_NAME &&
+	test_must_fail git rev-parse --verify BAD_NAME
+'
+
 test_done

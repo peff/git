@@ -339,7 +339,7 @@ test_expect_success SHA1 'parsing reverse reflogs at BUFSIZ boundaries' '
 test_expect_success 'reflog expire operates on symref not referrent' '
 	git branch --create-reflog the_symref &&
 	git branch --create-reflog referrent &&
-	git update-ref referrent HEAD &&
+	git update-ref refs/heads/referrent HEAD &&
 	git symbolic-ref refs/heads/the_symref refs/heads/referrent &&
 	test_when_finished "rm -f .git/refs/heads/referrent.lock" &&
 	touch .git/refs/heads/referrent.lock &&

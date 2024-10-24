@@ -113,7 +113,7 @@ test_expect_success setup '
 	# pseudo-ref to avoid impacting tests with --all.
 	commit=$(echo reverse |
 		 git commit-tree -p master^2 -p master^1 master^{tree}) &&
-	git update-ref REVERSE $commit &&
+	git update-ref REVERSE_HEAD $commit &&
 
 	git config diff.renames false &&
 
@@ -307,7 +307,7 @@ diff-tree --cc --stat --summary master
 diff-tree -c --stat --summary side
 diff-tree --cc --stat --summary side
 diff-tree --cc --shortstat master
-diff-tree --cc --summary REVERSE
+diff-tree --cc --summary REVERSE_HEAD
 # improved by Timo's patch
 diff-tree --cc --patch-with-stat master
 # improved by Timo's patch
