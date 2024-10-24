@@ -176,8 +176,8 @@ static int cat_one_file(int opt, const char *exp_type, const char *obj_name,
 		break;
 
 	case 'c':
-		if (textconv_object(the_repository, path, obj_context.mode,
-				    &oid, 1, &buf, &size))
+		if (textconv_object(the_repository, NULL, path,
+				    obj_context.mode, &oid, 1, &buf, &size))
 			break;
 		/* else fallthrough */
 
@@ -404,7 +404,7 @@ static void print_object_or_die(struct batch_options *opt, struct expand_data *d
 					    oid_to_hex(oid), data->rest);
 			} else if (opt->transform_mode == 'c') {
 				enum object_type type;
-				if (!textconv_object(the_repository,
+				if (!textconv_object(the_repository, NULL,
 						     data->rest, 0100644, oid,
 						     1, &contents, &size))
 					contents = repo_read_object_file(the_repository,

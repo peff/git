@@ -73,6 +73,7 @@ struct option;
 struct repository;
 struct rev_info;
 struct userdiff_driver;
+struct userdiff_textconv;
 
 typedef int (*pathchange_fn_t)(struct diff_options *options,
 		 struct combine_diff_path *path);
@@ -185,6 +186,7 @@ struct diff_flags {
 	unsigned dirstat_by_file;
 	unsigned allow_textconv;
 	unsigned textconv_set_via_cmdline;
+	int allow_autoencode;
 	unsigned diff_from_contents;
 	unsigned dirty_submodules;
 	unsigned ignore_untracked_in_submodules;
@@ -673,28 +675,27 @@ void show_interdiff(const struct object_id *, const struct object_id *,
 		    int indent, struct diff_options *);
 
 /*
- * Fill the contents of the filespec "df", respecting any textconv defined by
- * its userdiff driver.  The "driver" parameter must come from a
- * previous call to get_textconv(), and therefore should either be NULL or have
- * textconv enabled.
+ * Fill the contents of the filespec "df", respecting respecting the textconv
+ * driver (if non-NULL).
  *
  * Note that the memory ownership of the resulting buffer depends on whether
- * the driver field is NULL. If it is, then the memory belongs to the filespec
+ * the textconv field is NULL. If it is, then the memory belongs to the filespec
  * struct. If it is non-NULL, then "outbuf" points to a newly allocated buffer
  * that should be freed by the caller.
  */
 size_t fill_textconv(struct repository *r,
-		     struct userdiff_driver *driver,
+		     struct userdiff_textconv *textconv,
 		     struct diff_filespec *df,
 		     char **outbuf);
 
 /*
- * Look up the userdiff driver for the given filespec, and return it if
- * and only if it has textconv enabled (otherwise return NULL). The result
- * can be passed to fill_textconv().
+ * Return the userdiff textconv driver for the given filespec if textconv is
+ * both enabled and configured for the filespec. Otherwise return NULL.
+ * The result can be passed to fill_textconv().
  */
-struct userdiff_driver *get_textconv(struct repository *r,
-				     struct diff_filespec *one);
+struct userdiff_textconv *diff_get_textconv(struct repository *r,
+					    struct diff_options *opt,
+					    struct diff_filespec *one);
 
 /*
  * Prepare diff_filespec and convert it using diff textconv API
@@ -702,6 +703,7 @@ struct userdiff_driver *get_textconv(struct repository *r,
  * Return 1 if the conversion succeeds, 0 otherwise.
  */
 int textconv_object(struct repository *repo,
+		    struct diff_options *opt,
 		    const char *path,
 		    unsigned mode,
 		    const struct object_id *oid, int oid_valid,
