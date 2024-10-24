@@ -34,6 +34,7 @@
 #include "replace-object.h"
 #include "dir.h"
 #include "midx.h"
+#include "trace.h"
 #include "trace2.h"
 #include "shallow.h"
 #include "promisor-remote.h"
@@ -181,6 +182,8 @@ static inline void oe_set_delta_size(struct packing_data *pack,
 #define SET_DELTA_CHILD(obj, val) oe_set_delta_child(&to_pack, obj, val)
 #define SET_DELTA_SIBLING(obj, val) oe_set_delta_sibling(&to_pack, obj, val)
 
+static struct trace_key trace_delta = TRACE_KEY_INIT(DELTA);
+
 static const char *pack_usage[] = {
 	N_("git pack-objects --stdout [<options>] [< <ref-list> | < <object-list>]"),
 	N_("git pack-objects [<options>] <base-name> [< <ref-list> | < <object-list>]"),
@@ -247,6 +250,8 @@ static unsigned long max_delta_cache_size = DEFAULT_DELTA_CACHE_SIZE;
 static unsigned long cache_max_small_delta_size = 1000;
 
 static unsigned long window_memory_limit = 0;
+static int window_slot_limit;
+static unsigned long window_byte_limit;
 
 static struct string_list uri_protocols = STRING_LIST_INIT_NODUP;
 
@@ -2585,8 +2590,21 @@ unsigned long oe_get_size_slow(struct packing_data *pack,
 	return size;
 }
 
-static int try_delta(struct unpacked *trg, struct unpacked *src,
-		     unsigned max_depth, unsigned long *mem_usage)
+enum try_delta_result {
+	/* do not bother looking further in the window */
+	TRY_DELTA_STOP,
+	/* we found a better delta */
+	TRY_DELTA_FOUND,
+	/* heuristics quickly told us we would not find a better delta */
+	TRY_DELTA_NONE_FAST,
+	/* we computed a delta, but it was not an improvement */
+	TRY_DELTA_NONE_SLOW,
+};
+
+static enum try_delta_result try_delta(struct unpacked *trg,
+				       struct unpacked *src,
+				       unsigned max_depth,
+				       unsigned long *mem_usage)
 {
 	struct object_entry *trg_entry = trg->entry;
 	struct object_entry *src_entry = src->entry;
@@ -2597,7 +2615,7 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 
 	/* Don't bother doing diffs between different types */
 	if (oe_type(trg_entry) != oe_type(src_entry))
-		return -1;
+		return TRY_DELTA_STOP;
 
 	/*
 	 * We do not bother to try a delta that we discarded on an
@@ -2612,11 +2630,11 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 	    !src_entry->preferred_base &&
 	    trg_entry->in_pack_type != OBJ_REF_DELTA &&
 	    trg_entry->in_pack_type != OBJ_OFS_DELTA)
-		return 0;
+		return TRY_DELTA_NONE_FAST;
 
 	/* Let's not bust the allowed depth. */
 	if (src->depth >= max_depth)
-		return 0;
+		return TRY_DELTA_NONE_FAST;
 
 	/* Now some size filtering heuristics. */
 	trg_size = SIZE(trg_entry);
@@ -2630,16 +2648,16 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 	max_size = (uint64_t)max_size * (max_depth - src->depth) /
 						(max_depth - ref_depth + 1);
 	if (max_size == 0)
-		return 0;
+		return TRY_DELTA_NONE_FAST;
 	src_size = SIZE(src_entry);
 	sizediff = src_size < trg_size ? trg_size - src_size : 0;
 	if (sizediff >= max_size)
-		return 0;
+		return TRY_DELTA_NONE_FAST;
 	if (trg_size < src_size / 32)
-		return 0;
+		return TRY_DELTA_NONE_FAST;
 
 	if (!in_same_island(&trg->entry->idx.oid, &src->entry->idx.oid))
-		return 0;
+		return TRY_DELTA_NONE_FAST;
 
 	/* Load data if not already done */
 	if (!trg->data) {
@@ -2675,7 +2693,7 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 				 * them if they can't be read, in case the
 				 * pack could be created nevertheless.
 				 */
-				return 0;
+				return TRY_DELTA_NONE_FAST;
 			}
 			die(_("object %s cannot be read"),
 			    oid_to_hex(&src_entry->idx.oid));
@@ -2692,21 +2710,21 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 			static int warned = 0;
 			if (!warned++)
 				warning(_("suboptimal pack - out of memory"));
-			return 0;
+			return TRY_DELTA_NONE_FAST;
 		}
 		*mem_usage += sizeof_delta_index(src->index);
 	}
 
 	delta_buf = create_delta(src->index, trg->data, trg_size, &delta_size, max_size);
 	if (!delta_buf)
-		return 0;
+		return TRY_DELTA_NONE_SLOW;
 
 	if (DELTA(trg_entry)) {
 		/* Prefer only shallower same-sized deltas. */
 		if (delta_size == DELTA_SIZE(trg_entry) &&
 		    src->depth + 1 >= trg->depth) {
 			free(delta_buf);
-			return 0;
+			return TRY_DELTA_NONE_SLOW;
 		}
 	}
 
@@ -2734,7 +2752,7 @@ static int try_delta(struct unpacked *trg, struct unpacked *src,
 	SET_DELTA_SIZE(trg_entry, delta_size);
 	trg->depth = src->depth + 1;
 
-	return 1;
+	return TRY_DELTA_FOUND;
 }
 
 static unsigned int check_delta_limit(struct object_entry *me, unsigned int n)
@@ -2777,6 +2795,8 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 		struct object_entry *entry;
 		struct unpacked *n = array + idx;
 		int j, max_depth, best_base = -1;
+		int slow_count = 0;
+		int slow_count_at_best_base;
 
 		progress_lock();
 		if (!*list_size) {
@@ -2822,7 +2842,7 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 
 		j = window;
 		while (--j > 0) {
-			int ret;
+			enum try_delta_result ret;
 			uint32_t other_idx = idx + j;
 			struct unpacked *m;
 			if (other_idx >= window)
@@ -2831,10 +2851,29 @@ static void find_deltas(struct object_entry **list, unsigned *list_size,
 			if (!m->entry)
 				break;
 			ret = try_delta(n, m, max_depth, &mem_usage);
-			if (ret < 0)
+			if (ret == TRY_DELTA_STOP)
 				break;
-			else if (ret > 0)
+			else if (ret == TRY_DELTA_FOUND) {
 				best_base = other_idx;
+				slow_count++;
+				slow_count_at_best_base = slow_count;
+			} else if (ret == TRY_DELTA_NONE_SLOW) {
+				slow_count++;
+			}
+			if (window_slot_limit &&
+			    window_slot_limit <= slow_count)
+				break;
+			if (window_byte_limit &&
+			    window_byte_limit <= SIZE(n->entry) * slow_count)
+				break;
+		}
+
+		if (best_base >= 0) {
+			trace_printf_key(&trace_delta,
+					 "best base for %s found at slot %d, byte %"PRIuMAX,
+					 oid_to_hex(&entry->idx.oid),
+					 slow_count_at_best_base,
+					 (uintmax_t)(SIZE(n->entry) * slow_count_at_best_base));
 		}
 
 		/*
@@ -3252,6 +3291,14 @@ static int git_pack_config(const char *k, const char *v,
 	}
 	if (!strcmp(k, "pack.windowmemory")) {
 		window_memory_limit = git_config_ulong(k, v, ctx->kvi);
+		return 0;
+	}
+	if (!strcmp(k, "pack.windowslotlimit")) {
+		window_slot_limit = git_config_int(k, v, ctx->kvi);
+		return 0;
+	}
+	if (!strcmp(k, "pack.windowbytelimit")) {
+		window_byte_limit = git_config_ulong(k, v, ctx->kvi);
 		return 0;
 	}
 	if (!strcmp(k, "pack.depth")) {
@@ -4352,6 +4399,10 @@ int cmd_pack_objects(int argc,
 			    N_("limit pack window by objects")),
 		OPT_MAGNITUDE(0, "window-memory", &window_memory_limit,
 			      N_("limit pack window by memory in addition to object limit")),
+		OPT_INTEGER(0, "window-slot-limit", &window_slot_limit,
+			    N_("limit delta attempts within window by number of objects")),
+		OPT_MAGNITUDE(0, "window-byte-limit", &window_byte_limit,
+			      N_("limit delta attempts within window by bytes")),
 		OPT_INTEGER(0, "depth", &depth,
 			    N_("maximum length of delta chain allowed in the resulting pack")),
 		OPT_BOOL(0, "reuse-delta", &reuse_delta,

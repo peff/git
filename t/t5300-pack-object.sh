@@ -483,7 +483,7 @@ test_expect_success 'cleanup for --strict and --fsck-objects downgrading fsck ms
 '
 
 test_expect_success 'honor pack.packSizeLimit' '
-	git config pack.packSizeLimit 3m &&
+	test_config pack.packSizeLimit 3m &&
 	packname_10=$(git pack-objects test-10 <obj-list) &&
 	test 2 = $(ls test-10-*.pack | wc -l)
 '
@@ -493,13 +493,31 @@ test_expect_success 'verify resulting packs' '
 '
 
 test_expect_success 'tolerate packsizelimit smaller than biggest object' '
-	git config pack.packSizeLimit 1 &&
+	test_config pack.packSizeLimit 1 &&
 	packname_11=$(git pack-objects test-11 <obj-list) &&
 	test 5 = $(ls test-11-*.pack | wc -l)
 '
 
 test_expect_success 'verify resulting packs' '
 	git verify-pack test-11-*.pack
+'
+
+test_expect_success 'pack with window=10 finds a delta' '
+	git pack-objects --window=10 window-10 <obj-list &&
+	git verify-pack -v window-10-*.pack >out &&
+	grep ^chain out
+'
+
+test_expect_success 'pack with work limit' '
+	git pack-objects --window=10 --window-slot-limit=1 limit <obj-list &&
+	git verify-pack -v limit-*.pack >out &&
+	! grep ^chain out
+'
+
+test_expect_success 'pack with byte limit' '
+	git pack-objects --window=10 --window-byte-limit=100 byte <obj-list &&
+	git verify-pack -v byte-*.pack >out &&
+	! grep ^chain out
 '
 
 test_expect_success 'set up pack for non-repo tests' '
