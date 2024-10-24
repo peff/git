@@ -217,6 +217,8 @@ char *xdg_cache_home(const char *filename);
  */
 void safe_create_dir(const char *dir, int share);
 
+int safe_symlink(const char *target, const char *linkpath);
+
 /*
  * Do not use this function. It is only exported to other subsystems until we
  * can get rid of the below block of functions that implicitly rely on
