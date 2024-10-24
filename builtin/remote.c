@@ -640,9 +640,9 @@ static int migrate_file(struct remote *remote)
 	for (i = 0; i < remote->fetch.raw_nr; i++)
 		git_config_set_multivar(buf.buf, remote->fetch.raw[i], "^$", 0);
 	if (remote->origin == REMOTE_REMOTES)
-		unlink_or_warn(git_path("remotes/%s", remote->name));
+		unlink_or_warn(git_path_buf(&buf, "remotes/%s", remote->name));
 	else if (remote->origin == REMOTE_BRANCHES)
-		unlink_or_warn(git_path("branches/%s", remote->name));
+		unlink_or_warn(git_path_buf(&buf, "branches/%s", remote->name));
 	strbuf_release(&buf);
 
 	return 0;

@@ -706,7 +706,6 @@ int cmd_rev_parse(int argc,
 	unsigned int flags = 0;
 	const char *name = NULL;
 	struct object_context unused;
-	struct strbuf buf = STRBUF_INIT;
 	int seen_end_of_options = 0;
 	enum format_type format = FORMAT_DEFAULT;
 
@@ -782,12 +781,13 @@ int cmd_rev_parse(int argc,
 
 		if (!seen_end_of_options && *arg == '-') {
 			if (!strcmp(arg, "--git-path")) {
+				char *path;
 				if (!argv[i + 1])
 					die(_("--git-path requires an argument"));
-				strbuf_reset(&buf);
-				print_path(git_path("%s", argv[i + 1]), prefix,
-						format,
-						DEFAULT_RELATIVE_IF_SHARED);
+				path = git_pathdup("%s", argv[i + 1]);
+				print_path(path, prefix, format,
+					   DEFAULT_RELATIVE_IF_SHARED);
+				free(path);
 				i++;
 				continue;
 			}
@@ -1016,8 +1016,7 @@ int cmd_rev_parse(int argc,
 			if (!strcmp(arg, "--git-dir") ||
 			    !strcmp(arg, "--absolute-git-dir")) {
 				const char *gitdir = getenv(GIT_DIR_ENVIRONMENT);
-				char *cwd;
-				int len;
+				struct strbuf path = STRBUF_INIT;
 				enum format_type wanted = format;
 				if (arg[2] == 'g') {	/* --git-dir */
 					if (gitdir) {
@@ -1040,12 +1039,12 @@ int cmd_rev_parse(int argc,
 						continue;
 					}
 				}
-				cwd = xgetcwd();
-				len = strlen(cwd);
-				strbuf_reset(&buf);
-				strbuf_addf(&buf, "%s%s.git", cwd, len && cwd[len-1] != '/' ? "/" : "");
-				free(cwd);
-				print_path(buf.buf, prefix, wanted, DEFAULT_CANONICAL);
+				if (strbuf_getcwd(&path))
+					die_errno(_("unable to get current working directory"));
+				strbuf_complete(&path, '/');
+				strbuf_addstr(&path, ".git");
+				print_path(path.buf, prefix, wanted, DEFAULT_CANONICAL);
+				strbuf_release(&path);
 				continue;
 			}
 			if (!strcmp(arg, "--git-common-dir")) {
@@ -1078,8 +1077,9 @@ int cmd_rev_parse(int argc,
 					die(_("Could not read the index"));
 				if (the_repository->index->split_index) {
 					const struct object_id *oid = &the_repository->index->split_index->base_oid;
-					const char *path = git_path("sharedindex.%s", oid_to_hex(oid));
+					char *path = git_pathdup("sharedindex.%s", oid_to_hex(oid));
 					print_path(path, prefix, format, DEFAULT_RELATIVE);
+					free(path);
 				}
 				continue;
 			}
@@ -1158,7 +1158,6 @@ int cmd_rev_parse(int argc,
 			continue;
 		verify_filename(prefix, arg, 1);
 	}
-	strbuf_release(&buf);
 	if (verify) {
 		if (revs_count == 1) {
 			show_rev(type, &oid, name);

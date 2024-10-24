@@ -968,6 +968,7 @@ static int merge(int argc, const char **argv, const char *prefix)
 	else { /* Merge has unresolved conflicts */
 		struct worktree **worktrees;
 		const struct worktree *wt;
+		char *merge_worktree_path;
 		/* Update .git/NOTES_MERGE_PARTIAL with partial merge result */
 		refs_update_ref(get_main_ref_store(the_repository), msg.buf,
 				"NOTES_MERGE_PARTIAL", &result_oid, NULL,
@@ -983,10 +984,12 @@ static int merge(int argc, const char **argv, const char *prefix)
 		if (refs_update_symref(get_main_ref_store(the_repository), "NOTES_MERGE_REF", notes_ref, NULL))
 			die(_("failed to store link to current notes ref (%s)"),
 			    notes_ref);
+		merge_worktree_path = git_pathdup(NOTES_MERGE_WORKTREE);
 		fprintf(stderr, _("Automatic notes merge failed. Fix conflicts in %s "
 				  "and commit the result with 'git notes merge --commit', "
 				  "or abort the merge with 'git notes merge --abort'.\n"),
-			git_path(NOTES_MERGE_WORKTREE));
+			merge_worktree_path);
+		free(merge_worktree_path);
 	}
 
 	free_notes(t);

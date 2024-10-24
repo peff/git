@@ -272,21 +272,6 @@ static inline void strbuf_git_path(struct strbuf *sb, const char *fmt, ...)
 	va_end(args);
 }
 
-/*
- * Return a statically allocated path into the main repository's
- * (the_repository) git directory.
- */
-__attribute__((format (printf, 1, 2)))
-static inline const char *git_path(const char *fmt, ...)
-{
-	struct strbuf *pathname = get_pathname();
-	va_list args;
-	va_start(args, fmt);
-	repo_git_pathv(the_repository, NULL, pathname, fmt, args);
-	va_end(args);
-	return pathname->buf;
-}
-
 #define GIT_PATH_FUNC(func, filename) \
 	const char *func(void) \
 	{ \

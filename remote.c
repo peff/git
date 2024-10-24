@@ -304,7 +304,10 @@ static void read_remotes_file(struct remote_state *remote_state,
 			      struct remote *remote)
 {
 	struct strbuf buf = STRBUF_INIT;
-	FILE *f = fopen_or_warn(git_path("remotes/%s", remote->name), "r");
+	char *path = git_pathdup("remotes/%s", remote->name);
+	FILE *f = fopen_or_warn(path, "r");
+
+	FREE_AND_NULL(path);
 
 	if (!f)
 		return;
@@ -332,7 +335,10 @@ static void read_branches_file(struct remote_state *remote_state,
 {
 	char *frag, *to_free = NULL;
 	struct strbuf buf = STRBUF_INIT;
-	FILE *f = fopen_or_warn(git_path("branches/%s", remote->name), "r");
+	char *path = git_pathdup("branches/%s", remote->name);
+	FILE *f = fopen_or_warn(path, "r");
+
+	FREE_AND_NULL(path);
 
 	if (!f)
 		return;
