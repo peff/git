@@ -166,7 +166,7 @@ test_expect_success 'pack-object <stdin parsing: --stdin-packs handles garbage' 
 check_deltas() {
 	local op="$1"; shift
 	local nr="$1"; shift
-	git pack-objects --progress "$@" 2>stderr &&
+	git pack-objects --progress --no-reuse-delta "$@" 2>stderr &&
 	deltas=$(perl -lne '/delta (\d+)/ and print $1' stderr) &&
 	deltas=$(sed -n 's/Total [0-9][0-9]* (delta \([0-9][0-9]*\)).*/\1/p' stderr) &&
 	if ! test "$deltas" "$op" "$nr"
