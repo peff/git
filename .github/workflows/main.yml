@@ -39,3 +39,5 @@ jobs:
     - name: Test
       shell: pwsh
       run: meson test -C build t0210-trace2-normal
+    - name: Setup tmate
+      uses: mxschmitt/action-tmate@v3
