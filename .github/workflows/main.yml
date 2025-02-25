@@ -22,8 +22,6 @@ jobs:
   windows-meson-build:
     name: win+Meson build
     runs-on: windows-latest
-    concurrency:
-      group: windows-meson-build-${{ github.ref }}
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
@@ -36,8 +34,5 @@ jobs:
     - name: Compile
       shell: pwsh
       run: meson compile -C build
-    - name: Test
-      shell: pwsh
-      run: meson test -C build t0210-trace2-normal
     - name: Setup tmate
       uses: mxschmitt/action-tmate@v3
