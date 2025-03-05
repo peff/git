@@ -64,6 +64,9 @@ else
 		"merge-fixup "*)
 			fixup="$fixup $hash:${subject#merge-fixup }"
 			;;
+		"###"*)
+			# ignore upstream sync marker
+			;;
 		*)
 			extra="$extra $hash"
 			;;
