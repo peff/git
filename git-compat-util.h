@@ -1255,7 +1255,7 @@ static inline void move_array(void *dst, const void *src, size_t n, size_t size)
  */
 #define ALLOC_GROW(x, nr, alloc) \
 	do { \
-		if ((nr) > alloc) { \
+		if (!(x) || (nr) > alloc) { \
 			if (alloc_nr(alloc) < (nr)) \
 				alloc = (nr); \
 			else \
