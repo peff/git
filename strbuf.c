@@ -313,6 +313,7 @@ void strbuf_add(struct strbuf *sb, const void *data, size_t len)
 	strbuf_grow(sb, len);
 	memcpy(sb->buf + sb->len, data, len);
 	strbuf_setlen(sb, sb->len + len);
+	sb->buf[sb->len] = '\0';
 }
 
 void strbuf_addstrings(struct strbuf *sb, const char *s, size_t n)
