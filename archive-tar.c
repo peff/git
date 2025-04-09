@@ -338,7 +338,11 @@ static void write_global_extended_header(struct archiver_args *args)
 		strbuf_append_ext_header(&ext_header, "comment",
 					 oid_to_hex(oid),
 					 the_hash_algo->hexsz);
-	if (args->time > USTAR_MAX_MTIME) {
+	if (args->time < 0) {
+		/* gross, clamp to 0? */
+		args->time = 0;
+	}
+	if ((uintmax_t)args->time > USTAR_MAX_MTIME) {
 		strbuf_append_ext_header_uint(&ext_header, "mtime",
 					      args->time);
 		args->time = USTAR_MAX_MTIME;
