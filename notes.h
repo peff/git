@@ -303,6 +303,9 @@ void disable_display_notes(struct display_notes_opt *opt, int *show_notes);
  */
 void load_display_notes(struct display_notes_opt *opt);
 
+void format_note(struct notes_tree *t, const struct object_id *object_oid,
+		 struct strbuf *sb, const char *output_encoding, int raw);
+
 /*
  * Append notes for the given 'object_sha1' from all trees set up by
  * load_display_notes() to 'sb'.
