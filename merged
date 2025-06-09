@@ -14,14 +14,21 @@ check_merge() {
 
 check_seen=
 check_jch=
-case "$1" in
---seen)
-	check_seen=t
-	;;
---jch)
-	check_jch=t
-	;;
-esac
+while test $# -gt 0; do
+	case "$1" in
+	--seen)
+		check_seen=t
+		;;
+	--jch)
+		check_jch=t
+		;;
+	*)
+		echo >&2 "unknown option: $1"
+		exit 1
+		;;
+	esac
+	shift
+done
 
 for i in `Meta/topics -t`; do
 	case "$i" in
