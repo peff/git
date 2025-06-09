@@ -13,9 +13,13 @@ check_merge() {
 }
 
 check_seen=
+check_jch=
 case "$1" in
 --seen)
 	check_seen=t
+	;;
+--jch)
+	check_jch=t
 	;;
 esac
 
@@ -28,6 +32,7 @@ for i in `Meta/topics -t`; do
 
 	check_merge $i origin/master ||
 	check_merge $i origin/next ||
+	{ test -n "$check_jch" && check_merge $i origin/jch; } ||
 	{ test -n "$check_seen" && check_merge $i origin/seen; } ||
 	show $i 'not merged'
 done
