@@ -2522,16 +2522,19 @@ int reference_get_peeled_oid(struct repository *repo,
 int refs_update_symref(struct ref_store *refs, const char *ref,
 		       const char *target, const char *logmsg)
 {
-	return refs_update_symref_extended(refs, ref, target, logmsg, NULL, 0);
+	return refs_update_symref_extended(refs, ref, target, logmsg, NULL, 0, 0);
 }
 
 int refs_update_symref_extended(struct ref_store *refs, const char *ref,
 		       const char *target, const char *logmsg,
-		       struct strbuf *referent, int create_only)
+		       struct strbuf *referent, int create_only,
+		       unsigned int flags)
 {
 	struct ref_transaction *transaction;
 	struct strbuf err = STRBUF_INIT;
 	int ret = 0, prepret = 0;
+
+	flags |= REF_NO_DEREF;
 
 	transaction = ref_store_transaction_begin(refs, 0, &err);
 	if (!transaction) {
@@ -2541,14 +2544,14 @@ int refs_update_symref_extended(struct ref_store *refs, const char *ref,
 	}
 	if (create_only) {
 		if (ref_transaction_create(transaction, ref, NULL, target,
-					   REF_NO_DEREF, logmsg, &err))
+					   flags, logmsg, &err))
 			goto error_return;
 		prepret = ref_transaction_prepare(transaction, &err);
 		if (prepret && prepret != REF_TRANSACTION_ERROR_CREATE_EXISTS)
 			goto error_return;
 	} else {
 		if (ref_transaction_update(transaction, ref, NULL, NULL,
-					   target, NULL, REF_NO_DEREF,
+					   target, NULL, flags,
 					   logmsg, &err) ||
 			ref_transaction_prepare(transaction, &err))
 			goto error_return;
