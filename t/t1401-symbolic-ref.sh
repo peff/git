@@ -60,9 +60,9 @@ test_expect_success 'symbolic-ref can delete dangling symref' '
 '
 reset_to_sane
 
-test_expect_success 'symbolic-ref fails to delete missing FOO' '
-	echo "fatal: Cannot delete FOO, not a symbolic ref" >expect &&
-	test_must_fail git symbolic-ref -d FOO >actual 2>&1 &&
+test_expect_success 'symbolic-ref fails to delete missing ref' '
+	echo "fatal: Cannot delete refs/heads/does-not-exist, not a symbolic ref" >expect &&
+	test_must_fail git symbolic-ref -d refs/heads/does-not-exist >actual 2>&1 &&
 	test_cmp expect actual
 '
 reset_to_sane
