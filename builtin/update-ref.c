@@ -83,7 +83,7 @@ static char *parse_refname(const char **next)
 		return NULL;
 	}
 
-	if (check_refname_format(ref.buf, REFNAME_ALLOW_ONELEVEL))
+	if (check_refname_format(ref.buf, REFNAME_FULLY_QUALIFIED))
 		die("invalid ref format: %s", ref.buf);
 
 	return strbuf_detach(&ref, NULL);
@@ -371,7 +371,7 @@ static void parse_cmd_symref_update(struct ref_transaction *transaction,
 
 			have_old_oid = 1;
 		} else if (!strcmp(old_arg, "ref")) {
-			if (check_refname_format(old_target, REFNAME_ALLOW_ONELEVEL))
+			if (check_refname_format(old_target, REFNAME_FULLY_QUALIFIED))
 				die("symref-update %s: invalid ref: %s", refname, old_target);
 		} else {
 			die("symref-update %s: invalid arg '%s' for old value", refname, old_arg);
