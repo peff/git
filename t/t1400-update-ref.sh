@@ -2485,4 +2485,12 @@ test_expect_success 'dangling symref overwritten without old oid' '
 	test_must_fail git rev-parse --verify refs/heads/does-not-exist
 '
 
+test_expect_success 'update-ref validates refs as fully qualified' '
+	git symbolic-ref refs/heads/valid refs/heads/one &&
+	test_must_fail git update-ref --no-deref --stdin <<-\EOF 2>err &&
+	symref-update refs/heads/valid refs/heads/two ref invalid-at-root
+	EOF
+	test_grep "invalid ref: invalid-at-root" err
+'
+
 test_done
