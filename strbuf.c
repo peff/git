@@ -258,6 +258,7 @@ void strbuf_splice(struct strbuf *sb, size_t pos, size_t len,
 			sb->len - pos - len);
 	memcpy(sb->buf + pos, data, dlen);
 	strbuf_setlen(sb, sb->len + dlen - len);
+	sb->buf[sb->len] = '\0';
 }
 
 void strbuf_insert(struct strbuf *sb, size_t pos, const void *data, size_t len)
@@ -291,6 +292,7 @@ void strbuf_vinsertf(struct strbuf *sb, size_t pos, const char *fmt, va_list ap)
 	if (len2 != len)
 		BUG("your vsnprintf is broken (returns inconsistent lengths)");
 	strbuf_setlen(sb, sb->len + len);
+	sb->buf[sb->len] = '\0';
 }
 
 void strbuf_insertf(struct strbuf *sb, size_t pos, const char *fmt, ...)
@@ -328,6 +330,7 @@ void strbuf_addbuf(struct strbuf *sb, const struct strbuf *sb2)
 	strbuf_grow(sb, sb2->len);
 	memcpy(sb->buf + sb->len, sb2->buf, sb2->len);
 	strbuf_setlen(sb, sb->len + sb2->len);
+	sb->buf[sb->len] = '\0';
 }
 
 const char *strbuf_join_argv(struct strbuf *buf,
@@ -350,6 +353,7 @@ void strbuf_addchars(struct strbuf *sb, int c, size_t n)
 	strbuf_grow(sb, n);
 	memset(sb->buf + sb->len, c, n);
 	strbuf_setlen(sb, sb->len + n);
+	sb->buf[sb->len] = '\0';
 }
 
 void strbuf_addf(struct strbuf *sb, const char *fmt, ...)
@@ -434,6 +438,7 @@ void strbuf_vaddf(struct strbuf *sb, const char *fmt, va_list ap)
 			BUG("your vsnprintf is broken (insatiable)");
 	}
 	strbuf_setlen(sb, sb->len + len);
+	sb->buf[sb->len] = '\0';
 }
 
 int strbuf_expand_step(struct strbuf *sb, const char **formatp)
@@ -1057,6 +1062,7 @@ void strbuf_addftime(struct strbuf *sb, const char *fmt, const struct tm *tm,
 	}
 	strbuf_release(&munged_fmt);
 	strbuf_setlen(sb, sb->len + len);
+	sb->buf[sb->len] = '\0';
 }
 
 /*
@@ -1124,6 +1130,7 @@ void strbuf_stripspace(struct strbuf *sb, const char *comment_prefix)
 	}
 
 	strbuf_setlen(sb, j);
+	sb->buf[sb->len] = '\0';
 }
 
 void strbuf_strip_file_from_path(struct strbuf *sb)
