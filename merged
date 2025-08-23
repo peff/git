@@ -5,8 +5,17 @@ show() {
 }
 
 check_merge() {
-	if test -z "`git cherry $2 $1 | grep -v ^-`"; then
-		show $1 "merged to $2"
+	local merged
+	local partial
+	local commit
+	for commit in $(git cherry $2 $1 | cut -d' ' -f1); do
+		case "$commit" in
+		-) merged=t ;;
+		+) partial=" (partial)" ;;
+		esac
+	done
+	if test -n "$merged"; then
+		show $1 "merged to $2${partial}"
 		return 0
 	fi
 	return 1
