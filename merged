@@ -5,11 +5,12 @@ show() {
 }
 
 patch_ids() {
-	git rev-list origin/master..$1 |
-	git diff-tree --stdin -p |
+	git log -p origin/master..$1 |
 	git patch-id |
-	cut -d' ' -f1 |
-	sort
+	perl -alne '
+	  push @p, $F[1];
+	  END { print for sort @p }
+	'
 }
 
 check_merge() {
