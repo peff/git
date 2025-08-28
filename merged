@@ -2,12 +2,10 @@
 
 use strict;
 
-my @upstreams = qw(master next);
+my @upstreams = qw(master next jch);
 while (@ARGV) {
   my $arg = shift @ARGV;
-  if ($arg eq "--jch") {
-    push @upstreams, 'jch';
-  } elsif ($arg eq "--seen") {
+  if ($arg eq "--seen") {
     push @upstreams, 'seen';
   } else {
     die "unknown option: $arg\n";
