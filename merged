@@ -4,21 +4,40 @@ show() {
 	printf '%30s: %s\n' "$1" "$2"
 }
 
+patch_ids() {
+	git rev-list origin/master..$1 |
+	git diff-tree --stdin -p |
+	git patch-id |
+	cut -d' ' -f1 |
+	sort
+}
+
 check_merge() {
-	local merged
-	local partial
-	local commit
-	for commit in $(git cherry $2 $1 | cut -d' ' -f1); do
-		case "$commit" in
-		-) merged=t ;;
-		+) partial=" (partial)" ;;
-		esac
-	done
-	if test -n "$merged"; then
-		show $1 "merged to $2${partial}"
-		return 0
+	if ! test -e $2.patch-ids; then
+		patch_ids origin/$2 >$2.patch-ids
 	fi
-	return 1
+
+	patch_ids $1 >tmp.patch-ids
+
+	case "$(comm -123 --total --output-delimiter=, tmp.patch-ids $2.patch-ids)" in
+	0,*,0,total)
+		# no patches in topic
+		return 0
+		;;
+	*,*,0,total)
+		# nothing merged
+		return 1
+		;;
+	0,*,*,total)
+		# completely merged
+		show $1 "merged to $2"
+		return 0
+		;;
+	*)
+		# partially merged
+		show $1 "merged to $2 (partial)"
+		return 0
+	esac
 }
 
 check_seen=
@@ -46,10 +65,11 @@ for i in `Meta/topics -t`; do
 		;;
 	esac
 
-	check_merge $i origin/master ||
-	check_merge $i origin/next ||
-	{ test -n "$check_jch" && check_merge $i origin/jch; } ||
-	{ test -n "$check_seen" && check_merge $i origin/seen; } ||
+	check_merge $i master ||
+	check_merge $i next ||
+	{ test -n "$check_jch" && check_merge $i jch; } ||
+	{ test -n "$check_seen" && check_merge $i seen; } ||
 	show $i 'not merged'
 done
+rm -f *.patch-ids
 exit 0
