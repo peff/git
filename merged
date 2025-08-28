@@ -1,80 +1,71 @@
-#!/bin/bash
+#!/usr/bin/perl
 
-show() {
-	printf '%30s: %s\n' "$1" "$2"
+use strict;
+
+my @upstreams = qw(next);
+while (@ARGV) {
+  my $arg = shift @ARGV;
+  if ($arg eq "--jch") {
+    push @upstreams, 'jch';
+  } elsif ($arg eq "--seen") {
+    push @upstreams, 'seen';
+  } else {
+    die "unknown option: $arg\n";
+  }
 }
 
-patch_ids() {
-	git log -p origin/master..$1 |
-	git patch-id |
-	perl -alne '
-	  push @p, $F[1];
-	  END { print for sort @p }
-	'
+my @topics = do {
+  open(my $fh, '-|', qw(Meta/topics -t));
+  grep { !/-(?:wip|stale)$/ } map { chomp; $_ } <$fh>
+};
+
+my %topic_to_commit;
+open(my $fh, '-|', qw(git log --format=%H:%S ^origin), @topics);
+while (<$fh>) {
+  chomp;
+  my ($h, $t) = split /:/;
+  push @{$topic_to_commit{$t}}, $h;
+};
+
+my %commit_to_patch = do {
+  my $t = join(" ", map { quotemeta } @topics);
+  open(my $fh, '-|', "git log -p ^origin $t | git patch-id");
+  map { chomp; reverse split } <$fh>
+};
+
+my %upstream;
+for my $u (@upstreams) {
+  open(my $fh, '-|', "git log -p ^origin origin/$u | git patch-id");
+  my %p;
+  while (<$fh>) {
+    chomp;
+    my ($patch) = split;
+    $p{$patch} = 1;
+  }
+  $upstream{$u} = \%p;
 }
 
-check_merge() {
-	local lpids=$2.patch-ids
-	local rpids=${1/\//-}.patch-ids
+TOPIC:
+for my $t (@topics) {
+  my $commits = $topic_to_commit{$t};
+  if (!$commits) {
+    show($t, "merged to master");
+    next;
+  }
 
-	if ! test -e $lpids; then
-		patch_ids origin/$2 >$lpids
-	fi
-	if ! test -e $rpids; then
-		patch_ids $1 >$rpids
-	fi
-
-	case "$(comm -123 --total --output-delimiter=, $rpids $lpids)" in
-	0,*,0,total)
-		# no patches in topic
-		return 0
-		;;
-	*,*,0,total)
-		# nothing merged
-		return 1
-		;;
-	0,*,*,total)
-		# completely merged
-		show $1 "merged to $2"
-		return 0
-		;;
-	*)
-		# partially merged
-		show $1 "merged to $2 (partial)"
-		return 0
-	esac
+  for my $u (@upstreams) {
+    my $merged = 0;
+    for my $commit (@$commits) {
+      $merged++ if $upstream{$u}{$commit_to_patch{$commit}};
+    }
+    if ($merged) {
+      show($t, "merged to $u" . ($merged == @$commits ? "" : " (partial)"));
+      next TOPIC;
+    }
+  }
+  show($t, "not merged");
 }
 
-check_seen=
-check_jch=
-while test $# -gt 0; do
-	case "$1" in
-	--seen)
-		check_seen=t
-		;;
-	--jch)
-		check_jch=t
-		;;
-	*)
-		echo >&2 "unknown option: $1"
-		exit 1
-		;;
-	esac
-	shift
-done
-
-for i in `Meta/topics -t`; do
-	case "$i" in
-	*-wip|*-stale)
-		continue
-		;;
-	esac
-
-	check_merge $i master ||
-	check_merge $i next ||
-	{ test -n "$check_jch" && check_merge $i jch; } ||
-	{ test -n "$check_seen" && check_merge $i seen; } ||
-	show $i 'not merged'
-done
-rm -f *.patch-ids
-exit 0
+sub show {
+  printf "%30s: %s\n", @_;
+}
