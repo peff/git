@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 show() {
 	printf '%30s: %s\n' "$1" "$2"
@@ -13,13 +13,17 @@ patch_ids() {
 }
 
 check_merge() {
-	if ! test -e $2.patch-ids; then
-		patch_ids origin/$2 >$2.patch-ids
+	local lpids=$2.patch-ids
+	local rpids=${1/\//-}.patch-ids
+
+	if ! test -e $lpids; then
+		patch_ids origin/$2 >$lpids
+	fi
+	if ! test -e $rpids; then
+		patch_ids $1 >$rpids
 	fi
 
-	patch_ids $1 >tmp.patch-ids
-
-	case "$(comm -123 --total --output-delimiter=, tmp.patch-ids $2.patch-ids)" in
+	case "$(comm -123 --total --output-delimiter=, $rpids $lpids)" in
 	0,*,0,total)
 		# no patches in topic
 		return 0
