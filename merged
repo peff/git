@@ -2,7 +2,7 @@
 
 use strict;
 
-my @upstreams = qw(next);
+my @upstreams = qw(master next);
 while (@ARGV) {
   my $arg = shift @ARGV;
   if ($arg eq "--jch") {
@@ -19,50 +19,38 @@ my @topics = do {
   grep { !/-(?:wip|stale)$/ } map { chomp; $_ } <$fh>
 };
 
-my %topic_to_commit;
-open(my $fh, '-|', qw(git log --format=%H:%S ^origin), @topics);
-while (<$fh>) {
-  chomp;
-  my ($h, $t) = split /:/;
-  push @{$topic_to_commit{$t}}, $h;
-};
-
-my %commit_to_patch = do {
-  my $t = join(" ", map { quotemeta } @topics);
-  open(my $fh, '-|', "git log -p ^origin $t | git patch-id");
-  map { chomp; reverse split } <$fh>
-};
-
-my %upstream;
 for my $u (@upstreams) {
-  open(my $fh, '-|', "git log -p ^origin origin/$u | git patch-id");
-  my %p;
+  next unless @topics;
+  my $rhs = join(" ", map { quotemeta } @topics);
+  open(my $fh, '-|',
+    "git log --cherry-mark --right-only --format=%m:%S origin/$u...$rhs");
+  my %merged;
+  my %unmerged;
   while (<$fh>) {
     chomp;
-    my ($patch) = split;
-    $p{$patch} = 1;
+    my ($m, $t) = split /:/;
+    if ($m eq '=') {
+      $merged{$t}++;
+    } else {
+      $unmerged{$t}++;
+    }
   }
-  $upstream{$u} = \%p;
+
+  my @remain;
+  for my $t (@topics) {
+    if (!$unmerged{$t}) {
+      show($t, "merged to $u");
+    } elsif ($merged{$t}) {
+      show($t, "merged to $u (partial)");
+    } else {
+      push @remain, $t;
+    }
+  }
+
+  @topics = @remain;
 }
 
-TOPIC:
 for my $t (@topics) {
-  my $commits = $topic_to_commit{$t};
-  if (!$commits) {
-    show($t, "merged to master");
-    next;
-  }
-
-  for my $u (@upstreams) {
-    my $merged = 0;
-    for my $commit (@$commits) {
-      $merged++ if $upstream{$u}{$commit_to_patch{$commit}};
-    }
-    if ($merged) {
-      show($t, "merged to $u" . ($merged == @$commits ? "" : " (partial)"));
-      next TOPIC;
-    }
-  }
   show($t, "not merged");
 }
 
