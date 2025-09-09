@@ -19,9 +19,8 @@ my @topics = do {
 
 for my $u (@upstreams) {
   next unless @topics;
-  my $rhs = join(" ", map { quotemeta } @topics);
-  open(my $fh, '-|',
-    "git log --cherry-mark --right-only --format=%m:%S origin/$u...$rhs");
+  open(my $fh, '-|', qw(git log --cherry-mark --right-only --format=%m:%S),
+      "origin/$u..." . $topics[0], @topics[1..$#topics]);
   my %merged;
   my %unmerged;
   while (<$fh>) {
