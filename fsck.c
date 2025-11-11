@@ -926,7 +926,7 @@ static int fsck_ident(const char **ident, const char *ident_end,
 	 */
 	while (*p == ' ' || *p == '\t')
 		p++;
-	if (!isdigit(*p))
+	if (!isdigit(*p) && *p != '-')
 		return report(options, oid, type, FSCK_MSG_BAD_DATE,
 			      "invalid author/committer line - bad date");
 	if (*p == '0' && p[1] != ' ')
