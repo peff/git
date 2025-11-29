@@ -15,7 +15,7 @@ static uintmax_t get_unit_factor(const char *end)
 	return 0;
 }
 
-int git_parse_signed(const char *value, intmax_t *ret, intmax_t max)
+bool git_parse_signed(const char *value, intmax_t *ret, intmax_t max)
 {
 	if (value && *value) {
 		char *end;
@@ -28,30 +28,30 @@ int git_parse_signed(const char *value, intmax_t *ret, intmax_t max)
 		errno = 0;
 		val = strtoimax(value, &end, 0);
 		if (errno == ERANGE)
-			return 0;
+			return false;
 		if (end == value) {
 			errno = EINVAL;
-			return 0;
+			return false;
 		}
 		factor = get_unit_factor(end);
 		if (!factor) {
 			errno = EINVAL;
-			return 0;
+			return false;
 		}
 		if ((val < 0 && (-max - 1) / factor > val) ||
 		    (val > 0 && max / factor < val)) {
 			errno = ERANGE;
-			return 0;
+			return false;
 		}
 		val *= factor;
 		*ret = val;
-		return 1;
+		return true;
 	}
 	errno = EINVAL;
-	return 0;
+	return false;
 }
 
-int git_parse_unsigned(const char *value, uintmax_t *ret, uintmax_t max)
+bool git_parse_unsigned(const char *value, uintmax_t *ret, uintmax_t max)
 {
 	if (value && *value) {
 		char *end;
@@ -61,53 +61,53 @@ int git_parse_unsigned(const char *value, uintmax_t *ret, uintmax_t max)
 		/* negative values would be accepted by strtoumax */
 		if (strchr(value, '-')) {
 			errno = EINVAL;
-			return 0;
+			return false;
 		}
 		errno = 0;
 		val = strtoumax(value, &end, 0);
 		if (errno == ERANGE)
-			return 0;
+			return false;
 		if (end == value) {
 			errno = EINVAL;
-			return 0;
+			return false;
 		}
 		factor = get_unit_factor(end);
 		if (!factor) {
 			errno = EINVAL;
-			return 0;
+			return false;
 		}
 		if (unsigned_mult_overflows(factor, val) ||
 		    factor * val > max) {
 			errno = ERANGE;
-			return 0;
+			return false;
 		}
 		val *= factor;
 		*ret = val;
-		return 1;
+		return true;
 	}
 	errno = EINVAL;
-	return 0;
+	return false;
 }
 
-int git_parse_int(const char *value, int *ret)
+bool git_parse_int(const char *value, int *ret)
 {
 	intmax_t tmp;
 	if (!git_parse_signed(value, &tmp, maximum_signed_value_of_type(int)))
-		return 0;
+		return false;
 	*ret = tmp;
-	return 1;
+	return true;
 }
 
-int git_parse_int64(const char *value, int64_t *ret)
+bool git_parse_int64(const char *value, int64_t *ret)
 {
 	intmax_t tmp;
 	if (!git_parse_signed(value, &tmp, maximum_signed_value_of_type(int64_t)))
-		return 0;
+		return false;
 	*ret = tmp;
-	return 1;
+	return true;
 }
 
-int git_parse_uint(const char *value, unsigned int *ret)
+bool git_parse_uint(const char *value, unsigned int *ret)
 {
 	uintmax_t tmp;
 	if (!git_parse_unsigned(value, &tmp, maximum_unsigned_value_of_type(unsigned int)))
@@ -116,25 +116,25 @@ int git_parse_uint(const char *value, unsigned int *ret)
 	return 1;
 }
 
-int git_parse_ulong(const char *value, unsigned long *ret)
+bool git_parse_ulong(const char *value, unsigned long *ret)
 {
 	uintmax_t tmp;
 	if (!git_parse_unsigned(value, &tmp, maximum_unsigned_value_of_type(long)))
-		return 0;
+		return false;
 	*ret = tmp;
-	return 1;
+	return true;
 }
 
-int git_parse_ssize_t(const char *value, ssize_t *ret)
+bool git_parse_ssize_t(const char *value, ssize_t *ret)
 {
 	intmax_t tmp;
 	if (!git_parse_signed(value, &tmp, maximum_signed_value_of_type(ssize_t)))
-		return 0;
+		return false;
 	*ret = tmp;
-	return 1;
+	return true;
 }
 
-int git_parse_size_t(const char *value, size_t *ret)
+bool git_parse_size_t(const char *value, size_t *ret)
 {
 	uintmax_t tmp;
 	if (!git_parse_unsigned(value, &tmp, maximum_signed_value_of_type(size_t)))
@@ -143,7 +143,7 @@ int git_parse_size_t(const char *value, size_t *ret)
 	return 1;
 }
 
-int git_parse_double(const char *value, double *ret)
+bool git_parse_double(const char *value, double *ret)
 {
 	char *end;
 	double val;
@@ -151,25 +151,25 @@ int git_parse_double(const char *value, double *ret)
 
 	if (!value || !*value) {
 		errno = EINVAL;
-		return 0;
+		return false;
 	}
 
 	errno = 0;
 	val = strtod(value, &end);
 	if (errno == ERANGE)
-		return 0;
+		return false;
 	if (end == value) {
 		errno = EINVAL;
-		return 0;
+		return false;
 	}
 	factor = get_unit_factor(end);
 	if (!factor) {
 		errno = EINVAL;
-		return 0;
+		return false;
 	}
 	val *= factor;
 	*ret = val;
-	return 1;
+	return true;
 }
 
 int git_parse_maybe_bool_text(const char *value)
