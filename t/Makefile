@@ -79,7 +79,7 @@ failed:
 
 prove: pre-clean $(TEST_LINT)
 	@echo "*** prove (shell & unit tests) ***"
-	@$(CHAINLINTSUPPRESS) TEST_OPTIONS='$(GIT_TEST_OPTS)' TEST_SHELL_PATH='$(TEST_SHELL_PATH_SQ)' $(PROVE) --exec ./run-test.sh $(GIT_PROVE_OPTS) $(T) $(UNIT_TESTS)
+	@$(CHAINLINTSUPPRESS) $(PROVE) --exec '$(TEST_SHELL_PATH_SQ)' $(GIT_PROVE_OPTS) $(T) :: $(GIT_TEST_OPTS)
 	$(MAKE) clean-except-prove-cache
 
 $(T):
@@ -88,20 +88,13 @@ $(T):
 $(UNIT_TESTS):
 	@echo "*** $@ ***"; $@
 
-.PHONY: unit-tests unit-tests-raw unit-tests-prove unit-tests-test-tool
+.PHONY: unit-tests unit-tests-raw unit-tests-prove
 unit-tests: $(DEFAULT_UNIT_TEST_TARGET)
 
 unit-tests-raw: $(UNIT_TESTS)
 
 unit-tests-prove:
 	@echo "*** prove - unit tests ***"; $(PROVE) $(GIT_PROVE_OPTS) $(UNIT_TESTS)
-
-unit-tests-test-tool:
-	@echo "*** test-tool - unit tests **"
-	( \
-		cd unit-tests/bin && \
-		../../helper/test-tool$X run-command testsuite $(UNIT_TESTS_NO_DIR)\
-	)
 
 pre-clean:
 	$(RM) -r '$(TEST_RESULTS_DIRECTORY_SQ)'
