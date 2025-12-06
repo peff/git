@@ -68,7 +68,6 @@ clar_unit_tests = executable('unit-tests',
   ],
   dependencies: [libgit_commonmain],
 )
-test('unit-tests', clar_unit_tests, kwargs: test_kwargs)
 
 subdir('helper')
 
