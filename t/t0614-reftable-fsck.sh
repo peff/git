@@ -91,7 +91,10 @@ test_expect_success 'invalid symref gets reported' '
 	test_when_finished "rm -rf repo" &&
 	git init repo &&
 	test_commit -C repo initial &&
-	git -C repo symbolic-ref refs/heads/symref garbage &&
+	(
+		cd repo &&
+		test-tool ref-store main create-symref REF_SKIP_OID_VERIFICATION refs/heads/symref garbage
+	) &&
 	test_must_fail git -C repo refs verify 2>err &&
 	cat >expect <<-EOF &&
 	error: refs/heads/symref: badReferentName: points to invalid refname ${SQ}garbage${SQ}
