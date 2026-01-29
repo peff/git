@@ -359,13 +359,13 @@ void shortlog_init(struct shortlog *log)
 
 	read_mailmap(the_repository, &log->mailmap);
 
-	log->list.strdup_strings = 1;
+	string_list_init_dup(&log->list);
 	log->wrap = DEFAULT_WRAPLEN;
 	log->in1 = DEFAULT_INDENT1;
 	log->in2 = DEFAULT_INDENT2;
-	log->trailers.strdup_strings = 1;
+	string_list_init_dup(&log->trailers);
 	log->trailers.cmp = strcasecmp;
-	log->format.strdup_strings = 1;
+	string_list_init_dup(&log->format);
 }
 
 void shortlog_finish_setup(struct shortlog *log)
