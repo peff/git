@@ -529,7 +529,6 @@ void shortlog_output(struct shortlog *log)
 	}
 
 	strbuf_release(&sb);
-	log->list.strdup_strings = 1;
 	string_list_clear(&log->list, 1);
 	clear_mailmap(&log->mailmap);
 	string_list_clear(&log->format, 0);
