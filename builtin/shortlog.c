@@ -385,7 +385,7 @@ int cmd_shortlog(int argc,
 		 const char *prefix,
 		 struct repository *repo UNUSED)
 {
-	struct shortlog log = { STRING_LIST_INIT_NODUP };
+	struct shortlog log;
 	struct rev_info rev;
 	int nongit = !startup_info->have_repository;
 
