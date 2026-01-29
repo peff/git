@@ -5,9 +5,11 @@
 #include "date.h"
 
 struct commit;
+struct kh_shortlog;
 
 struct shortlog {
-	struct string_list list;
+	struct kh_shortlog *entries;
+
 	int summary;
 	int wrap_lines;
 	int sort_by_number;

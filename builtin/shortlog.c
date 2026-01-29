@@ -15,6 +15,7 @@
 #include "parse-options.h"
 #include "trailer.h"
 #include "strmap.h"
+#include "khash.h"
 
 static char const * const shortlog_usage[] = {
 	N_("git shortlog [<options>] [<revision-range>] [[--] <path>...]"),
@@ -23,7 +24,7 @@ static char const * const shortlog_usage[] = {
 };
 
 /*
- * The util field of our string_list_items will contain one of two things:
+ * The util field of our shortlog_items will contain one of two things:
  *
  *   - if --summary is not in use, it will point to a string list of the
  *     oneline subjects assigned to this author
@@ -35,15 +36,22 @@ static char const * const shortlog_usage[] = {
  */
 #define UTIL_TO_INT(x) ((intptr_t)(x)->util)
 
+struct shortlog_item {
+	const char *string;
+	void *util;
+};
+
+KHASH_INIT(shortlog, const char *, void *, 1, kh_str_hash_func, kh_str_hash_equal)
+
 static int compare_by_counter(const void *a1, const void *a2)
 {
-	const struct string_list_item *i1 = a1, *i2 = a2;
+	const struct shortlog_item *i1 = a1, *i2 = a2;
 	return UTIL_TO_INT(i2) - UTIL_TO_INT(i1);
 }
 
 static int compare_by_list(const void *a1, const void *a2)
 {
-	const struct string_list_item *i1 = a1, *i2 = a2;
+	const struct shortlog_item *i1 = a1, *i2 = a2;
 	const struct string_list *l1 = i1->util, *l2 = i2->util;
 
 	if (l1->nr < l2->nr)
@@ -54,17 +62,36 @@ static int compare_by_list(const void *a1, const void *a2)
 		return -1;
 }
 
+static int compare_by_string(const void *a1, const void *a2)
+{
+	const struct shortlog_item *i1 = a1, *i2 = a2;
+	return strcmp(i1->string, i2->string);
+}
+
 static void insert_one_record(struct shortlog *log,
 			      const char *ident,
 			      const char *oneline)
 {
-	struct string_list_item *item;
+	int hash_ret;
+	khiter_t pos;
 
-	item = string_list_insert(&log->list, ident);
+	pos = kh_put_shortlog(log->entries, ident, &hash_ret);
+	if (hash_ret) {
+		kh_key(log->entries, pos) = xstrdup(ident);
+		if (log->summary)
+			kh_value(log->entries, pos) = NULL;
+		else {
+			struct string_list *onelines =
+				xmalloc(sizeof(struct string_list));
+			string_list_init_dup(onelines);
+			kh_value(log->entries, pos) = onelines;
+		}
+	}
 
-	if (log->summary)
-		item->util = (void *)(UTIL_TO_INT(item) + 1);
-	else {
+	if (log->summary) {
+		intptr_t cur = (intptr_t)kh_value(log->entries, pos);
+		kh_value(log->entries, pos) = (void *)(cur + 1);
+	} else {
 		char *buffer;
 		struct strbuf subject = STRBUF_INIT;
 		const char *eol;
@@ -85,11 +112,7 @@ static void insert_one_record(struct shortlog *log,
 		format_subject(&subject, oneline, " ");
 		buffer = strbuf_detach(&subject, NULL);
 
-		if (!item->util) {
-			item->util = xmalloc(sizeof(struct string_list));
-			string_list_init_dup(item->util);
-		}
-		string_list_append_nodup(item->util, buffer);
+		string_list_append_nodup(kh_value(log->entries, pos), buffer);
 	}
 }
 
@@ -359,7 +382,7 @@ void shortlog_init(struct shortlog *log)
 
 	read_mailmap(the_repository, &log->mailmap);
 
-	string_list_init_dup(&log->list);
+	log->entries = kh_init_shortlog();
 	log->wrap = DEFAULT_WRAPLEN;
 	log->in1 = DEFAULT_INDENT1;
 	log->in2 = DEFAULT_INDENT2;
@@ -495,12 +518,31 @@ void shortlog_output(struct shortlog *log)
 {
 	size_t i, j;
 	struct strbuf sb = STRBUF_INIT;
+	size_t sorted_nr = kh_size(log->entries);
+	struct shortlog_item *sorted;
+	const char *key;
+	void *value;
+
+	ALLOC_ARRAY(sorted, sorted_nr);
+	i = 0;
+	kh_foreach(log->entries, key, value, {
+		if (i >= sorted_nr)
+			BUG("unexpected extra hash entries");
+		sorted[i].string = key;
+		sorted[i].util = value;
+		i++;
+	});
+	if (i != sorted_nr)
+		BUG("unexpected missing hashmap entries");
 
 	if (log->sort_by_number)
-		STABLE_QSORT(log->list.items, log->list.nr,
+		STABLE_QSORT(sorted, sorted_nr,
 		      log->summary ? compare_by_counter : compare_by_list);
-	for (i = 0; i < log->list.nr; i++) {
-		const struct string_list_item *item = &log->list.items[i];
+	else
+		QSORT(sorted, sorted_nr, compare_by_string);
+
+	for (i = 0; i < sorted_nr; i++) {
+		struct shortlog_item *item = &sorted[i];
 		if (log->summary) {
 			fprintf(log->file, "%6d\t%s\n",
 				(int)UTIL_TO_INT(item), item->string);
@@ -523,12 +565,15 @@ void shortlog_output(struct shortlog *log)
 			string_list_clear(onelines, 0);
 			free(onelines);
 		}
-
-		log->list.items[i].util = NULL;
 	}
 
 	strbuf_release(&sb);
-	string_list_clear(&log->list, 1);
+	free(sorted);
+	kh_foreach(log->entries, key, value, {
+		   free((void *)key);
+	});
+	kh_destroy_shortlog(log->entries);
+	log->entries = NULL;
 	clear_mailmap(&log->mailmap);
 	string_list_clear(&log->format, 0);
 	string_list_clear(&log->trailers, 0);
