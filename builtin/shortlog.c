@@ -87,9 +87,9 @@ static void insert_one_record(struct shortlog *log,
 
 		if (!item->util) {
 			item->util = xmalloc(sizeof(struct string_list));
-			string_list_init_nodup(item->util);
+			string_list_init_dup(item->util);
 		}
-		string_list_append(item->util, buffer);
+		string_list_append_nodup(item->util, buffer);
 	}
 }
 
@@ -520,7 +520,6 @@ void shortlog_output(struct shortlog *log)
 					fprintf(log->file, "      %s\n", msg);
 			}
 			putc('\n', log->file);
-			onelines->strdup_strings = 1;
 			string_list_clear(onelines, 0);
 			free(onelines);
 		}
