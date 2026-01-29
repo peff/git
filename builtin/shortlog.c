@@ -24,35 +24,32 @@ static char const * const shortlog_usage[] = {
 };
 
 /*
- * The util field of our shortlog_items will contain one of two things:
- *
- *   - if --summary is not in use, it will point to a string list of the
- *     oneline subjects assigned to this author
- *
- *   - if --summary is in use, we don't need that list; we only need to know
- *     its size. So we abuse the pointer slot to store our integer counter.
- *
- *  This macro accesses the latter.
+ * If --summary is in use, we only need to store a count for each group.
+ * Otherwise, we store the a list of the actual oneline subjects.
  */
-#define UTIL_TO_INT(x) ((intptr_t)(x)->util)
+union shortlog_value {
+	int counter;
+	struct string_list onelines;
+};
 
 struct shortlog_item {
 	const char *string;
-	void *util;
+	union shortlog_value value;
 };
 
-KHASH_INIT(shortlog, const char *, void *, 1, kh_str_hash_func, kh_str_hash_equal)
+KHASH_INIT(shortlog, const char *, union shortlog_value, 1, kh_str_hash_func, kh_str_hash_equal)
 
 static int compare_by_counter(const void *a1, const void *a2)
 {
 	const struct shortlog_item *i1 = a1, *i2 = a2;
-	return UTIL_TO_INT(i2) - UTIL_TO_INT(i1);
+	return i2->value.counter - i1->value.counter;
 }
 
 static int compare_by_list(const void *a1, const void *a2)
 {
 	const struct shortlog_item *i1 = a1, *i2 = a2;
-	const struct string_list *l1 = i1->util, *l2 = i2->util;
+	const struct string_list *l1 = &i1->value.onelines,
+	      *l2 = &i2->value.onelines;
 
 	if (l1->nr < l2->nr)
 		return 1;
@@ -79,18 +76,14 @@ static void insert_one_record(struct shortlog *log,
 	if (hash_ret) {
 		kh_key(log->entries, pos) = xstrdup(ident);
 		if (log->summary)
-			kh_value(log->entries, pos) = NULL;
+			kh_value(log->entries, pos).counter = 0;
 		else {
-			struct string_list *onelines =
-				xmalloc(sizeof(struct string_list));
-			string_list_init_dup(onelines);
-			kh_value(log->entries, pos) = onelines;
+			string_list_init_dup(&kh_value(log->entries, pos).onelines);
 		}
 	}
 
 	if (log->summary) {
-		intptr_t cur = (intptr_t)kh_value(log->entries, pos);
-		kh_value(log->entries, pos) = (void *)(cur + 1);
+		kh_value(log->entries, pos).counter++;
 	} else {
 		char *buffer;
 		struct strbuf subject = STRBUF_INIT;
@@ -112,7 +105,7 @@ static void insert_one_record(struct shortlog *log,
 		format_subject(&subject, oneline, " ");
 		buffer = strbuf_detach(&subject, NULL);
 
-		string_list_append_nodup(kh_value(log->entries, pos), buffer);
+		string_list_append_nodup(&kh_value(log->entries, pos).onelines, buffer);
 	}
 }
 
@@ -521,7 +514,7 @@ void shortlog_output(struct shortlog *log)
 	size_t sorted_nr = kh_size(log->entries);
 	struct shortlog_item *sorted;
 	const char *key;
-	void *value;
+	union shortlog_value value;
 
 	ALLOC_ARRAY(sorted, sorted_nr);
 	i = 0;
@@ -529,7 +522,7 @@ void shortlog_output(struct shortlog *log)
 		if (i >= sorted_nr)
 			BUG("unexpected extra hash entries");
 		sorted[i].string = key;
-		sorted[i].util = value;
+		sorted[i].value = value;
 		i++;
 	});
 	if (i != sorted_nr)
@@ -545,9 +538,9 @@ void shortlog_output(struct shortlog *log)
 		struct shortlog_item *item = &sorted[i];
 		if (log->summary) {
 			fprintf(log->file, "%6d\t%s\n",
-				(int)UTIL_TO_INT(item), item->string);
+				item->value.counter, item->string);
 		} else {
-			struct string_list *onelines = item->util;
+			struct string_list *onelines = &item->value.onelines;
 			fprintf(log->file, "%s (%"PRIuMAX"):\n",
 				item->string, (uintmax_t)onelines->nr);
 			for (j = onelines->nr; j >= 1; j--) {
@@ -563,7 +556,6 @@ void shortlog_output(struct shortlog *log)
 			}
 			putc('\n', log->file);
 			string_list_clear(onelines, 0);
-			free(onelines);
 		}
 	}
 
