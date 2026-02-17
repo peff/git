@@ -29,6 +29,7 @@ strict = $(or $(rebasing), $(head), $(private))
 ifeq ($(strict),)
   CFLAGS += -Wno-error
   CFLAGS += -Wno-cpp
+  CFLAGS += -DCURLOPT_USE_SSL=CURLOPT_USE_SSL
 imap-send.o: EXTRA_CPPFLAGS += -DNO_OPENSSL
 else
   DEVELOPER = 1
