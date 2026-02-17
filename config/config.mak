@@ -30,6 +30,7 @@ ifeq ($(strict),)
   CFLAGS += -Wno-error
   CFLAGS += -Wno-cpp
   CFLAGS += -DCURLOPT_USE_SSL=CURLOPT_USE_SSL
+  CFLAGS += -std=c99
 imap-send.o: EXTRA_CPPFLAGS += -DNO_OPENSSL
 else
   DEVELOPER = 1
