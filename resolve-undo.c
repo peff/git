@@ -20,8 +20,8 @@ void record_resolve_undo(struct index_state *istate, struct cache_entry *ce)
 		return;
 
 	if (!istate->resolve_undo) {
-		CALLOC_ARRAY(resolve_undo, 1);
-		resolve_undo->strdup_strings = 1;
+		ALLOC_ARRAY(resolve_undo, 1);
+		string_list_init_dup(resolve_undo);
 		istate->resolve_undo = resolve_undo;
 	}
 	resolve_undo = istate->resolve_undo;
@@ -64,8 +64,8 @@ struct string_list *resolve_undo_read(const char *data, unsigned long size,
 	int i;
 	const unsigned rawsz = algop->rawsz;
 
-	CALLOC_ARRAY(resolve_undo, 1);
-	resolve_undo->strdup_strings = 1;
+	ALLOC_ARRAY(resolve_undo, 1);
+	string_list_init_dup(resolve_undo);
 
 	while (size) {
 		struct string_list_item *lost;
