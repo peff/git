@@ -132,7 +132,7 @@ struct reflog_walk_info {
 void init_reflog_walk(struct reflog_walk_info **info)
 {
 	CALLOC_ARRAY(*info, 1);
-	(*info)->complete_reflogs.strdup_strings = 1;
+	string_list_init_dup(&(*info)->complete_reflogs);
 }
 
 void reflog_walk_info_release(struct reflog_walk_info *info)
