@@ -64,10 +64,10 @@ struct origin_data {
 
 static void init_src_data(struct src_data *data)
 {
-	data->branch.strdup_strings = 1;
-	data->tag.strdup_strings = 1;
-	data->r_branch.strdup_strings = 1;
-	data->generic.strdup_strings = 1;
+	string_list_init_dup(&data->branch);
+	string_list_init_dup(&data->tag);
+	string_list_init_dup(&data->r_branch);
+	string_list_init_dup(&data->generic);
 }
 
 static struct string_list srcs = STRING_LIST_INIT_DUP;
