@@ -47,6 +47,7 @@
 #include "hook.h"
 #include "bundle.h"
 #include "bundle-uri.h"
+#include "cleanup.h"
 
 /*
  * Overall FIXMEs:
@@ -386,7 +387,7 @@ N_("Clone succeeded, but checkout failed.\n"
    "You can inspect what was checked out with 'git status'\n"
    "and retry with 'git restore --source=HEAD :/'\n");
 
-static void remove_junk(void)
+static void remove_junk(int in_signal_handler UNUSED)
 {
 	struct strbuf sb = STRBUF_INIT;
 
@@ -411,13 +412,6 @@ static void remove_junk(void)
 		remove_dir_recursively(&sb, junk_work_tree_flags);
 	}
 	strbuf_release(&sb);
-}
-
-static void remove_junk_on_signal(int signo)
-{
-	remove_junk();
-	sigchain_pop(signo);
-	raise(signo);
 }
 
 static struct ref *find_remote_branch(const struct ref *refs, const char *branch)
@@ -1103,8 +1097,7 @@ int cmd_clone(int argc,
 		git_dir = mkpathdup("%s/.git", dir);
 	}
 
-	atexit(remove_junk);
-	sigchain_push_common(remove_junk_on_signal);
+	cleanup_register(remove_junk);
 
 	if (!option_bare) {
 		if (safe_create_leading_directories_const(the_repository, work_tree) < 0)

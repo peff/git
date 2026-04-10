@@ -27,6 +27,7 @@
 #include "utf8.h"
 #include "worktree.h"
 #include "quote.h"
+#include "cleanup.h"
 
 #define BUILTIN_WORKTREE_ADD_USAGE \
 	N_("git worktree add [-f] [--detach] [--checkout] [--lock [--reason <string>]]\n" \
@@ -270,7 +271,7 @@ static char *junk_git_dir;
 static int is_junk;
 static pid_t junk_pid;
 
-static void remove_junk(void)
+static void remove_junk(int in_signal_handler UNUSED)
 {
 	struct strbuf sb = STRBUF_INIT;
 	if (!is_junk || getpid() != junk_pid)
@@ -285,13 +286,6 @@ static void remove_junk(void)
 		remove_dir_recursively(&sb, 0);
 	}
 	strbuf_release(&sb);
-}
-
-static void remove_junk_on_signal(int signo)
-{
-	remove_junk();
-	sigchain_pop(signo);
-	raise(signo);
 }
 
 static const char *worktree_basename(const char *path, int *olen)
@@ -515,8 +509,7 @@ static int add_worktree(const char *path, const char *refname,
 	name = strrchr(sb_repo.buf, '/') + 1;
 
 	junk_pid = getpid();
-	atexit(remove_junk);
-	sigchain_push_common(remove_junk_on_signal);
+	cleanup_register(remove_junk);
 
 	junk_git_dir = xstrdup(sb_repo.buf);
 	is_junk = 1;
