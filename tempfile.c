@@ -46,7 +46,7 @@
 #include "abspath.h"
 #include "path.h"
 #include "tempfile.h"
-#include "sigchain.h"
+#include "cleanup.h"
 
 static VOLATILE_LIST_HEAD(tempfile_list);
 
@@ -85,18 +85,6 @@ static void remove_tempfiles(int in_signal_handler)
 	}
 }
 
-static void remove_tempfiles_on_exit(void)
-{
-	remove_tempfiles(0);
-}
-
-static void remove_tempfiles_on_signal(int signo)
-{
-	remove_tempfiles(1);
-	sigchain_pop(signo);
-	raise(signo);
-}
-
 static struct tempfile *new_tempfile(void)
 {
 	struct tempfile *tempfile = xmalloc(sizeof(*tempfile));
@@ -114,8 +102,7 @@ static void activate_tempfile(struct tempfile *tempfile)
 	static int initialized;
 
 	if (!initialized) {
-		sigchain_push_common(remove_tempfiles_on_signal);
-		atexit(remove_tempfiles_on_exit);
+		cleanup_register(remove_tempfiles);
 		initialized = 1;
 	}
 
