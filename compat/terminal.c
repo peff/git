@@ -6,14 +6,13 @@
 #include "run-command.h"
 #include "string-list.h"
 #include "hashmap.h"
+#include "cleanup.h"
 
 #if defined(HAVE_DEV_TTY) || defined(GIT_WINDOWS_NATIVE)
 
-static void restore_term_on_signal(int sig)
+static void restore_term_on_signal(int signo UNUSED)
 {
 	restore_term();
-	/* restore_term calls sigchain_pop_common */
-	raise(sig);
 }
 
 #ifdef HAVE_DEV_TTY
@@ -136,7 +135,6 @@ void restore_term(void)
 
 	tcsetattr(term_fd, TCSAFLUSH, &old_term);
 	close_term_fd();
-	sigchain_pop_common();
 	reset_job_signals();
 }
 
@@ -155,7 +153,7 @@ int save_term(enum save_term_flags flags)
 		close_term_fd();
 		return -1;
 	}
-	sigchain_push_common(restore_term_on_signal);
+	cleanup_register(restore_term_on_signal);
 	/*
 	 * If job control is disabled then the shell will have set the
 	 * disposition of SIGTSTP to SIG_IGN.
@@ -197,7 +195,6 @@ static int disable_bits(enum save_term_flags flags, tcflag_t bits)
 	if (!tcsetattr(term_fd, TCSAFLUSH, &t))
 		return 0;
 
-	sigchain_pop_common();
 	reset_job_signals();
 	close_term_fd();
 	return -1;
@@ -272,8 +269,6 @@ void restore_term(void)
 		return;
 	}
 
-	sigchain_pop_common();
-
 	if (hconin == INVALID_HANDLE_VALUE)
 		return;
 
@@ -308,7 +303,7 @@ int save_term(enum save_term_flags flags)
 
 	GetConsoleMode(hconin, &cmode_in);
 	use_stty = 0;
-	sigchain_push_common(restore_term_on_signal);
+	cleanup_register(restore_term_on_signal);
 	return 0;
 error:
 	CloseHandle(hconin);
@@ -359,7 +354,6 @@ static int disable_bits(enum save_term_flags flags, DWORD bits)
 	if (!SetConsoleMode(hconin, cmode_in & ~bits)) {
 		CloseHandle(hconin);
 		hconin = INVALID_HANDLE_VALUE;
-		sigchain_pop_common();
 		return -1;
 	}
 
