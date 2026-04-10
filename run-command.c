@@ -17,6 +17,7 @@
 #include "config.h"
 #include "packfile.h"
 #include "compat/nonblock.h"
+#include "cleanup.h"
 
 void child_process_init(struct child_process *child)
 {
@@ -38,9 +39,15 @@ struct child_to_clean {
 static struct child_to_clean *children_to_clean;
 static int installed_child_cleanup_handler;
 
-static void cleanup_children(int sig, int in_signal)
+static void cleanup_children(int sig)
 {
 	struct child_to_clean *children_to_wait_for = NULL;
+	int in_signal = 0;
+
+	if (sig)
+		in_signal = 1;
+	else
+		sig = SIGTERM;
 
 	while (children_to_clean) {
 		struct child_to_clean *p = children_to_clean;
@@ -80,18 +87,6 @@ static void cleanup_children(int sig, int in_signal)
 	}
 }
 
-static void cleanup_children_on_signal(int sig)
-{
-	cleanup_children(sig, 1);
-	sigchain_pop(sig);
-	raise(sig);
-}
-
-static void cleanup_children_on_exit(void)
-{
-	cleanup_children(SIGTERM, 0);
-}
-
 static void mark_child_for_cleanup(pid_t pid, struct child_process *process)
 {
 	struct child_to_clean *p = xmalloc(sizeof(*p));
@@ -101,8 +96,7 @@ static void mark_child_for_cleanup(pid_t pid, struct child_process *process)
 	children_to_clean = p;
 
 	if (!installed_child_cleanup_handler) {
-		atexit(cleanup_children_on_exit);
-		sigchain_push_common(cleanup_children_on_signal);
+		cleanup_register(cleanup_children);
 		installed_child_cleanup_handler = 1;
 	}
 }
