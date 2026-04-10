@@ -12,6 +12,7 @@
 #include "setup.h"
 #include "strbuf.h"
 #include "trace2.h"
+#include "cleanup.h"
 
 /*
  * Many parts of Git have subprograms communicate via pipe, expect the
@@ -63,6 +64,8 @@ void init_git(const char **argv)
 	 */
 	sanitize_stdfds();
 	restore_sigpipe_to_default();
+
+	cleanup_init();
 
 	git_resolve_executable_dir(argv[0]);
 
