@@ -1553,9 +1553,9 @@ static struct parallel_processes_for_signal *pp_for_signal;
 
 static void handle_children_on_signal(int signo)
 {
+	if (!pp_for_signal)
+		return;
 	kill_children_signal(pp_for_signal, signo);
-	sigchain_pop(signo);
-	raise(signo);
 }
 
 static void pp_init(struct parallel_processes *pp,
@@ -1589,7 +1589,8 @@ static void pp_init(struct parallel_processes *pp,
 	pp_sig->pp = pp;
 	pp_sig->opts = opts;
 	pp_for_signal = pp_sig;
-	sigchain_push_common(handle_children_on_signal);
+	/* XXX should be idempotent */
+	cleanup_register(handle_children_on_signal);
 }
 
 static void pp_cleanup(struct parallel_processes *pp,
@@ -1611,7 +1612,9 @@ static void pp_cleanup(struct parallel_processes *pp,
 	strbuf_write(&pp->buffered_output, stderr);
 	strbuf_release(&pp->buffered_output);
 
-	sigchain_pop_common();
+	/* should this be at the top? We are putting pp into a broken state */
+	/* should this be a stack or list that restores the previous entry? */
+	pp_for_signal = NULL;
 }
 
 /* returns
