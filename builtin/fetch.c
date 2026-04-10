@@ -41,6 +41,7 @@
 #include "trace.h"
 #include "trace2.h"
 #include "bundle-uri.h"
+#include "cleanup.h"
 
 #define FORCED_UPDATES_DELAY_WARNING_IN_MS (10 * 1000)
 
@@ -207,24 +208,15 @@ static int parse_refmap_arg(const struct option *opt, const char *arg, int unset
 	return 0;
 }
 
-static void unlock_pack(unsigned int flags)
+static void unlock_pack(int signo)
 {
+	int flags = 0;
+	if (signo)
+		flags |= TRANSPORT_UNLOCK_PACK_IN_SIGNAL_HANDLER;
 	if (gtransport)
 		transport_unlock_pack(gtransport, flags);
 	if (gsecondary)
 		transport_unlock_pack(gsecondary, flags);
-}
-
-static void unlock_pack_atexit(void)
-{
-	unlock_pack(0);
-}
-
-static void unlock_pack_on_signal(int signo)
-{
-	unlock_pack(TRANSPORT_UNLOCK_PACK_IN_SIGNAL_HANDLER);
-	sigchain_pop(signo);
-	raise(signo);
 }
 
 static void add_merge_config(struct ref **head,
@@ -2491,8 +2483,7 @@ static int fetch_one(struct remote *remote, int argc, const char **argv,
 	if (server_options.nr)
 		gtransport->server_options = &server_options;
 
-	sigchain_push_common(unlock_pack_on_signal);
-	atexit(unlock_pack_atexit);
+	cleanup_register(unlock_pack);
 	sigchain_push(SIGPIPE, SIG_IGN);
 	exit_code = do_fetch(gtransport, &rs, config, filter_options);
 	sigchain_pop(SIGPIPE);
