@@ -7,6 +7,7 @@
 #include "alias.h"
 #include "repository.h"
 #include "environment.h"
+#include "cleanup.h"
 
 int pager_use_color = 1;
 
@@ -37,21 +38,12 @@ static void finish_pager(void)
 	finish_command(&pager_process);
 }
 
-static void wait_for_pager_atexit(void)
-{
-	if (old_fd1 == -1)
-		return;
-
-	finish_pager();
-}
-
 void wait_for_pager(void)
 {
 	if (old_fd1 == -1)
 		return;
 
 	finish_pager();
-	sigchain_pop_common();
 	unsetenv("GIT_PAGER_IN_USE");
 	dup2(old_fd1, 1);
 	close(old_fd1);
@@ -63,15 +55,17 @@ void wait_for_pager(void)
 	}
 }
 
-static void wait_for_pager_signal(int signo)
+static void wait_for_pager_cleanup(int signo)
 {
 	if (old_fd1 == -1)
 		return;
 
-	close_pager_fds();
-	finish_command_in_signal(&pager_process);
-	sigchain_pop(signo);
-	raise(signo);
+	if (signo) {
+		close_pager_fds();
+		finish_command_in_signal(&pager_process);
+	} else {
+		finish_pager();
+	}
 }
 
 static int core_pager_config(const char *var, const char *value,
@@ -192,11 +186,9 @@ void setup_pager(struct repository *r)
 	}
 	close(pager_process.in);
 
-	sigchain_push_common(wait_for_pager_signal);
-
 	if (!once) {
 		once++;
-		atexit(wait_for_pager_atexit);
+		cleanup_register(wait_for_pager_cleanup);
 	}
 }
 
