@@ -22,6 +22,7 @@
 #include "object-file.h"
 #include "odb.h"
 #include "commit-reach.h"
+#include "cleanup.h"
 
 #ifdef EXPAT_NEEDS_XMLPARSE_H
 #include <xmlparse.h>
@@ -999,7 +1000,7 @@ static int unlock_remote(struct remote_lock *lock)
 	return rc;
 }
 
-static void remove_locks(void)
+static void remove_locks(int in_signal_handler UNUSED)
 {
 	struct remote_lock *lock = repo->locks;
 
@@ -1009,13 +1010,6 @@ static void remove_locks(void)
 		unlock_remote(lock);
 		lock = next;
 	}
-}
-
-static void remove_locks_on_signal(int signo)
-{
-	remove_locks();
-	sigchain_pop(signo);
-	raise(signo);
 }
 
 static void remote_ls(const char *path, int flags,
@@ -1804,7 +1798,7 @@ int cmd_main(int argc, const char **argv)
 		goto cleanup;
 	}
 
-	sigchain_push_common(remove_locks_on_signal);
+	cleanup_register(remove_locks);
 
 	/* Check whether the remote has server info files */
 	repo->can_update_info_refs = 0;
