@@ -71,7 +71,7 @@ static void add_mapping(struct string_list *map,
 		me = (struct mailmap_entry *)item->util;
 	} else {
 		CALLOC_ARRAY(me, 1);
-		me->namemap.strdup_strings = 1;
+		string_list_init_dup(&me->namemap);
 		me->namemap.cmp = namemap_cmp;
 		item->util = me;
 	}
