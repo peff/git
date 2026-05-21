@@ -340,8 +340,8 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
 	}
 
 	if (mailmap) {
-		rev->mailmap = xmalloc(sizeof(struct string_list));
-		string_list_init_nodup(rev->mailmap);
+		rev->mailmap = xmalloc(sizeof(*rev->mailmap));
+		mailmap_init(rev->mailmap);
 		read_mailmap(the_repository, rev->mailmap);
 	}
 

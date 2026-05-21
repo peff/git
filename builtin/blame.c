@@ -74,7 +74,7 @@ static int mark_ignored_lines;
 static struct date_mode blame_date_mode = { DATE_ISO8601 };
 static size_t blame_date_width;
 
-static struct string_list mailmap = STRING_LIST_INIT_NODUP;
+static struct mailmap mailmap = MAILMAP_INIT;
 
 #ifndef DEBUG_BLAME
 #define DEBUG_BLAME 0
