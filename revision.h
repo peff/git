@@ -306,7 +306,7 @@ struct rev_info {
 	int		patch_name_max;
 	int		no_inline;
 	int		show_log_size;
-	struct string_list *mailmap;
+	struct mailmap *mailmap;
 
 	/* Filter by commit log message */
 	struct grep_opt	grep_filter;
