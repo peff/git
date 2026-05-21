@@ -3,6 +3,7 @@
 
 #include "string-list.h"
 #include "date.h"
+#include "mailmap.h"
 
 struct commit;
 struct kh_shortlog;
@@ -30,7 +31,7 @@ struct shortlog {
 	struct string_list format;
 
 	int email;
-	struct string_list mailmap;
+	struct mailmap mailmap;
 	FILE *file;
 };
 
