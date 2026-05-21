@@ -46,7 +46,7 @@ struct pretty_print_context {
 	struct reflog_walk_info *reflog_info;
 	struct rev_info *rev;
 	const char *output_encoding;
-	struct string_list *mailmap;
+	struct mailmap *mailmap;
 	enum git_colorbool color;
 	struct ident_split *from_ident;
 	unsigned encode_email_headers:1;
