@@ -36,7 +36,6 @@ static void free_mailmap_entry(void *p, const char *s UNUSED)
 	free(me->name);
 	free(me->email);
 
-	me->namemap.strdup_strings = 1;
 	string_list_clear_func(&me->namemap, free_mailmap_info);
 	free(me);
 }
