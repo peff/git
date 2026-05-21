@@ -236,7 +236,6 @@ int read_mailmap(struct repository *repo, struct string_list *map)
 
 void clear_mailmap(struct string_list *map)
 {
-	map->strdup_strings = 1;
 	string_list_clear_func(map, free_mailmap_entry);
 }
 
