@@ -3277,7 +3277,7 @@ static void release_revisions_cmdline(struct rev_cmdline_info *cmdline)
 	free(cmdline->rev);
 }
 
-static void release_revisions_mailmap(struct string_list *mailmap)
+static void release_revisions_mailmap(struct mailmap *mailmap)
 {
 	if (!mailmap)
 		return;

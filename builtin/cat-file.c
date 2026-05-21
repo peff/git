@@ -68,7 +68,8 @@ struct batch_options {
 
 static const char *force_path;
 
-static struct string_list mailmap = STRING_LIST_INIT_NODUP;
+static struct mailmap mailmap = MAILMAP_INIT;
+static int loaded_mailmap;
 static int use_mailmap;
 
 static char *replace_idents_using_mailmap(char *, size_t *);
@@ -81,10 +82,11 @@ static char *replace_idents_using_mailmap(char *, size_t *);
  */
 static void load_mailmap(void)
 {
-	if (mailmap.strdup_strings)
+	if (loaded_mailmap)
 		return;
 
 	read_mailmap(the_repository, &mailmap);
+	loaded_mailmap = 1;
 }
 
 static char *replace_idents_using_mailmap(char *object_buf, size_t *size)
