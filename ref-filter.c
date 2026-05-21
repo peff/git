@@ -1719,7 +1719,7 @@ static void grab_date(const char *buf, struct atom_value *v, const char *atomnam
 	v->value = 0;
 }
 
-static struct string_list mailmap = STRING_LIST_INIT_NODUP;
+static struct mailmap mailmap = MAILMAP_INIT;
 
 /* See grab_values */
 static void grab_person(const char *who, struct atom_value *val, int deref, void *buf)
@@ -1752,7 +1752,7 @@ static void grab_person(const char *who, struct atom_value *val, int deref, void
 		    (atom->u.name_option.option == N_MAILMAP)) ||
 		    (starts_with(name + wholen, "email") &&
 		    (atom->u.email_option.option & EO_MAILMAP))) {
-			if (!mailmap.items)
+			if (!mailmap.map.items)
 				read_mailmap(the_repository, &mailmap);
 			strbuf_addstr(&mailmap_buf, buf);
 			apply_mailmap_to_header(&mailmap_buf, headers, &mailmap);
