@@ -1,7 +1,7 @@
 #ifndef IDENT_H
 #define IDENT_H
 
-#include "string-list.h"
+#include "mailmap.h"
 
 struct ident_split {
 	const char *name_begin;
@@ -41,7 +41,7 @@ int split_ident_line(struct ident_split *, const char *, size_t);
  * Given a commit or tag object buffer and the commit or tag headers, replaces
  * the idents in the headers with their canonical versions using the mailmap mechanism.
  */
-void apply_mailmap_to_header(struct strbuf *, const char **, struct string_list *);
+void apply_mailmap_to_header(struct strbuf *, const char **, struct mailmap *);
 
 /*
  * Compare split idents for equality or strict ordering. Note that we
