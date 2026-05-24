@@ -1265,7 +1265,7 @@ static void show_diffstat(struct rev_info *rev,
 {
 	struct diff_options opts;
 
-	memcpy(&opts, &rev->diffopt, sizeof(opts));
+	copy_diffopt(&opts, &rev->diffopt);
 	opts.output_format = DIFF_FORMAT_SUMMARY | DIFF_FORMAT_DIFFSTAT;
 	diff_setup_done(&opts);
 
