@@ -373,6 +373,7 @@ void shortlog_init(struct shortlog *log)
 {
 	memset(log, 0, sizeof(*log));
 
+	mailmap_init(&log->mailmap);
 	read_mailmap(the_repository, &log->mailmap);
 
 	log->entries = kh_init_shortlog();
