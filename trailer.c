@@ -1140,7 +1140,7 @@ void trailer_block_release(struct trailer_block *trailer_block)
 	free(trailer_block);
 }
 
-static int mailmap_value(struct string_list *mailmap,
+static int mailmap_value(struct mailmap *mailmap,
 			 struct strbuf *out, const struct strbuf *in)
 {
 	const char *mailbuf, *namebuf;
