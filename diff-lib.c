@@ -674,8 +674,7 @@ int do_diff_cache(const struct object_id *tree_oid, struct diff_options *opt)
 	repo_init_revisions(opt->repo, &revs, NULL);
 	copy_pathspec(&revs.prune_data, &opt->pathspec);
 	diff_free(&revs.diffopt);
-	revs.diffopt = *opt;
-	revs.diffopt.no_free = 1;
+	copy_diffopt(&revs.diffopt, opt);
 
 	if (diff_cache(&revs, tree_oid, NULL, 1))
 		exit(128);
@@ -725,7 +724,7 @@ void show_interdiff(const struct object_id *oid1, const struct object_id *oid2,
 	struct diff_options opts;
 	struct strbuf prefix = STRBUF_INIT;
 
-	memcpy(&opts, diffopt, sizeof(opts));
+	copy_diffopt(&opts, diffopt);
 	opts.output_format = DIFF_FORMAT_PATCH;
 	opts.output_prefix = idiff_prefix_cb;
 	strbuf_addchars(&prefix, ' ', indent);

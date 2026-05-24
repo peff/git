@@ -513,7 +513,7 @@ static void output(struct string_list *a, struct string_list *b,
 	struct strbuf indent = STRBUF_INIT;
 
 	if (range_diff_opts->diffopt)
-		memcpy(&opts, range_diff_opts->diffopt, sizeof(opts));
+		copy_diffopt(&opts, range_diff_opts->diffopt);
 	else
 		repo_diff_setup(the_repository, &opts);
 
