@@ -2334,7 +2334,7 @@ static void init_diff_words_data(struct emit_callback *ecbdata,
 {
 	int i;
 	struct diff_options *o = xmalloc(sizeof(struct diff_options));
-	memcpy(o, orig_opts, sizeof(struct diff_options));
+	copy_diffopt(o, orig_opts);
 
 	CALLOC_ARRAY(ecbdata->diff_words, 1);
 	ecbdata->diff_words->type = o->word_diff;
@@ -7161,6 +7161,45 @@ void diff_free(struct diff_options *options)
 	diff_free_file(options);
 	diff_free_ignore_regex(options);
 	clear_pathspec(&options->pathspec);
+}
+
+void copy_diffopt(struct diff_options *dst, const struct diff_options *src)
+{
+	memcpy(dst, src, sizeof(*dst));
+
+	if (src->objfind) {
+		dst->objfind = xmalloc(sizeof(*dst->objfind));
+		oidset_init(dst->objfind, oidset_size(src->objfind));
+		oidset_insert_from_set(dst->objfind, src->objfind);
+	}
+
+	dst->orderfile = xstrdup_or_null(src->orderfile);
+
+	if (src->anchors) {
+		DUP_ARRAY(dst->anchors, src->anchors, src->anchors_nr);
+		/* We only duplicated used entries; shrink alloc to match. */
+		dst->anchors_alloc = dst->anchors_nr;
+	}
+
+	/*
+	 * We don't have a way to deep-copy a FILE handle. Just make sure our
+	 * new copy does not close it, to avoid a double-close. This makes
+	 * "dst" dependent on the lifetime of "src" if src->close_file is set,
+	 * but that's the best we can do and probably OK in practice.
+	 */
+	dst->close_file = 0;
+
+	/*
+	 * We have only the compiled regexes, with no portable way to duplicate
+	 * them. Bail? I have a feeling this is going to cause problems,
+	 * because it works in practice when no_free is set.
+	 */
+	if (src->ignore_regex)
+		BUG("cannot duplicate ignore_regex");
+
+	copy_pathspec(&dst->pathspec, &src->pathspec);
+
+	dst->no_free = 0;
 }
 
 void diff_flush(struct diff_options *options)
