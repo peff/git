@@ -1341,8 +1341,7 @@ int format_set_trailers_options(struct process_trailer_options *opts,
 			opts->key_value_separator = expand_string_arg(kvsepbuf, argval, arglen);
 		} else if (match_placeholder_bool_arg(*arg, "mailmap", arg, &bool_arg)) {
 			if (bool_arg) {
-				/* yuck but this is how mailmap_name() above does it */
-				static struct string_list mailmap = STRING_LIST_INIT_DUP;
+				static struct mailmap mailmap = MAILMAP_INIT;
 				read_mailmap(the_repository, &mailmap);
 				opts->mailmap = &mailmap;
 			} else {
