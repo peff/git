@@ -670,6 +670,8 @@ void diff_flush(struct diff_options*);
 void diff_free(struct diff_options*);
 void diff_warn_rename_limit(const char *varname, int needed, int degraded_cc);
 
+void copy_diffopt(struct diff_options *dst, const struct diff_options *src);
+
 /* diff-raw status letters */
 #define DIFF_STATUS_ADDED		'A'
 #define DIFF_STATUS_COPIED		'C'

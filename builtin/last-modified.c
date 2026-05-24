@@ -134,8 +134,7 @@ static int populate_paths_from_revs(struct last_modified *lm)
 	 * empty tree. This results in all paths in the target revision being
 	 * listed. After `paths` is populated, we don't need this copy no more.
 	 */
-	memcpy(&diffopt, &lm->rev.diffopt, sizeof(diffopt));
-	copy_pathspec(&diffopt.pathspec, &lm->rev.diffopt.pathspec);
+	copy_diffopt(&diffopt, &lm->rev.diffopt);
 	diffopt.output_format = DIFF_FORMAT_CALLBACK;
 	diffopt.format_callback = add_path_from_diff;
 	diffopt.format_callback_data = lm;
@@ -162,7 +161,7 @@ static int populate_paths_from_revs(struct last_modified *lm)
 	}
 
 out:
-	clear_pathspec(&diffopt.pathspec);
+	diff_free(&diffopt);
 
 	return ret;
 }
