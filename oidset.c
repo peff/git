@@ -45,8 +45,10 @@ void oidset_insert_from_set(struct oidset *dest, struct oidset *src)
 	struct object_id *src_oid;
 
 	oidset_iter_init(src, &iter);
-	while ((src_oid = oidset_iter_next(&iter)))
+	while ((src_oid = oidset_iter_next(&iter))) {
+		warning("copying %s", oid_to_hex(src_oid));
 		oidset_insert(dest, src_oid);
+	}
 }
 
 int oidset_remove(struct oidset *set, const struct object_id *oid)
