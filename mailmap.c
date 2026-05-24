@@ -219,7 +219,6 @@ int read_mailmap(struct repository *repo, struct mailmap *map)
 	repo_config_get_pathname(repo, "mailmap.file", &mailmap_file);
 	repo_config_get_string(repo, "mailmap.blob", &mailmap_blob);
 
-	string_list_init_dup(&map->map);
 	map->map.cmp = namemap_cmp;
 
 	if (!mailmap_blob && is_bare_repository(repo))
