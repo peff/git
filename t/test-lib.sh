@@ -115,12 +115,21 @@ export UBSAN_OPTIONS
 
 # The TEST_OUTPUT_DIRECTORY will be overwritten via GIT-BUILD-OPTIONS. So in
 # case the caller has manually set up this variable via the environment we must
-# make sure to not overwrite that value, and thus we save it into
-# TEST_OUTPUT_DIRECTORY_OVERRIDE here.
-if test -n "$TEST_OUTPUT_DIRECTORY" && test -z "$TEST_OUTPUT_DIRECTORY_OVERRIDE"
-then
-	TEST_OUTPUT_DIRECTORY_OVERRIDE=$TEST_OUTPUT_DIRECTORY
-fi
+# make sure to not overwrite that value, and thus we save it here and restore
+# it after sourcing GIT-BUILD-OPTIONS.
+#
+# It is important that existing overrides go after what we load from the
+# environment. We want them to take precedence, and shell assignments
+# will overwrite, giving us last-one-wins semantics.
+GIT_TEST_ENV_OVERRIDES="$(env |
+	sed -n "/^TEST_OUTPUT_DIRECTORY=/{
+		# escape all single-quotes in the value
+		s/'/'\\\\''/g
+		# turn this into an eval-able assignment
+		s/^\\([^=]*=\\)\\(.*\\)/\\1'\\2'/p
+	}")
+	$GIT_TEST_ENV_OVERRIDES
+"
 
 if test ! -f "$GIT_BUILD_DIR"/GIT-BUILD-OPTIONS
 then
@@ -137,14 +146,7 @@ then
 	TEST_OUTPUT_DIRECTORY=$TEST_DIRECTORY
 fi
 
-# In t0000, we need to override test directories of nested testcases. In case
-# the developer has TEST_OUTPUT_DIRECTORY part of his build options, then we'd
-# reset this value to instead contain what the developer has specified. We thus
-# have this knob to allow overriding the directory.
-if test -n "${TEST_OUTPUT_DIRECTORY_OVERRIDE}"
-then
-	TEST_OUTPUT_DIRECTORY="${TEST_OUTPUT_DIRECTORY_OVERRIDE}"
-fi
+eval "$GIT_TEST_ENV_OVERRIDES"
 
 # Disallow the use of abbreviated options in the test suite by default
 if test -z "${GIT_TEST_DISALLOW_ABBREVIATED_OPTIONS}"
