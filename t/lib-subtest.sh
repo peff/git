@@ -40,11 +40,8 @@ _run_sub_test_lib_test_common () {
 		sane_unset HARNESS_ACTIVE &&
 
 		export TEST_DIRECTORY &&
-		# The child test re-sources GIT-BUILD-OPTIONS and may thus
-		# override the test output directory. We thus pass it as an
-		# explicit override to the child.
-		TEST_OUTPUT_DIRECTORY_OVERRIDE=$(pwd) &&
-		export TEST_OUTPUT_DIRECTORY_OVERRIDE &&
+		TEST_OUTPUT_DIRECTORY=$(pwd) &&
+		export TEST_OUTPUT_DIRECTORY &&
 		GIT_SKIP_TESTS=$skip &&
 		export GIT_SKIP_TESTS &&
 		sane_unset GIT_TEST_FAIL_PREREQS &&
