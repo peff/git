@@ -98,6 +98,16 @@ static void pseudo_merge_group_init(struct pseudo_merge_group *group)
 	group->stable_size = DEFAULT_PSEUDO_MERGE_STABLE_SIZE;
 }
 
+static int pseudo_merge_config_expiry_date(timestamp_t *timestamp,
+					   const char *var, const char *value)
+{
+	if (git_config_expiry_date(timestamp, var, value))
+		return -1;
+	if (!strcmp(value, "never") || !strcmp(value, "false"))
+		*timestamp = TIME_MIN;
+	return 0;
+}
+
 void pseudo_merge_group_release(struct pseudo_merge_group *group)
 {
 	struct hashmap_iter iter;
@@ -177,7 +187,7 @@ static int pseudo_merge_config(const char *var, const char *value,
 			group->sample_rate = DEFAULT_PSEUDO_MERGE_SAMPLE_RATE;
 		}
 	} else if (!strcmp(key, "threshold")) {
-		if (git_config_expiry_date(&group->threshold, var, value)) {
+		if (pseudo_merge_config_expiry_date(&group->threshold, var, value)) {
 			ret = -1;
 			goto done;
 		}
@@ -188,7 +198,8 @@ static int pseudo_merge_config(const char *var, const char *value,
 			group->max_merges = DEFAULT_PSEUDO_MERGE_MAX_MERGES;
 		}
 	} else if (!strcmp(key, "stablethreshold")) {
-		if (git_config_expiry_date(&group->stable_threshold, var, value)) {
+		if (pseudo_merge_config_expiry_date(&group->stable_threshold,
+						    var, value)) {
 			ret = -1;
 			goto done;
 		}
