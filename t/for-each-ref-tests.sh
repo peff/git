@@ -1380,6 +1380,22 @@ test_expect_success 'sort by date defaults to full timestamp' '
 	test_cmp expected actual
 '
 
+test_expect_success 'sort dates before the epoch as signed values' '
+	GIT_COMMITTER_DATE="@-100000 +0000" \
+		git tag -m negative-date signed-date-negative &&
+	GIT_COMMITTER_DATE="@100000 +0000" \
+		git tag -m positive-date signed-date-positive &&
+	cat >expected <<-\EOF &&
+	-100000 refs/tags/signed-date-negative
+	100000 refs/tags/signed-date-positive
+	EOF
+	${git_for_each_ref} \
+		--format="%(taggerdate:unix) %(refname)" \
+		--sort=taggerdate \
+		"refs/tags/signed-date-*" >actual &&
+	test_cmp expected actual
+'
+
 test_expect_success 'sort by custom date format' '
 	cat >expected <<-\EOF &&
 	00:05:22 refs/tags/custom-dates-2
