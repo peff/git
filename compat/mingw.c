@@ -1529,21 +1529,249 @@ int pipe(int filedes[2])
 	return 0;
 }
 
-#ifndef __MINGW64__
-struct tm *gmtime_r(const time_t *timep, struct tm *result)
+static int win32_time_is_leap_year(int year)
 {
-	if (gmtime_s(result, timep) == 0)
-		return result;
-	return NULL;
+	return !(year % 4) && (year % 100 || !(year % 400));
 }
 
-struct tm *localtime_r(const time_t *timep, struct tm *result)
+static int win32_time_yday(int year, int month, int day)
 {
+	static const int days_before_month[] = {
+		0, 31, 59, 90, 120, 151,
+		181, 212, 243, 273, 304, 334
+	};
+	int yday = days_before_month[month - 1] + day - 1;
+
+	if (month > 2 && win32_time_is_leap_year(year))
+		yday++;
+	return yday;
+}
+
+/*
+ * Positive years covering every combination of leap status and Jan 1
+ * weekday.  Keeping them away from 1970 also avoids the CRT epoch boundary.
+ */
+static const int win32_surrogate_years[2][7] = {
+	/* Jan 1 is: Sun   Mon   Tue   Wed   Thu   Fri   Sat */
+	/* common */ { 1978, 1973, 1974, 1975, 1981, 1971, 1977 },
+	/* leap   */ { 1984, 1996, 1980, 1992, 1976, 1988, 1972 }
+};
+
+static intmax_t win32_days_from_civil(intmax_t year, int month, int day)
+{
+	intmax_t era;
+	unsigned year_of_era, day_of_year, day_of_era;
+
+	year -= month <= 2;
+	era = (year >= 0 ? year : year - 399) / 400;
+	year_of_era = year - era * 400;
+	day_of_year = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 +
+		day - 1;
+	day_of_era = year_of_era * 365 + year_of_era / 4 -
+		year_of_era / 100 + day_of_year;
+	return era * 146097 + day_of_era - 719468;
+}
+
+static int negative_time_to_tm(time_t time, struct tm *result)
+{
+	intmax_t seconds = time;
+	intmax_t days = seconds / 86400;
+	intmax_t shifted_days, era, year;
+	unsigned day_of_era, year_of_era, day_of_year;
+	unsigned month_prime, month, day;
+	int day_of_week;
+
+	seconds %= 86400;
+	if (seconds < 0) {
+		seconds += 86400;
+		days--;
+	}
+
+	/*
+	 * Convert days since the Unix epoch to a proleptic Gregorian date.
+	 * This is the inverse of days_from_civil() in date.c and comes from
+	 * https://github.com/HowardHinnant/date, which uses the MIT license.
+	 */
+	shifted_days = days + 719468;
+	era = (shifted_days >= 0 ? shifted_days : shifted_days - 146096) /
+		146097;
+	day_of_era = shifted_days - era * 146097;
+	year_of_era = (day_of_era - day_of_era / 1460 +
+		       day_of_era / 36524 - day_of_era / 146096) / 365;
+	year = year_of_era + era * 400;
+	day_of_year = day_of_era -
+		(365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+	month_prime = (5 * day_of_year + 2) / 153;
+	day = day_of_year - (153 * month_prime + 2) / 5 + 1;
+	month = month_prime < 10 ? month_prime + 3 : month_prime - 9;
+	year += month <= 2;
+
+	/* Keep both tm_year and the full year representable as an int. */
+	if (year < (intmax_t)INT_MIN + 1900 || year > INT_MAX) {
+		errno = EOVERFLOW;
+		return -1;
+	}
+
+	day_of_week = (days + 4) % 7;
+	if (day_of_week < 0)
+		day_of_week += 7;
+
+	memset(result, 0, sizeof(*result));
+	result->tm_sec = seconds % 60;
+	result->tm_min = seconds / 60 % 60;
+	result->tm_hour = seconds / 3600;
+	result->tm_mday = day;
+	result->tm_mon = month - 1;
+	result->tm_year = year - 1900;
+	result->tm_wday = day_of_week;
+	result->tm_yday = win32_time_yday(year, month, day);
+	result->tm_isdst = 0;
+	return 0;
+}
+
+struct tm *mingw_gmtime_r(const time_t *timep, struct tm *result)
+{
+	if (!timep || !result) {
+		errno = EINVAL;
+		return NULL;
+	}
+	if (gmtime_s(result, timep) == 0)
+		return result;
+	if (*timep >= 0)
+		return NULL;
+	if (negative_time_to_tm(*timep, result))
+		return NULL;
+	return result;
+}
+
+time_t mingw_mktime_before_1970(const struct tm *tm)
+{
+	struct tm normalized, surrogate;
+	intmax_t days, naive, delta_days, delta_seconds, mapped;
+	time_t naive_time, surrogate_time, result;
+	int full_year, jan1_wday, surrogate_year;
+
+	if (!tm || tm->tm_year < INT_MIN + 1900 ||
+	    tm->tm_year > INT_MAX - 1900 ||
+	    tm->tm_mon < 0 || tm->tm_mon > 11 ||
+	    tm->tm_mday < 1 || tm->tm_mday > 31 ||
+	    tm->tm_hour < 0 || tm->tm_hour > 23 ||
+	    tm->tm_min < 0 || tm->tm_min > 59 ||
+	    tm->tm_sec < 0 || tm->tm_sec > 59) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	full_year = tm->tm_year + 1900;
+	days = win32_days_from_civil(full_year, tm->tm_mon + 1,
+				       tm->tm_mday);
+	if (days < INTMAX_MIN / 86400 || days > INTMAX_MAX / 86400) {
+		errno = EOVERFLOW;
+		return -1;
+	}
+	naive = days * 86400 + tm->tm_hour * 3600 +
+		tm->tm_min * 60 + tm->tm_sec;
+	naive_time = (time_t)naive;
+	if ((intmax_t)naive_time != naive ||
+	    negative_time_to_tm(naive_time, &normalized)) {
+		errno = EOVERFLOW;
+		return -1;
+	}
+
+	jan1_wday = (normalized.tm_wday + 7 - normalized.tm_yday % 7) % 7;
+	surrogate_year = win32_surrogate_years[
+		win32_time_is_leap_year(normalized.tm_year + 1900)]
+						[jan1_wday];
+	surrogate = normalized;
+	surrogate.tm_year = surrogate_year - 1900;
+	surrogate.tm_isdst = tm->tm_isdst;
+	surrogate_time = mktime(&surrogate);
+	if (surrogate_time == (time_t)-1)
+		return -1;
+
+	delta_days = win32_days_from_civil(normalized.tm_year + 1900, 1, 1) -
+		win32_days_from_civil(surrogate_year, 1, 1);
+	if (delta_days < INTMAX_MIN / 86400 ||
+	    delta_days > INTMAX_MAX / 86400) {
+		errno = EOVERFLOW;
+		return -1;
+	}
+	delta_seconds = delta_days * 86400;
+	mapped = surrogate_time;
+	if ((delta_seconds > 0 && mapped > INTMAX_MAX - delta_seconds) ||
+	    (delta_seconds < 0 && mapped < INTMAX_MIN - delta_seconds)) {
+		errno = EOVERFLOW;
+		return -1;
+	}
+	mapped += delta_seconds;
+	result = (time_t)mapped;
+	if ((intmax_t)result != mapped) {
+		errno = EOVERFLOW;
+		return -1;
+	}
+	return result;
+}
+
+struct tm *mingw_localtime_r(const time_t *timep, struct tm *result)
+{
+	/*
+	 * The Windows timezone APIs do not respect the process's TZ setting,
+	 * which the CRT's localtime_s() does.  Map the date to a positive year
+	 * with an identical calendar, ask the CRT to convert that surrogate,
+	 * and then map the year back.  The years 1971 through 1996 contain all
+	 * fourteen possible calendars and fit even in a 32-bit time_t.
+	 */
+	struct tm utc;
+	SYSTEMTIME surrogate_st = { 0 };
+	FILETIME surrogate_ft;
+	time_t surrogate_time;
+	long long surrogate_hnsec;
+	int jan1_wday, surrogate_year, local_year_offset;
+	intmax_t mapped_year;
+
+	if (!timep || !result) {
+		errno = EINVAL;
+		return NULL;
+	}
 	if (localtime_s(result, timep) == 0)
 		return result;
-	return NULL;
+	if (*timep >= 0)
+		return NULL;
+	if (negative_time_to_tm(*timep, &utc))
+		return NULL;
+
+	jan1_wday = (utc.tm_wday + 7 - utc.tm_yday % 7) % 7;
+	surrogate_year = win32_surrogate_years[
+		win32_time_is_leap_year(utc.tm_year + 1900)]
+					  [jan1_wday];
+	surrogate_st.wYear = surrogate_year;
+	surrogate_st.wMonth = utc.tm_mon + 1;
+	surrogate_st.wDay = utc.tm_mday;
+	surrogate_st.wDayOfWeek = utc.tm_wday;
+	surrogate_st.wHour = utc.tm_hour;
+	surrogate_st.wMinute = utc.tm_min;
+	surrogate_st.wSecond = utc.tm_sec;
+	if (!SystemTimeToFileTime(&surrogate_st, &surrogate_ft)) {
+		errno = EOVERFLOW;
+		return NULL;
+	}
+	surrogate_hnsec = filetime_to_hnsec(&surrogate_ft);
+	surrogate_time = (time_t)(surrogate_hnsec / 10000000);
+	if (localtime_s(result, &surrogate_time) != 0)
+		return NULL;
+
+	local_year_offset = result->tm_year - (surrogate_year - 1900);
+	mapped_year = (intmax_t)utc.tm_year + local_year_offset;
+	if (mapped_year < INT_MIN || mapped_year > INT_MAX - 1900) {
+		errno = EOVERFLOW;
+		return NULL;
+	}
+	result->tm_year = mapped_year;
+	result->tm_yday = win32_time_yday(result->tm_year + 1900,
+					 result->tm_mon + 1,
+					 result->tm_mday);
+	return result;
 }
-#endif
 
 char *mingw_getcwd(char *pointer, int len)
 {

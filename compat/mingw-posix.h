@@ -183,10 +183,12 @@ int pipe(int filedes[2]);
 unsigned int sleep (unsigned int seconds);
 int mkstemp(char *template);
 int gettimeofday(struct timeval *tv, void *tz);
-#ifndef __MINGW64_VERSION_MAJOR
-struct tm *gmtime_r(const time_t *timep, struct tm *result);
-struct tm *localtime_r(const time_t *timep, struct tm *result);
-#endif
+/* The CRT-backed implementations cannot handle times before 1970. */
+struct tm *mingw_gmtime_r(const time_t *timep, struct tm *result);
+#define gmtime_r mingw_gmtime_r
+struct tm *mingw_localtime_r(const time_t *timep, struct tm *result);
+#define localtime_r mingw_localtime_r
+time_t mingw_mktime_before_1970(const struct tm *tm);
 int getpagesize(void);	/* defined in MinGW's libgcc.a */
 struct passwd *getpwuid(uid_t uid);
 int setitimer(int type, struct itimerval *in, struct itimerval *out);
