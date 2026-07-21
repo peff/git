@@ -603,8 +603,21 @@ static void dos_time(timestamp_t *timestamp, int *dos_date, int *dos_time)
 		die(_("timestamp too large for this system: %"PRItime),
 		    *timestamp);
 	time = (time_t)*timestamp;
-	localtime_r(&time, &tm);
+	if (!localtime_r(&time, &tm))
+		die(_("timestamp too large for this system: %"PRItime),
+		    *timestamp);
 	*timestamp = time;
+
+	if (tm.tm_year < 80) {
+		*dos_date = 1 + 1 * 32; /* 1980-01-01 */
+		*dos_time = 0;
+		return;
+	}
+	if (tm.tm_year > 207) {
+		*dos_date = 31 + 12 * 32 + 127 * 512; /* 2107-12-31 */
+		*dos_time = 29 + 59 * 32 + 23 * 2048; /* 23:59:58 */
+		return;
+	}
 
 	*dos_date = tm.tm_mday + (tm.tm_mon + 1) * 32 +
 		    (tm.tm_year + 1900 - 1980) * 512;
