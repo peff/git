@@ -173,6 +173,28 @@ test_expect_success 'bitmapPseudoMerge.threshold excludes newer commits' '
 	)
 '
 
+test_expect_success 'stableThreshold never excludes negative timestamps' '
+	git init pseudo-merge-negative-date &&
+	(
+		cd pseudo-merge-negative-date &&
+
+		test_env GIT_AUTHOR_DATE="@-1 +0000" \
+			GIT_COMMITTER_DATE="@-1 +0000" test_commit negative &&
+		test_commit_bulk 128 &&
+		tag_everything &&
+
+		git \
+			-c bitmapPseudoMerge.test.pattern="refs/tags/" \
+			-c bitmapPseudoMerge.test.maxMerges=1 \
+			-c bitmapPseudoMerge.test.threshold=now \
+			-c bitmapPseudoMerge.test.stableThreshold=never \
+			repack -adb &&
+
+		test_pseudo_merges >merges &&
+		test_line_count = 1 merges
+	)
+'
+
 test_expect_success 'bitmapPseudoMerge.stableThreshold creates stable groups' '
 	(
 		cd pseudo-merge-threshold &&

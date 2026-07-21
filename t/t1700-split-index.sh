@@ -404,6 +404,31 @@ test_expect_success 'check splitIndex.sharedIndexExpire set to "never" and "now"
 	test $(ls .git/sharedindex.* | wc -l) -le 2
 '
 
+test_expect_success 'shared index expiry supports negative and epoch cutoffs' '
+	git config splitIndex.sharedIndexExpire never &&
+	create_non_racy_file seventeen &&
+	git update-index --add seventeen &&
+	create_non_racy_file eighteen &&
+	git update-index --add eighteen &&
+	test $(ls .git/sharedindex.* | wc -l) -gt 2 &&
+	test-tool chmtime =@0 .git/sharedindex.* &&
+	create_non_racy_file nineteen &&
+	git update-index --add nineteen &&
+	test $(ls .git/sharedindex.* | wc -l) -gt 2 &&
+
+	git config splitIndex.sharedIndexExpire "1969-12-31 23:59:59 +0000" &&
+	test-tool chmtime =@0 .git/sharedindex.* &&
+	create_non_racy_file twenty &&
+	git update-index --add twenty &&
+	test $(ls .git/sharedindex.* | wc -l) -gt 2 &&
+
+	git config splitIndex.sharedIndexExpire "1970-01-01 00:00:00 +0000" &&
+	test-tool chmtime =@0 .git/sharedindex.* &&
+	create_non_racy_file twentyone &&
+	git update-index --add twentyone &&
+	test $(ls .git/sharedindex.* | wc -l) -le 2
+'
+
 test_expect_success POSIXPERM 'same mode for index & split index' '
 	git init same-mode &&
 	(
