@@ -1017,7 +1017,8 @@ struct atom_value {
 	ssize_t s_size;
 	int (*handler)(struct atom_value *atomv, struct ref_formatting_state *state,
 		       struct strbuf *err);
-	uintmax_t value; /* used for sorting when not FIELD_STR */
+	uintmax_t value; /* used for sorting FIELD_ULONG */
+	timestamp_t time; /* used for sorting FIELD_TIME */
 	struct used_atom *atom;
 };
 
@@ -1703,20 +1704,22 @@ static void grab_date(const char *buf, struct atom_value *v, const char *atomnam
 
 	if (!eoemail)
 		goto bad;
+	errno = 0;
 	timestamp = parse_timestamp(eoemail + 2, &zone, 10);
-	if (timestamp == TIME_MAX)
+	if (errno == ERANGE ||
+	    timestamp == TIME_MIN || timestamp == TIME_MAX)
 		goto bad;
 	errno = 0;
 	tz = strtol(zone, NULL, 10);
 	if ((tz == LONG_MIN || tz == LONG_MAX) && errno == ERANGE)
 		goto bad;
 	v->s = xstrdup(show_date(timestamp, tz, date_mode));
-	v->value = timestamp;
+	v->time = timestamp;
 	date_mode_release(&date_mode);
 	return;
  bad:
 	v->s = xstrdup("");
-	v->value = 0;
+	v->time = 0;
 }
 
 static struct string_list mailmap = STRING_LIST_INIT_NODUP;
@@ -3580,6 +3583,13 @@ static int cmp_ref_sorting(struct ref_sorting *s, struct ref_array_item *a, stru
 					cmp = -1;
 			}
 		}
+	} else if (cmp_type == FIELD_TIME) {
+		if (va->time < vb->time)
+			cmp = -1;
+		else if (va->time == vb->time)
+			cmp = 0;
+		else
+			cmp = 1;
 	} else {
 		if (va->value < vb->value)
 			cmp = -1;

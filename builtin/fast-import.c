@@ -1992,7 +1992,7 @@ static int validate_raw_date(const char *src, struct strbuf *result, int strict)
 
 	errno = 0;
 
-	num = strtoul(src, &endp, 10);
+	parse_timestamp(src, &endp, 10);
 	/*
 	 * NEEDSWORK: perhaps check for reasonable values? For example, we
 	 *            could error on values representing times more than a
