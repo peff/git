@@ -71,7 +71,7 @@ int cmd_diff_files(int argc,
 	 * there is no other revision filtering parameters.
 	 */
 	if (rev.pending.nr ||
-	    rev.min_age != -1 || rev.max_age != -1 ||
+	    rev.min_age_set || rev.max_age_set ||
 	    3 < rev.max_count)
 		usage(diff_files_usage);
 
