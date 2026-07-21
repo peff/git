@@ -42,7 +42,7 @@ int parse_opt_expiry_date_cb(const struct option *opt, const char *arg,
 {
 	if (unset)
 		arg = "never";
-	if (parse_expiry_date(arg, (timestamp_t *)opt->value))
+	if (parse_expiry_date_with_never(arg, (timestamp_t *)opt->value))
 		die(_("malformed expiration date '%s'"), arg);
 	return 0;
 }
