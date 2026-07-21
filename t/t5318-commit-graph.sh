@@ -437,6 +437,24 @@ test_expect_success TIME_IS_64BIT,TIME_T_IS_64BIT 'overflow chunk when replacing
 	)
 '
 
+test_expect_success 'reject negative commit dates without replacing existing graph' '
+	test_when_finished "rm -rf negative commit-graph-before" &&
+	git init negative &&
+	test_commit -C negative --date "@1 +0000" positive &&
+	git -C negative commit-graph write --reachable &&
+	cp negative/.git/objects/info/commit-graph commit-graph-before &&
+	test_commit -C negative --date "@-1 +0000" negative &&
+	test_must_fail git -C negative commit-graph write --reachable 2>err &&
+	test_grep "negative commit date" err &&
+	test_cmp commit-graph-before negative/.git/objects/info/commit-graph &&
+	{
+		echo "-1 $(git -C negative rev-parse HEAD)" &&
+		echo "1 $(git -C negative rev-parse HEAD^)"
+	} >expect &&
+	git -C negative rev-list --timestamp HEAD >actual &&
+	test_cmp expect actual
+'
+
 # the verify tests below expect the commit-graph to contain
 # exactly the commits reachable from the commits/8 branch.
 # If the file changes the set of commits in the list, then the
