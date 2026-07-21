@@ -41,6 +41,7 @@
 #include "help.h"
 #include "commit-reach.h"
 #include "commit-graph.h"
+#include "date.h"
 #include "pretty.h"
 #include "trailer.h"
 
@@ -616,10 +617,14 @@ static int parse_force_date(const char *in, struct strbuf *out)
 
 	if (parse_date(in, out) < 0) {
 		int errors = 0;
-		unsigned long t = approxidate_careful(in, &errors);
+		timestamp_t t = approxidate_careful(in, &errors);
+		struct date_mode mode = DATE_MODE_INIT;
+
 		if (errors)
 			return -1;
-		strbuf_addf(out, "%lu", t);
+		mode.type = DATE_RAW;
+		mode.local = 1;
+		strbuf_addstr(out, show_date(t, 0, mode));
 	}
 
 	return 0;
