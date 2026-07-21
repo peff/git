@@ -2507,7 +2507,7 @@ int repo_config_get_expiry_in_days(struct repository *r, const char *key,
 		return 0;
 	}
 
-	if (!parse_expiry_date(expiry_string, &when)) {
+	if (!parse_expiry_date_with_never(expiry_string, &when)) {
 		*expiry = when;
 		return 0;
 	}

@@ -1078,6 +1078,15 @@ int parse_expiry_date(const char *date, timestamp_t *timestamp)
 	return errors;
 }
 
+int parse_expiry_date_with_never(const char *date, timestamp_t *timestamp)
+{
+	if (parse_expiry_date(date, timestamp))
+		return -1;
+	if (!strcmp(date, "never") || !strcmp(date, "false"))
+		*timestamp = TIME_MIN;
+	return 0;
+}
+
 int parse_date(const char *date, struct strbuf *result)
 {
 	timestamp_t timestamp;
