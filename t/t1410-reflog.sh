@@ -281,6 +281,30 @@ test_expect_success '--expire=never' '
 	test_line_count = 4 output
 '
 
+test_expect_success 'expiration keeps reachable negative-timestamp entries' '
+	test_when_finished "rm -rf negative-reflog" &&
+	git init negative-reflog &&
+	test_commit --no-tag -C negative-reflog \
+		--date "@-300 +0000" one &&
+	test_commit --no-tag -C negative-reflog \
+		--date "@-200 +0000" two &&
+	test_commit --no-tag -C negative-reflog \
+		--date "@-100 +0000" three &&
+	(
+		cd negative-reflog &&
+		git reflog show --format=%H refs/heads/main >expect &&
+		git reflog expire --expire=never --expire-unreachable=now \
+			refs/heads/main &&
+		git reflog show --format=%H refs/heads/main >actual &&
+		test_cmp expect actual &&
+
+		git reflog expire --expire="@0 +0000" \
+			--expire-unreachable=never refs/heads/main &&
+		git reflog show --format=%H refs/heads/main >actual &&
+		test_must_be_empty actual
+	)
+'
+
 test_expect_success 'gc.reflogexpire=never' '
 	test_config gc.reflogexpire never &&
 	test_config gc.reflogexpireunreachable never &&

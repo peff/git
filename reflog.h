@@ -24,8 +24,13 @@ struct reflog_expire_options {
 };
 #define REFLOG_EXPIRE_OPTIONS_INIT(now) { \
 	.default_expire_total = now - 30 * 24 * 3600, \
+	.expire_total = TIME_MIN, \
 	.default_expire_unreachable = now - 90 * 24 * 3600, \
+	.expire_unreachable = TIME_MIN, \
 }
+
+/* Parse an expiry date, using TIME_MIN for the reflog-specific "never". */
+int parse_reflog_expiry_date(const char *date, timestamp_t *timestamp);
 
 /*
  * Parse the reflog expire configuration. This should be used with
@@ -50,7 +55,7 @@ struct expire_reflog_policy_cb {
 		UE_HEAD
 	} unreachable_expire_kind;
 	struct commit_list *mark_list;
-	unsigned long mark_limit;
+	timestamp_t mark_limit;
 	struct reflog_expire_options opts;
 	struct commit *tip_commit;
 	struct commit_list *tips;

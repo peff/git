@@ -6,6 +6,7 @@
  * The mtime can be changed to an absolute value:
  *
  *	test-tool chmtime =<seconds> file...
+ *	test-tool chmtime =@<signed-seconds> file...
  *
  * Relative to the current time as returned by time(3):
  *
@@ -41,7 +42,7 @@
 #include <utime.h>
 
 static const char usage_str[] =
-	"(-v|--verbose|-g|--get) (+|=|=+|=-|-)<seconds> <file>...";
+	"(-v|--verbose|-g|--get) (+|=|=+|=-|=@|-)<seconds> <file>...";
 
 static int timespec_arg(const char *arg, long int *set_time, int *set_eq)
 {
@@ -50,7 +51,10 @@ static int timespec_arg(const char *arg, long int *set_time, int *set_eq)
 	*set_eq = (*timespec == '=') ? 1 : 0;
 	if (*set_eq) {
 		timespec++;
-		if (*timespec == '+') {
+		if (*timespec == '@') {
+			*set_eq = 3; /* absolute, including a negative value */
+			timespec++;
+		} else if (*timespec == '+') {
 			*set_eq = 2; /* relative "in the future" */
 			timespec++;
 		}
@@ -59,7 +63,7 @@ static int timespec_arg(const char *arg, long int *set_time, int *set_eq)
 	if (*test) {
 		return 0;
 	}
-	if ((*set_eq && *set_time < 0) || *set_eq == 2) {
+	if ((*set_eq == 1 && *set_time < 0) || *set_eq == 2) {
 		time_t now = time(NULL);
 		*set_time += now;
 	}
@@ -106,7 +110,7 @@ int cmd__chmtime(int argc, const char **argv)
 	for (; i < argc; i++) {
 		struct stat sb;
 		struct utimbuf utb;
-		uintmax_t mtime;
+		timestamp_t mtime;
 
 		if (stat(argv[i], &sb) < 0) {
 			fprintf(stderr, "Failed to stat %s: %s. Skipping\n",
@@ -126,11 +130,11 @@ int cmd__chmtime(int argc, const char **argv)
 		utb.actime = sb.st_atime;
 		utb.modtime = set_eq ? set_time : sb.st_mtime + set_time;
 
-		mtime = utb.modtime < 0 ? 0: utb.modtime;
+		mtime = utb.modtime;
 		if (get) {
-			printf("%"PRIuMAX"\n", mtime);
+			printf("%"PRItime"\n", mtime);
 		} else if (verbose) {
-			printf("%"PRIuMAX"\t%s\n", mtime, argv[i]);
+			printf("%"PRItime"\t%s\n", mtime, argv[i]);
 		}
 
 		if (utb.modtime != sb.st_mtime && utime(argv[i], &utb) < 0) {

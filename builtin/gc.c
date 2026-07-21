@@ -361,7 +361,8 @@ static int worktree_prune_condition(struct gc_config *cfg)
 		goto out;
 	}
 
-	if (parse_expiry_date(cfg->prune_worktrees_expire, &expiry_date))
+	if (parse_expiry_date_with_never(cfg->prune_worktrees_expire,
+					  &expiry_date))
 		goto out;
 
 	dir = opendir(repo_git_path_replace(the_repository, &buf, "worktrees"));
@@ -633,7 +634,8 @@ int cmd_gc(int argc,
 
 	gc_config(&cfg);
 
-	if (parse_expiry_date(cfg.gc_log_expire, &gc_log_expire_time))
+	if (parse_expiry_date_with_never(cfg.gc_log_expire,
+					  &gc_log_expire_time))
 		die(_("failed to parse gc.logExpiry value %s"), cfg.gc_log_expire);
 
 	if (cfg.pack_refs < 0)

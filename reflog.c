@@ -3,6 +3,7 @@
 
 #include "git-compat-util.h"
 #include "config.h"
+#include "date.h"
 #include "environment.h"
 #include "gettext.h"
 #include "parse-options.h"
@@ -27,9 +28,16 @@ static struct reflog_expire_entry_option *find_cfg_ent(struct reflog_expire_opti
 			return ent;
 
 	FLEX_ALLOC_MEM(ent, pattern, pattern, len);
+	ent->expire_total = TIME_MIN;
+	ent->expire_unreachable = TIME_MIN;
 	*opts->entries_tail = ent;
 	opts->entries_tail = &(ent->next);
 	return ent;
+}
+
+int parse_reflog_expiry_date(const char *date, timestamp_t *timestamp)
+{
+	return parse_expiry_date_with_never(date, timestamp);
 }
 
 int reflog_expire_config(const char *var, const char *value,
@@ -47,14 +55,16 @@ int reflog_expire_config(const char *var, const char *value,
 
 	if (!strcmp(key, "reflogexpire")) {
 		slot = REFLOG_EXPIRE_TOTAL;
-		if (git_config_expiry_date(&expire, var, value))
-			return -1;
 	} else if (!strcmp(key, "reflogexpireunreachable")) {
 		slot = REFLOG_EXPIRE_UNREACH;
-		if (git_config_expiry_date(&expire, var, value))
-			return -1;
 	} else
 		return git_default_config(var, value, ctx, cb);
+
+	if (!value)
+		return config_error_nonbool(var);
+	if (parse_reflog_expiry_date(value, &expire))
+		return error(_("'%s' for '%s' is not a valid timestamp"),
+			     value, var);
 
 	if (!pattern) {
 		switch (slot) {
@@ -119,9 +129,9 @@ void reflog_expire_options_set_refname(struct reflog_expire_options *cb,
 	 */
 	if (!strcmp(ref, "refs/stash")) {
 		if (!(cb->explicit_expiry & REFLOG_EXPIRE_TOTAL))
-			cb->expire_total = 0;
+			cb->expire_total = TIME_MIN;
 		if (!(cb->explicit_expiry & REFLOG_EXPIRE_UNREACH))
-			cb->expire_unreachable = 0;
+			cb->expire_unreachable = TIME_MIN;
 		return;
 	}
 
@@ -356,8 +366,8 @@ static int is_unreachable(struct expire_reflog_policy_cb *cb, struct commit *com
 	if (commit->object.flags & REACHABLE)
 		return 0;
 
-	if (cb->mark_list && cb->mark_limit) {
-		cb->mark_limit = 0; /* dig down to the root */
+	if (cb->mark_list && cb->mark_limit != TIME_MIN) {
+		cb->mark_limit = TIME_MIN; /* dig down to the root */
 		mark_reachable(cb);
 	}
 
@@ -451,7 +461,7 @@ void reflog_expiry_prepare(const char *refname,
 	struct commit_list *elem;
 	struct commit *commit = NULL;
 
-	if (!cb->opts.expire_unreachable || is_head(refname)) {
+	if (cb->opts.expire_unreachable == TIME_MIN || is_head(refname)) {
 		cb->unreachable_expire_kind = UE_HEAD;
 	} else {
 		commit = lookup_commit_reference_gently(the_repository,
@@ -512,14 +522,17 @@ int count_reflog_ent(const char *refname UNUSED,
 		     const char *message UNUSED, void *cb_data)
 {
 	struct reflog_expire_options *cb = cb_data;
-	if (!cb->expire_total || timestamp < cb->expire_total)
+	if (cb->expire_total == TIME_MIN || timestamp < cb->expire_total)
 		cb->recno++;
 	return 0;
 }
 
 int reflog_delete(const char *rev, enum expire_reflog_flags flags, int verbose)
 {
-	struct reflog_expire_options opts = { 0 };
+	struct reflog_expire_options opts = {
+		.expire_total = TIME_MIN,
+		.expire_unreachable = TIME_MIN,
+	};
 	int status = 0;
 	reflog_expiry_should_prune_fn *should_prune_fn = should_expire_reflog_ent;
 	const char *spec = strstr(rev, "@{");
@@ -549,7 +562,7 @@ int reflog_delete(const char *rev, enum expire_reflog_flags flags, int verbose)
 		opts.expire_total = approxidate(spec + 2);
 		refs_for_each_reflog_ent(get_main_ref_store(the_repository),
 					 ref, count_reflog_ent, &opts);
-		opts.expire_total = 0;
+		opts.expire_total = TIME_MIN;
 	}
 
 	cb.opts = opts;
