@@ -40,13 +40,14 @@ define_commit_slab(commit_rev_name, struct rev_name);
 
 static timestamp_t generation_cutoff = GENERATION_NUMBER_INFINITY;
 static timestamp_t cutoff = TIME_MAX;
+static int cutoff_disabled;
 static struct commit_rev_name rev_names;
 
 /* Disable the cutoff checks entirely */
 static void disable_cutoff(void)
 {
+	cutoff_disabled = 1;
 	generation_cutoff = 0;
-	cutoff = 0;
 }
 
 /* Cutoff searching any commits older than this one */
@@ -69,13 +70,14 @@ static void set_commit_cutoff(struct commit *commit)
  */
 static void adjust_cutoff_timestamp_for_slop(void)
 {
-	if (cutoff) {
-		/* check for underflow */
-		if (cutoff > TIME_MIN + CUTOFF_DATE_SLOP)
-			cutoff = cutoff - CUTOFF_DATE_SLOP;
-		else
-			cutoff = TIME_MIN;
-	}
+	if (cutoff_disabled)
+		return;
+
+	/* check for underflow */
+	if (cutoff > TIME_MIN + CUTOFF_DATE_SLOP)
+		cutoff = cutoff - CUTOFF_DATE_SLOP;
+	else
+		cutoff = TIME_MIN;
 }
 
 /* Check if a commit is before the cutoff. Prioritize generation numbers
@@ -83,6 +85,8 @@ static void adjust_cutoff_timestamp_for_slop(void)
  */
 static int commit_is_before_cutoff(struct commit *commit)
 {
+	if (cutoff_disabled)
+		return 0;
 	if (generation_cutoff < GENERATION_NUMBER_INFINITY)
 		return generation_cutoff &&
 			commit_graph_generation(commit) < generation_cutoff;

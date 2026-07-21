@@ -322,6 +322,9 @@ struct rev_info {
 	int max_count;
 	unsigned int max_count_type:1;
 	unsigned int max_count_stage:1;
+	unsigned int max_age_set:1;
+	unsigned int max_age_as_filter_set:1;
+	unsigned int min_age_set:1;
 	timestamp_t max_age;
 	timestamp_t max_age_as_filter;
 	timestamp_t min_age;
@@ -423,9 +426,6 @@ struct rev_info {
 	.pruning.flags.quick = 1, \
 	.sort_order = REV_SORT_IN_GRAPH_ORDER, \
 	.dense = 1, \
-	.max_age = -1, \
-	.max_age_as_filter = -1, \
-	.min_age = -1, \
 	.skip_count = -1, \
 	.max_count = -1, \
 	.max_parents = -1, \

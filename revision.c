@@ -1471,7 +1471,7 @@ static int limit_list(struct rev_info *revs)
 		if (commit == interesting_cache)
 			interesting_cache = NULL;
 
-		if (revs->max_age != -1 && (commit->date < revs->max_age))
+		if (revs->max_age_set && commit->date < revs->max_age)
 			obj->flags |= UNINTERESTING;
 		if (process_parents(revs, commit, &queue) < 0) {
 			clear_prio_queue(&queue);
@@ -1484,10 +1484,10 @@ static int limit_list(struct rev_info *revs)
 				continue;
 			break;
 		}
-		if (revs->min_age != -1 && (commit->date > revs->min_age) &&
+		if (revs->min_age_set && commit->date > revs->min_age &&
 		    !revs->line_level_traverse)
 			continue;
-		if (revs->max_age_as_filter != -1 &&
+		if (revs->max_age_as_filter_set &&
 			(commit->date < revs->max_age_as_filter) && !revs->line_level_traverse)
 			continue;
 		date = commit->date;
@@ -2390,24 +2390,31 @@ static int handle_revision_opt(struct rev_info *revs, int argc, const char **arg
 		revs->no_walk = 0;
 	} else if ((argcount = parse_long_opt("max-age", argv, &optarg))) {
 		revs->max_age = parse_age(optarg);
+		revs->max_age_set = 1;
 		return argcount;
 	} else if ((argcount = parse_long_opt("since", argv, &optarg))) {
 		revs->max_age = approxidate(optarg);
+		revs->max_age_set = 1;
 		return argcount;
 	} else if ((argcount = parse_long_opt("since-as-filter", argv, &optarg))) {
 		revs->max_age_as_filter = approxidate(optarg);
+		revs->max_age_as_filter_set = 1;
 		return argcount;
 	} else if ((argcount = parse_long_opt("after", argv, &optarg))) {
 		revs->max_age = approxidate(optarg);
+		revs->max_age_set = 1;
 		return argcount;
 	} else if ((argcount = parse_long_opt("min-age", argv, &optarg))) {
 		revs->min_age = parse_age(optarg);
+		revs->min_age_set = 1;
 		return argcount;
 	} else if ((argcount = parse_long_opt("before", argv, &optarg))) {
 		revs->min_age = approxidate(optarg);
+		revs->min_age_set = 1;
 		return argcount;
 	} else if ((argcount = parse_long_opt("until", argv, &optarg))) {
 		revs->min_age = approxidate(optarg);
+		revs->min_age_set = 1;
 		return argcount;
 	} else if (!strcmp(arg, "--maximal-only")) {
 		revs->maximal_only = 1;
@@ -3771,7 +3778,7 @@ static void explore_walk_step(struct rev_info *revs)
 	if (revs->sort_order == REV_SORT_BY_AUTHOR_DATE)
 		record_author_date(&info->author_date, c);
 
-	if (revs->max_age != -1 && (c->date < revs->max_age))
+	if (revs->max_age_set && c->date < revs->max_age)
 		c->object.flags |= UNINTERESTING;
 
 	if (process_parents(revs, c, NULL) < 0)
@@ -4229,10 +4236,10 @@ enum commit_action get_commit_action(struct rev_info *revs, struct commit *commi
 {
 	if (commit_early_ignore(revs, commit))
 		return commit_ignore;
-	if (revs->min_age != -1 &&
+	if (revs->min_age_set &&
 	    comparison_date(revs, commit) > revs->min_age)
 			return commit_ignore;
-	if (revs->max_age_as_filter != -1 &&
+	if (revs->max_age_as_filter_set &&
 	    comparison_date(revs, commit) < revs->max_age_as_filter)
 			return commit_ignore;
 	if (revs->min_parents || (revs->max_parents >= 0)) {
@@ -4451,7 +4458,7 @@ static struct commit *get_revision_1(struct rev_info *revs)
 		 * that we'd otherwise have done in limit_list().
 		 */
 		if (mode != REV_WALK_LIMITED &&
-		    revs->max_age != -1 &&
+		    revs->max_age_set &&
 		    comparison_date(revs, commit) < revs->max_age)
 			continue;
 

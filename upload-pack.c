@@ -75,6 +75,7 @@ struct upload_pack_data {
 	struct object_array extra_edge_obj;
 	int depth;
 	timestamp_t deepen_since;
+	int deepen_since_set;
 	int deepen_rev_list;
 	int deepen_relative;
 	int keepalive;
@@ -155,6 +156,7 @@ static void upload_pack_data_init(struct upload_pack_data *data)
 
 	data->keepalive = 5;
 	data->advertise_sid = 0;
+	data->oldest_have = TIME_MAX;
 }
 
 static void upload_pack_data_clear(struct upload_pack_data *data)
@@ -497,7 +499,7 @@ static int do_got_oid(struct upload_pack_data *data, const struct object_id *oid
 		struct commit_list *parents;
 		struct commit *commit = (struct commit *)o;
 
-		if (!data->oldest_have || (commit->date < data->oldest_have))
+		if (commit->date < data->oldest_have)
 			data->oldest_have = commit->date;
 		for (parents = commit->parents;
 		     parents;
@@ -884,7 +886,7 @@ static int send_shallow_list(struct upload_pack_data *data)
 		int i;
 
 		strvec_push(&av, "rev-list");
-		if (data->deepen_since)
+		if (data->deepen_since_set)
 			strvec_pushf(&av, "--max-age=%"PRItime, data->deepen_since);
 		if (oidset_size(&data->deepen_not)) {
 			const struct object_id *oid;
@@ -952,16 +954,18 @@ static int process_deepen(const char *line, int *depth)
 	return 0;
 }
 
-static int process_deepen_since(const char *line, timestamp_t *deepen_since, int *deepen_rev_list)
+static int process_deepen_since(const char *line, timestamp_t *deepen_since,
+				int *deepen_since_set, int *deepen_rev_list)
 {
 	const char *arg;
 	if (skip_prefix(line, "deepen-since ", &arg)) {
 		char *end = NULL;
+
+		errno = 0;
 		*deepen_since = parse_timestamp(arg, &end, 0);
-		if (!end || *end || !deepen_since ||
-		    /* revisions.c's max_age -1 is special */
-		    *deepen_since == -1)
+		if (errno == ERANGE || end == arg || *end)
 			die("Invalid deepen-since: %s", line);
+		*deepen_since_set = 1;
 		*deepen_rev_list = 1;
 		return 1;
 	}
@@ -1066,7 +1070,9 @@ static void receive_needs(struct upload_pack_data *data,
 			continue;
 		if (process_deepen(reader->line, &data->depth))
 			continue;
-		if (process_deepen_since(reader->line, &data->deepen_since, &data->deepen_rev_list))
+		if (process_deepen_since(reader->line, &data->deepen_since,
+					 &data->deepen_since_set,
+					 &data->deepen_rev_list))
 			continue;
 		if (process_deepen_not(reader->line, &data->deepen_not, &data->deepen_rev_list))
 			continue;
@@ -1538,7 +1544,7 @@ static void trace2_fetch_info(struct upload_pack_data *data)
 	jw_object_intmax(&jw, "want-refs", strmap_get_size(&data->wanted_refs));
 	jw_object_intmax(&jw, "depth", data->depth);
 	jw_object_intmax(&jw, "shallows", data->shallows.nr);
-	jw_object_bool(&jw, "deepen-since", data->deepen_since);
+	jw_object_bool(&jw, "deepen-since", data->deepen_since_set);
 	jw_object_intmax(&jw, "deepen-not", oidset_size(&data->deepen_not));
 	jw_object_bool(&jw, "deepen-relative", data->deepen_relative);
 	if (data->filter_options.choice)
@@ -1602,6 +1608,7 @@ static void process_args(struct packet_reader *request,
 		if (process_deepen(arg, &data->depth))
 			continue;
 		if (process_deepen_since(arg, &data->deepen_since,
+					 &data->deepen_since_set,
 					 &data->deepen_rev_list))
 			continue;
 		if (process_deepen_not(arg, &data->deepen_not,

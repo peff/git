@@ -80,8 +80,7 @@ int cmd_diff_pairs(int argc, const char **argv, const char *prefix,
 		usage(_("pathspec arguments not supported"));
 
 	if (revs.pending.nr || revs.max_count != -1 ||
-	    revs.min_age != (timestamp_t)-1 ||
-	    revs.max_age != (timestamp_t)-1)
+	    revs.min_age_set || revs.max_age_set)
 		usage(_("revision arguments not allowed"));
 
 	if (!revs.diffopt.output_format)

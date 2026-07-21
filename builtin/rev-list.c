@@ -660,8 +660,8 @@ static void prepare_maximal_independent(struct rev_info *revs)
 	    revs->reverse ||
 	    revs->max_count >= 0 ||
 	    revs->skip_count >= 0 ||
-	    revs->min_age != (timestamp_t)-1 ||
-	    revs->max_age != (timestamp_t)-1 ||
+	    revs->min_age_set ||
+	    revs->max_age_set ||
 	    revs->min_parents > 0 ||
 	    revs->max_parents >= 0 ||
 	    revs->prune_data.nr ||
