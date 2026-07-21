@@ -864,6 +864,8 @@ static timestamp_t parse_timestamp_from_buf(const char **start, const char *end)
 	char buf[24]; /* big enough for 2^64 */
 	size_t i = 0;
 
+	if (p < end && *p == '-')
+		buf[i++] = *p++;
 	while (p < end && isdigit(*p)) {
 		if (i >= ARRAY_SIZE(buf) - 1)
 			return TIME_MAX;
@@ -912,7 +914,7 @@ static int fsck_ident(const char **ident, const char *ident_end,
 		p++;
 	}
 	p++; /* skip past '>' we found */
-	if (*p != ' ')
+	if (p >= ident_end || *p != ' ')
 		return report(options, oid, type, FSCK_MSG_MISSING_SPACE_BEFORE_DATE, "invalid author/committer line - missing space before date");
 	p++;
 	/*
@@ -924,19 +926,24 @@ static int fsck_ident(const char **ident, const char *ident_end,
 	 * as we really expect only a single space, but since we have
 	 * traditionally allowed extra whitespace, we'll continue to do so.
 	 */
-	while (*p == ' ' || *p == '\t')
+	while (p < ident_end && (*p == ' ' || *p == '\t'))
 		p++;
-	if (!isdigit(*p) && *p != '-')
+	if (p >= ident_end ||
+	    (!isdigit(*p) &&
+	     !(*p == '-' && p + 1 < ident_end && isdigit(p[1]))))
 		return report(options, oid, type, FSCK_MSG_BAD_DATE,
 			      "invalid author/committer line - bad date");
-	if (*p == '0' && p[1] != ' ')
+	if ((*p == '0' && p + 1 < ident_end && p[1] != ' ') ||
+	    (*p == '-' && p + 2 < ident_end &&
+	     p[1] == '0' && p[2] != ' '))
 		return report(options, oid, type, FSCK_MSG_ZERO_PADDED_DATE, "invalid author/committer line - zero-padded date");
 	if (date_overflows(parse_timestamp_from_buf(&p, ident_end)))
 		return report(options, oid, type, FSCK_MSG_BAD_DATE_OVERFLOW, "invalid author/committer line - date causes integer overflow");
-	if (*p != ' ')
+	if (p >= ident_end || *p != ' ')
 		return report(options, oid, type, FSCK_MSG_BAD_DATE, "invalid author/committer line - bad date");
 	p++;
-	if ((*p != '+' && *p != '-') ||
+	if (ident_end - p < 6 ||
+	    (*p != '+' && *p != '-') ||
 	    !isdigit(p[1]) ||
 	    !isdigit(p[2]) ||
 	    !isdigit(p[3]) ||
