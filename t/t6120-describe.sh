@@ -535,6 +535,28 @@ test_expect_success 'name-rev a rev shortly after epoch' '
 	test_cmp expect actual
 '
 
+test_expect_success 'name-rev cutoff slop crosses the epoch' '
+	test_when_finished "rm -rf negative-name-rev" &&
+	git init negative-name-rev &&
+	(
+		cd negative-name-rev &&
+		tree=$(git mktree </dev/null) &&
+		base=$(GIT_AUTHOR_DATE="@0 +0000" \
+			GIT_COMMITTER_DATE="@0 +0000" \
+			git commit-tree -m base "$tree") &&
+		middle=$(GIT_AUTHOR_DATE="@-1 +0000" \
+			 GIT_COMMITTER_DATE="@-1 +0000" \
+			 git commit-tree -m middle -p "$base" "$tree") &&
+		tip=$(GIT_AUTHOR_DATE="@1 +0000" \
+		      GIT_COMMITTER_DATE="@1 +0000" \
+		      git commit-tree -m tip -p "$middle" "$tree") &&
+		git update-ref refs/heads/tip "$tip" &&
+		echo "$base tip~2" >expect &&
+		git name-rev "$base" >actual &&
+		test_cmp expect actual
+	)
+'
+
 # A--------------main
 #  \            /
 #   \----------M2

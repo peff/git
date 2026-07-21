@@ -910,6 +910,53 @@ test_expect_success 'shallow since with commit graph and already-seen commit' '
 	)
 '
 
+write_deepen_since_request () {
+	since=$1 &&
+	oid_algo=$(test_oid algo) &&
+	oid_other=$(git rev-parse other) &&
+	oid_main=$(git rev-parse main) &&
+
+	test-tool pkt-line pack <<-EOF
+	command=fetch
+	object-format=$oid_algo
+	0001
+	deepen-since $since
+	want $oid_other
+	have $oid_main
+	0000
+	EOF
+}
+
+test_expect_success 'protocol v2 accepts deepen-since at the epoch' '
+	(
+	cd shallow-since-graph &&
+	write_deepen_since_request 0 >input &&
+	GIT_TRACE2_EVENT="$PWD/trace-zero" GIT_PROTOCOL=version=2 \
+		git upload-pack . <input >/dev/null &&
+	test_grep \"fetch-info\".*\"deepen-since\":true trace-zero
+	)
+'
+
+test_expect_success 'protocol v2 accepts deepen-since before the epoch' '
+	(
+	cd shallow-since-graph &&
+	write_deepen_since_request -1 >input &&
+	GIT_TRACE2_EVENT="$PWD/trace-negative" GIT_PROTOCOL=version=2 \
+		git upload-pack . <input >/dev/null &&
+	test_grep \"fetch-info\".*\"deepen-since\":true trace-negative
+	)
+'
+
+test_expect_success 'protocol v2 rejects an empty deepen-since' '
+	(
+	cd shallow-since-graph &&
+	write_deepen_since_request "" >input &&
+	test_must_fail env GIT_PROTOCOL=version=2 \
+		git upload-pack . <input >/dev/null 2>err &&
+	test_grep "Invalid deepen-since" err
+	)
+'
+
 test_expect_success 'shallow clone exclude tag two' '
 	test_create_repo shallow-exclude &&
 	(
