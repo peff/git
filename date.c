@@ -11,22 +11,21 @@
 #include "gettext.h"
 #include "pager.h"
 #include "strbuf.h"
-#include "trace.h"
 
 /*
  * Convert a year-month-day time into a number of days since 1970 (possibly
  * negative). Note that "year" is the full year (not offset from 1900), and
  * "month" is in the range 1-12 (unlike a "struct tm" 0-11).
  *
- * Working in time_t is overkill (since it usually represents seconds), but
- * this makes sure we don't hit any integer range issues.
+ * Working in timestamp_t is overkill (since it usually represents seconds),
+ * but this makes sure we don't hit any integer range issues.
  *
  * This function is taken from https://github.com/HowardHinnant/date,
  * which is released under an MIT license.
  */
-static time_t days_from_civil(int year, int month, int day)
+static timestamp_t days_from_civil(timestamp_t year, int month, int day)
 {
-	time_t era;
+	timestamp_t era;
 	unsigned year_of_era, day_of_year, day_of_era;
 
 	year -= month <= 2;
@@ -35,7 +34,67 @@ static time_t days_from_civil(int year, int month, int day)
 	day_of_year = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
 	day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100
 			+ day_of_year;
-	return era * 146097 + (time_t)day_of_era - 719468;
+	return era * 146097 + day_of_era - 719468;
+}
+
+static int mult_overflows_timestamp(timestamp_t value, int factor)
+{
+	return value > TIME_MAX / factor || value < TIME_MIN / factor;
+}
+
+static int add_overflows_timestamp(timestamp_t value, int addend)
+{
+	return (addend > 0 && value > TIME_MAX - addend) ||
+	       (addend < 0 && value < TIME_MIN - addend);
+}
+
+static int tm_to_time_t_internal(const struct tm *tm, int allow_negative_year,
+				 time_t *result)
+{
+	timestamp_t year, value;
+
+	if ((!allow_negative_year && tm->tm_year < 0) ||
+	    tm->tm_mon < 0 || tm->tm_mon > 11 ||
+	    tm->tm_mday < 0 ||
+	    tm->tm_hour < 0 ||
+	    tm->tm_min < 0 ||
+	    tm->tm_sec < 0)
+		return -1;
+
+	/* Keep days_from_civil() from overflowing on pathological tm_years. */
+#if INT_MAX == INTMAX_MAX
+	if (tm->tm_year > TIME_MAX / 366 - 1900 ||
+	    tm->tm_year < TIME_MIN / 366 - 1900)
+		return -1;
+#endif
+	year = (timestamp_t)tm->tm_year + 1900;
+	value = days_from_civil(year, tm->tm_mon + 1, tm->tm_mday);
+
+	if (mult_overflows_timestamp(value, 24))
+		return -1;
+	value *= 24;
+	if (add_overflows_timestamp(value, tm->tm_hour))
+		return -1;
+	value += tm->tm_hour;
+
+	if (mult_overflows_timestamp(value, 60))
+		return -1;
+	value *= 60;
+	if (add_overflows_timestamp(value, tm->tm_min))
+		return -1;
+	value += tm->tm_min;
+
+	if (mult_overflows_timestamp(value, 60))
+		return -1;
+	value *= 60;
+	if (add_overflows_timestamp(value, tm->tm_sec))
+		return -1;
+	value += tm->tm_sec;
+
+	if (date_overflows(value))
+		return -1;
+	*result = value;
+	return 0;
 }
 
 /*
@@ -44,24 +103,11 @@ static time_t days_from_civil(int year, int month, int day)
  */
 time_t tm_to_time_t(const struct tm *tm)
 {
-	time_t days, hours, minutes, seconds;
+	time_t result;
 
-	if (tm->tm_year < 0 ||
-	    tm->tm_mon < 0 ||
-	    tm->tm_mday < 0 ||
-	    tm->tm_hour < 0 ||
-	    tm->tm_min < 0 ||
-	    tm->tm_sec < 0)
+	if (tm_to_time_t_internal(tm, 1, &result))
 		return -1;
-
-	days = days_from_civil(tm->tm_year + 1900,
-			       tm->tm_mon + 1,
-			       tm->tm_mday);
-	hours = 24 * days + tm->tm_hour;
-	minutes = 60 * hours + tm->tm_min;
-	seconds = 60 * minutes + tm->tm_sec;
-
-	return seconds;
+	return result;
 }
 
 static const char *month_names[] = {
@@ -73,20 +119,26 @@ static const char *weekday_names[] = {
 	"Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"
 };
 
+/* This is outside the range accepted by match_tz(). */
+#define DATE_OFFSET_UNSET INT_MAX
+
 static time_t gm_time_t(timestamp_t time, int tz)
 {
-	int minutes;
+	timestamp_t minutes, seconds;
 
-	minutes = tz < 0 ? -tz : tz;
+	if (tz == INT_MIN)
+		die("Invalid timezone: %d", tz);
+	minutes = tz < 0 ? -(timestamp_t)tz : (timestamp_t)tz;
 	minutes = (minutes / 100)*60 + (minutes % 100);
 	minutes = tz < 0 ? -minutes : minutes;
+	if (mult_overflows_timestamp(minutes, 60))
+		die("Timezone offset out of range: %d", tz);
+	seconds = minutes * 60;
 
-	if (minutes > 0) {
-		if (unsigned_add_overflows(time, minutes * 60))
-			die("Timestamp+tz too large: %"PRItime" +%04d",
-			    time, tz);
-	}
-	time += minutes * 60;
+	if ((seconds > 0 && time > TIME_MAX - seconds) ||
+	    (seconds < 0 && time < TIME_MIN - seconds))
+		die("Timestamp+tz out of range: %"PRItime" %+05d", time, tz);
+	time += seconds;
 	if (date_overflows(time))
 		die("Timestamp too large for this system: %"PRItime, time);
 	return (time_t)time;
@@ -97,20 +149,10 @@ static time_t gm_time_t(timestamp_t time, int tz)
  * thing, which means that tz -0100 is passed in as the integer -100,
  * even though it means "sixty minutes off"
  */
-static struct trace_key trace_date = TRACE_KEY_INIT(DATE);
-
 static struct tm *time_to_tm(timestamp_t time, int tz, struct tm *tm)
 {
-	struct tm *ret;
 	time_t t = gm_time_t(time, tz);
-	trace_printf_key(&trace_date,
-			 "gm_time_t(%"PRIdMAX", %d) = %"PRIdMAX,
-			 (intmax_t)time, tz, (intmax_t)t);
-	ret = gmtime_r(&t, tm);
-	trace_printf_key(&trace_date,
-			 "gmtime_r(%"PRIdMAX") = %p",
-			 (intmax_t)t, (void *)ret);
-	return ret;
+	return gmtime_r(&t, tm);
 }
 
 static struct tm *time_to_tm_local(timestamp_t time, struct tm *tm)
@@ -126,11 +168,11 @@ static struct tm *time_to_tm_local(timestamp_t time, struct tm *tm)
 static int local_time_tzoffset(time_t t, struct tm *tm)
 {
 	time_t t_local;
-	int offset, eastwest;
+	timestamp_t offset;
+	int eastwest;
 
-	localtime_r(&t, tm);
-	t_local = tm_to_time_t(tm);
-	if (t_local == -1)
+	if (!localtime_r(&t, tm) ||
+	    tm_to_time_t_internal(tm, 1, &t_local))
 		return 0; /* error; just use +0000 */
 	if (t_local < t) {
 		eastwest = -1;
@@ -171,6 +213,19 @@ static void get_time(struct timeval *now)
 		gettimeofday(now, NULL);
 }
 
+static timestamp_t positive_time_diff(timestamp_t newer, timestamp_t older)
+{
+	if (older < 0 && newer > TIME_MAX + older)
+		return TIME_MAX;
+	return newer - older;
+}
+
+static timestamp_t rounded_div(timestamp_t value, int divisor)
+{
+	return value / divisor +
+	       (value % divisor + divisor / 2) / divisor;
+}
+
 void show_date_relative(timestamp_t time, struct strbuf *timebuf)
 {
 	struct timeval now;
@@ -181,21 +236,21 @@ void show_date_relative(timestamp_t time, struct strbuf *timebuf)
 		strbuf_addstr(timebuf, _("in the future"));
 		return;
 	}
-	diff = now.tv_sec - time;
+	diff = positive_time_diff(now.tv_sec, time);
 	if (diff < 90) {
 		strbuf_addf(timebuf,
 			 Q_("%"PRItime" second ago", "%"PRItime" seconds ago", diff), diff);
 		return;
 	}
 	/* Turn it into minutes */
-	diff = (diff + 30) / 60;
+	diff = rounded_div(diff, 60);
 	if (diff < 90) {
 		strbuf_addf(timebuf,
 			 Q_("%"PRItime" minute ago", "%"PRItime" minutes ago", diff), diff);
 		return;
 	}
 	/* Turn it into hours */
-	diff = (diff + 30) / 60;
+	diff = rounded_div(diff, 60);
 	if (diff < 36) {
 		strbuf_addf(timebuf,
 			 Q_("%"PRItime" hour ago", "%"PRItime" hours ago", diff), diff);
@@ -365,9 +420,6 @@ const char *show_date(timestamp_t time, int tz, struct date_mode mode)
 	else
 		tm = time_to_tm(time, tz, &tmbuf);
 	if (!tm) {
-		trace_printf_key(&trace_date,
-				 "unable to handle timestamp %"PRIdMAX,
-				 (intmax_t)time);
 		tm = time_to_tm(0, 0, &tmbuf);
 		tz = 0;
 	}
