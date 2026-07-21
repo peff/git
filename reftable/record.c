@@ -801,7 +801,12 @@ static int reftable_log_record_encode(const void *rec, struct string_view s,
 		return n;
 	string_view_consume(&s, n);
 
-	n = put_var_int(&s, r->value.update.time);
+	/*
+	 * Reflog timestamps are signed, while the on-disk varint is not. Cast
+	 * through uint64_t to encode negative values modulo 2^64 without changing
+	 * the encoding of positive values.
+	 */
+	n = put_var_int(&s, (uint64_t)r->value.update.time);
 	if (n < 0)
 		return n;
 	string_view_consume(&s, n);
@@ -926,7 +931,10 @@ static int reftable_log_record_decode(void *rec, struct reftable_buf key,
 		goto done;
 	}
 	string_view_consume(&in, n);
-	r->value.update.time = ts;
+	if (ts <= INT64_MAX)
+		r->value.update.time = ts;
+	else
+		r->value.update.time = -1 - (int64_t)(UINT64_MAX - ts);
 	if (in.len < 2) {
 		err = REFTABLE_FORMAT_ERROR;
 		goto done;
