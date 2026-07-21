@@ -9,6 +9,14 @@ export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 
 . ./test-lib.sh
 
+test_lazy_prereq PRE_EPOCH_MTIME '
+	>negative-mtime &&
+	test-tool chmtime =@-1 negative-mtime &&
+	mtime=$(test-tool chmtime --get negative-mtime) &&
+	rm negative-mtime &&
+	test "$mtime" = -1
+'
+
 day=$((60*60*24))
 week=$(($day*7))
 
@@ -184,6 +192,15 @@ test_expect_success 'prune --expire=never' '
 	test_path_is_file $BLOB_FILE &&
 	git prune &&
 	test_path_is_missing $BLOB_FILE
+'
+
+test_expect_success PRE_EPOCH_MTIME 'prune --expire=never keeps pre-epoch objects' '
+	add_blob &&
+	test-tool chmtime =@-1 "$BLOB_FILE" &&
+	git prune --expire=never &&
+	test_path_is_file "$BLOB_FILE" &&
+	git prune --expire=now &&
+	test_path_is_missing "$BLOB_FILE"
 '
 
 test_expect_success 'gc: prune old objects after local clone' '

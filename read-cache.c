@@ -3183,9 +3183,9 @@ static int write_split_index(struct index_state *istate,
 	return ret;
 }
 
-static unsigned long get_shared_index_expire_date(void)
+static timestamp_t get_shared_index_expire_date(void)
 {
-	static unsigned long shared_index_expire_date;
+	static timestamp_t shared_index_expire_date;
 	static int shared_index_expire_date_prepared;
 
 	if (!shared_index_expire_date_prepared) {
@@ -3197,7 +3197,9 @@ static unsigned long get_shared_index_expire_date(void)
 		if (value)
 			shared_index_expire = value;
 
-		shared_index_expire_date = approxidate(shared_index_expire);
+		if (parse_expiry_date_with_never(shared_index_expire,
+						 &shared_index_expire_date))
+			BUG("invalid splitIndex.sharedIndexExpire value");
 		shared_index_expire_date_prepared = 1;
 
 		free(value);
@@ -3209,15 +3211,15 @@ static unsigned long get_shared_index_expire_date(void)
 static int should_delete_shared_index(const char *shared_index_path)
 {
 	struct stat st;
-	unsigned long expiration;
+	timestamp_t expiration;
 
 	/* Check timestamp */
 	expiration = get_shared_index_expire_date();
-	if (!expiration)
+	if (expiration == TIME_MIN)
 		return 0;
 	if (stat(shared_index_path, &st))
 		return error_errno(_("could not stat '%s'"), shared_index_path);
-	if (st.st_mtime > expiration)
+	if ((timestamp_t)st.st_mtime > expiration)
 		return 0;
 
 	return 1;
