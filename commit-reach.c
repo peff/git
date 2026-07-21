@@ -1060,7 +1060,7 @@ int can_all_from_reach(struct commit_list *from, struct commit_list *to,
 	struct object_array from_objs = OBJECT_ARRAY_INIT;
 	struct commit_list *from_iter = from, *to_iter = to;
 	int result;
-	timestamp_t min_commit_date = cutoff_by_min_date ? from->item->date : 0;
+	timestamp_t min_commit_date = cutoff_by_min_date ? from->item->date : TIME_MIN;
 	timestamp_t min_generation = GENERATION_NUMBER_INFINITY;
 
 	while (from_iter) {

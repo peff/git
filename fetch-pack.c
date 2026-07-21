@@ -796,7 +796,8 @@ static void mark_complete_and_common_ref(struct fetch_negotiator *negotiator,
 {
 	struct ref *ref;
 	int old_save_commit_buffer = save_commit_buffer;
-	timestamp_t cutoff = 0;
+	timestamp_t cutoff = TIME_MIN;
+	int cutoff_set = 0;
 
 	if (args->refetch)
 		return;
@@ -825,8 +826,10 @@ static void mark_complete_and_common_ref(struct fetch_negotiator *negotiator,
 		 * in sync with the other side at some time after
 		 * that (it is OK if we guess wrong here).
 		 */
-		if (!cutoff || cutoff < commit->date)
+		if (!cutoff_set || cutoff < commit->date) {
 			cutoff = commit->date;
+			cutoff_set = 1;
+		}
 	}
 	trace2_region_leave("fetch-pack", "parse_remote_refs_and_find_cutoff", NULL);
 
@@ -843,7 +846,7 @@ static void mark_complete_and_common_ref(struct fetch_negotiator *negotiator,
 		refs_for_each_ref_ext(get_main_ref_store(the_repository),
 				      mark_complete_oid, NULL, &opts);
 		for_each_cached_alternate(NULL, mark_alternate_complete);
-		if (cutoff)
+		if (cutoff_set)
 			mark_recent_complete_commits(args, cutoff);
 	}
 	trace2_region_leave("fetch-pack", "mark_complete_local_refs", NULL);
@@ -2300,7 +2303,7 @@ void negotiate_using_fetch(const struct oid_array *negotiation_restrict_tips,
 		else
 			do_check_stateless_delimiter(stateless_rpc, &reader);
 		if (can_all_from_reach_with_flag(&nt_object_array, COMMON,
-						 REACH_SCRATCH, 0,
+						 REACH_SCRATCH, TIME_MIN,
 						 min_generation))
 			last_iteration = 1;
 		trace2_region_leave_printf("negotiation", "round",
