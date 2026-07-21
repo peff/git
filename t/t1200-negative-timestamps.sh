@@ -21,6 +21,40 @@ test_expect_success 'create a commit with a negative timestamp' '
 	)
 '
 
+test_expect_success 'revision date filters at timestamp -1' '
+	minus_two=$(
+		GIT_AUTHOR_DATE="@-2 +0000" \
+		GIT_COMMITTER_DATE="@-2 +0000" \
+		git commit-tree "$tree" <<-EOF
+		minus two
+		EOF
+	) &&
+	minus_one=$(
+		GIT_AUTHOR_DATE="@-1 +0000" \
+		GIT_COMMITTER_DATE="@-1 +0000" \
+		git commit-tree "$tree" -p "$minus_two" <<-EOF
+		minus one
+		EOF
+	) &&
+	zero=$(
+		GIT_AUTHOR_DATE="@0 +0000" \
+		GIT_COMMITTER_DATE="@0 +0000" \
+		git commit-tree "$tree" -p "$minus_one" <<-EOF
+		zero
+		EOF
+	) &&
+
+	printf "%s\n" 0 -1 >expect &&
+	git log --format=%ct --since="@-1 +0000" "$zero" >actual &&
+	test_cmp expect actual &&
+	git log --format=%ct --since-as-filter="@-1 +0000" "$zero" >actual &&
+	test_cmp expect actual &&
+
+	printf "%s\n" -1 -2 >expect &&
+	git log --format=%ct --until="@-1 +0000" "$zero" >actual &&
+	test_cmp expect actual
+'
+
 test_expect_success 'fsck does not complain about negative timestamps' '
 	git fsck
 '
