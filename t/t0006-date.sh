@@ -33,6 +33,11 @@ check_relative 630000000 '20 years ago'
 check_relative 31449600 '12 months ago'
 check_relative 62985600 '2 years ago'
 
+test_expect_success HAVE_64BIT_TIME 'relative date handles the full timestamp range' '
+	test-tool date relative -9223372036854775807 >actual &&
+	test_grep "years ago$" actual
+'
+
 check_show () {
 	format=$1
 	time=$2

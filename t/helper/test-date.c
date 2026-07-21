@@ -18,7 +18,7 @@ static void show_relative_dates(const char **argv)
 	struct strbuf buf = STRBUF_INIT;
 
 	for (; *argv; argv++) {
-		time_t t = atoi(*argv);
+		timestamp_t t = parse_timestamp(*argv, NULL, 10);
 		show_date_relative(t, &buf);
 		printf("%s -> %s\n", *argv, buf.buf);
 	}
@@ -28,7 +28,7 @@ static void show_relative_dates(const char **argv)
 static void show_human_dates(const char **argv)
 {
 	for (; *argv; argv++) {
-		time_t t = atoi(*argv);
+		timestamp_t t = parse_timestamp(*argv, NULL, 10);
 		printf("%s -> %s\n", *argv, show_date(t, 0, DATE_MODE(HUMAN)));
 	}
 }
