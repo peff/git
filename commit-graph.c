@@ -2065,6 +2065,24 @@ static void copy_oids_to_commits(struct write_commit_graph_context *ctx)
 	stop_progress(&ctx->progress);
 }
 
+static int validate_commit_dates(struct write_commit_graph_context *ctx)
+{
+	uint32_t i;
+
+	for (i = 0; i < ctx->commits.nr; i++) {
+		struct commit *commit = ctx->commits.items[i];
+
+		if (repo_parse_commit_no_graph(ctx->r, commit))
+			continue;
+		if (commit->date < 0)
+			return error(_("commit-graph cannot store negative commit date "
+				       "%"PRItime" for commit %s"),
+				     commit->date, oid_to_hex(&commit->object.oid));
+	}
+
+	return 0;
+}
+
 static int write_graph_chunk_base_1(struct hashfile *f,
 				    struct commit_graph *g)
 {
@@ -2689,9 +2707,12 @@ int write_commit_graph(struct odb_source *source,
 
 		if (!replace)
 			merge_commit_graphs(&ctx, g);
-	} else {
-		ctx.num_commit_graphs_after = 1;
 	}
+
+	if ((res = validate_commit_dates(&ctx)))
+		goto cleanup;
+	if (!ctx.split)
+		ctx.num_commit_graphs_after = 1;
 
 	ctx.trust_generation_numbers = validate_mixed_generation_chain(g);
 
