@@ -206,6 +206,23 @@ test_expect_success 'git archive --mtime' '
 check_tar with_mtime
 check_mtime with_mtime a/a 1012622522
 
+test_expect_success 'negative mtime is stored in a pax header' '
+	negative=$(echo negative | GIT_AUTHOR_DATE="@-1 +0000" \
+		GIT_COMMITTER_DATE="@-1 +0000" git commit-tree HEAD^{tree}) &&
+	git archive $negative >negative.tar &&
+	dd if=negative.tar bs=512 skip=1 count=1 2>/dev/null >negative.pax &&
+	echo -1 >expect &&
+	get_pax_header negative.pax mtime >actual &&
+	test_cmp expect actual &&
+	{
+		dd if=negative.tar bs=1 skip=136 count=12 2>/dev/null |
+			tr -d "\\0" &&
+		echo
+	} >actual &&
+	echo 00000000000 >expect &&
+	test_cmp expect actual
+'
+
 test_expect_success 'git archive --prefix=prefix/' '
 	git archive --prefix=prefix/ HEAD >with_prefix.tar
 '
@@ -516,6 +533,16 @@ test_expect_success TAR_HUGE,LONG_IS_64BIT 'system tar can read our huge size' '
 	test_cmp expect actual
 '
 
+test_expect_success TIME_IS_64BIT 'ustar mtime is not truncated to unsigned long' '
+	wide=$(echo wide | GIT_AUTHOR_DATE="@4294967296 +0000" \
+		GIT_COMMITTER_DATE="@4294967296 +0000" \
+		git commit-tree HEAD^^{tree}) &&
+	git archive $wide >wide-time.tar &&
+	dd if=wide-time.tar bs=1 skip=136 count=11 2>/dev/null >actual &&
+	printf 40000000000 >expect &&
+	test_cmp expect actual
+'
+
 test_expect_success TIME_IS_64BIT 'set up repository with far-future (2^34 - 1) commit' '
 	rm -f .git/index &&
 	echo foo >file &&
@@ -525,7 +552,11 @@ test_expect_success TIME_IS_64BIT 'set up repository with far-future (2^34 - 1) 
 '
 
 test_expect_success TIME_IS_64BIT 'generate tar with far-future mtime' '
-	git archive HEAD >future.tar
+	git archive HEAD >future.tar &&
+	dd if=future.tar bs=512 skip=1 count=1 2>/dev/null >future.pax &&
+	echo 17179869183 >expect &&
+	get_pax_header future.pax mtime >actual &&
+	test_cmp expect actual
 '
 
 test_expect_success TAR_HUGE,TIME_IS_64BIT,TIME_T_IS_64BIT 'system tar can read our future mtime' '

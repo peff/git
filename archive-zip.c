@@ -21,6 +21,7 @@
 
 static int zip_date;
 static int zip_time;
+static uint32_t zip_mtime;
 
 /* We only care about the "buf" part here. */
 static struct strbuf zip_dir;
@@ -384,7 +385,7 @@ static int write_zip_entry(struct archiver_args *args,
 	copy_le16(extra.magic, 0x5455);
 	copy_le16(extra.extra_size, ZIP_EXTRA_MTIME_PAYLOAD_SIZE);
 	extra.flags[0] = 1;	/* just mtime */
-	copy_le32(extra.mtime, args->time);
+	copy_le32(extra.mtime, zip_mtime);
 
 	if (size > 0xffffffff || compressed_size > 0xffffffff)
 		need_zip64_extra = 1;
@@ -615,12 +616,43 @@ static void dos_time(timestamp_t *timestamp, int *dos_date, int *dos_time)
 	time_t time;
 	struct tm tm;
 
+	/*
+	 * The extended timestamp field is a signed 32-bit Unix time.  Clamp
+	 * values outside that range instead of letting them wrap.  DOS
+	 * timestamps have a different range and are clamped independently.
+	 */
+	if (*timestamp < INT32_MIN)
+		zip_mtime = (uint32_t)INT32_MIN;
+	else if (*timestamp > INT32_MAX)
+		zip_mtime = INT32_MAX;
+	else
+		zip_mtime = (uint32_t)*timestamp;
+
+	if (*timestamp < 0) {
+		*dos_date = 1 + 1 * 32; /* 1980-01-01 */
+		*dos_time = 0;
+		return;
+	}
+
 	if (date_overflows(*timestamp))
 		die(_("timestamp too large for this system: %"PRItime),
 		    *timestamp);
 	time = (time_t)*timestamp;
-	localtime_r(&time, &tm);
+	if (!localtime_r(&time, &tm))
+		die(_("timestamp too large for this system: %"PRItime),
+		    *timestamp);
 	*timestamp = time;
+
+	if (tm.tm_year < 80) {
+		*dos_date = 1 + 1 * 32; /* 1980-01-01 */
+		*dos_time = 0;
+		return;
+	}
+	if (tm.tm_year > 207) {
+		*dos_date = 31 + 12 * 32 + 127 * 512; /* 2107-12-31 */
+		*dos_time = 29 + 59 * 32 + 23 * 2048; /* 23:59:58 */
+		return;
+	}
 
 	*dos_date = tm.tm_mday + (tm.tm_mon + 1) * 32 +
 		    (tm.tm_year + 1900 - 1980) * 512;
