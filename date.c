@@ -577,7 +577,7 @@ static int match_alpha(const char *date, struct tm *tm, int *offset)
 			off += timezone_names[i].dst;
 
 			/* Only use the tz name offset if we don't have anything better */
-			if (*offset == -1)
+			if (*offset == DATE_OFFSET_UNSET)
 				*offset = 60*off;
 
 			return match;
@@ -618,7 +618,7 @@ static int set_date(int year, int month, int day, struct tm *now_tm, time_t now,
 				return 1;
 			r->tm_year = now_tm->tm_year;
 		}
-		else if (year >= 1970 && year < 2100)
+		else if (year >= 1900 && year < 2100)
 			r->tm_year = year - 1900;
 		else if (year > 70 && year < 100)
 			r->tm_year = year;
@@ -841,11 +841,11 @@ static int match_digit(const char *date, struct tm *tm, int *offset, int *tm_gmt
 
 	/* Four-digit year or a timezone? */
 	if (n == 4) {
-		if (num <= 1400 && *offset == -1) {
+		if (num <= 1400 && *offset == DATE_OFFSET_UNSET) {
 			unsigned int minutes = num % 100;
 			unsigned int hours = num / 100;
 			*offset = hours*60 + minutes;
-		} else if (num > 1900 && num < 2100)
+		} else if (num >= 1900 && num < 2100)
 			tm->tm_year = num - 1900;
 		return n;
 	}
@@ -964,15 +964,14 @@ static int match_object_header_date(const char *date, timestamp_t *timestamp, in
 }
 
 
-/* timestamp of 2099-12-31T23:59:59Z, including 32 leap days */
-static const timestamp_t timestamp_max = (((timestamp_t)2100 - 1970) * 365 + 32) * 24 * 60 * 60 - 1;
-
 /* Gr. strptime is crap for this; it doesn't have a way to require RFC2822
    (i.e. English) day/month names, and it doesn't work correctly with %z. */
 int parse_date_basic(const char *date, timestamp_t *timestamp, int *offset)
 {
 	struct tm tm;
 	int tm_gmt;
+	time_t parsed_time;
+	timestamp_t offset_seconds;
 	timestamp_t dummy_timestamp;
 	int dummy_offset;
 
@@ -989,7 +988,7 @@ int parse_date_basic(const char *date, timestamp_t *timestamp, int *offset)
 	tm.tm_hour = -1;
 	tm.tm_min = -1;
 	tm.tm_sec = -1;
-	*offset = -1;
+	*offset = DATE_OFFSET_UNSET;
 	tm_gmt = 0;
 
 	if (*date == '@' &&
@@ -1019,15 +1018,20 @@ int parse_date_basic(const char *date, timestamp_t *timestamp, int *offset)
 	}
 
 	/* do not use mktime(), which uses local timezone, here */
-	*timestamp = tm_to_time_t(&tm);
-	if (*timestamp == -1)
+	if (tm_to_time_t_internal(&tm, 0, &parsed_time))
 		return -1;
+	*timestamp = parsed_time;
 
-	if (*offset == -1) {
+	if (*offset == DATE_OFFSET_UNSET) {
 		time_t temp_time;
 
 		/* gmtime_r() in match_digit() may have clobbered it */
 		tm.tm_isdst = -1;
+#ifdef GIT_WINDOWS_NATIVE
+		if (tm.tm_year < 70)
+			temp_time = mingw_mktime_before_1970(&tm);
+		else
+#endif
 		temp_time = mktime(&tm);
 		if ((time_t)*timestamp > temp_time) {
 			*offset = ((time_t)*timestamp - temp_time) / 60;
@@ -1037,13 +1041,16 @@ int parse_date_basic(const char *date, timestamp_t *timestamp, int *offset)
 	}
 
 	if (!tm_gmt) {
-		if (*offset > 0 && *offset * 60 > *timestamp)
+		offset_seconds = (timestamp_t)*offset * 60;
+		if ((offset_seconds > 0 &&
+		     *timestamp < TIME_MIN + offset_seconds) ||
+		    (offset_seconds < 0 &&
+		     *timestamp > TIME_MAX + offset_seconds))
 			return -1;
-		if (*offset < 0 && -*offset * 60 > timestamp_max - *timestamp)
+		*timestamp -= offset_seconds;
+		if (date_overflows(*timestamp))
 			return -1;
-		*timestamp -= *offset * 60;
 	}
-
 	return 0; /* success */
 }
 
