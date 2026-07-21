@@ -159,6 +159,40 @@ test_expect_success \
 
 check_zip d
 
+test_expect_success 'zip timestamps before 1980 use safe representations' '
+	empty_blob=$(git hash-object -w --stdin </dev/null) &&
+	early_tree=$(printf "100644 blob %s\\tfile\\n" "$empty_blob" |
+		git mktree) &&
+	early=$(echo early | GIT_AUTHOR_DATE="@1 +0000" \
+		GIT_COMMITTER_DATE="@1 +0000" git commit-tree $early_tree) &&
+	negative=$(echo negative | GIT_AUTHOR_DATE="@-1 +0000" \
+		GIT_COMMITTER_DATE="@-1 +0000" git commit-tree $early_tree) &&
+
+	git archive --format=zip $early >early.zip &&
+	test-tool hexdump <early.zip |
+		cut -d" " -f11-14,29-30,35-43 >actual &&
+	echo "00 00 21 00 09 00 55 54 05 00 01 01 00 00 00" >expect &&
+	test_cmp expect actual &&
+
+	git archive --format=zip $negative >negative.zip &&
+	test-tool hexdump <negative.zip |
+		cut -d" " -f11-14,29-30,35-43 >actual &&
+	echo "00 00 21 00 09 00 55 54 05 00 01 ff ff ff ff" >expect &&
+	test_cmp expect actual
+'
+
+test_expect_success TIME_T_IS_64BIT 'zip extended mtime is clamped at int32 max' '
+	empty_blob=$(git hash-object -w --stdin </dev/null) &&
+	late_tree=$(printf "100644 blob %s\\tfile\\n" "$empty_blob" |
+		git mktree) &&
+	late=$(echo late | GIT_AUTHOR_DATE="@2147483648 +0000" \
+		GIT_COMMITTER_DATE="@2147483648 +0000" git commit-tree $late_tree) &&
+	git archive --format=zip $late >late.zip &&
+	test-tool hexdump <late.zip | cut -d" " -f35-43 >actual &&
+	echo "55 54 05 00 01 ff ff ff 7f" >expect &&
+	test_cmp expect actual
+'
+
 test_expect_success \
     'git archive --format=zip in a bare repo' \
     '(cd bare.git && git archive --format=zip HEAD) >d1.zip'
