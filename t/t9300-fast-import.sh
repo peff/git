@@ -424,6 +424,21 @@ test_expect_success 'B: reject invalid timezone' '
 	test_must_fail git fast-import <input
 '
 
+test_expect_success 'B: accept negative raw timestamp' '
+	cat >input <<-INPUT_END &&
+	commit refs/heads/negative-date
+	committer $GIT_COMMITTER_NAME <$GIT_COMMITTER_EMAIL> -1 +0000
+	data <<COMMIT
+	negative timestamp
+	COMMIT
+	INPUT_END
+
+	git init negative-date &&
+	git -C negative-date fast-import <input &&
+	git -C negative-date cat-file commit negative-date >actual &&
+	test_grep "^committer .* -1 +0000$" actual
+'
+
 test_expect_success 'B: accept invalid timezone with raw-permissive' '
 	cat >input <<-INPUT_END &&
 	commit refs/heads/invalid-timezone
