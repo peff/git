@@ -82,8 +82,12 @@ ident_checks () {
 	check $1 badEmail "$2 name <email"
 	check $1 missingSpaceBeforeDate "$2 name <email>"
 	check $1 badDate "$2 name <email> "
+	check $1 badDate "$2 name <email> -"
+	check $1 badDate "$2 name <email> --1 +0000"
 	check $1 badDate "$2 name <email> 1234"
+	check $1 badDate "$2 name <email> -1234"
 	check $1 badTimezone "$2 name <email> 1234 "
+	check $1 badTimezone "$2 name <email> -1234 "
 	check $1 badTimezone "$2 name <email> 1234 +"
 }
 ident_checks commit author
