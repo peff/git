@@ -522,8 +522,44 @@ test_expect_success 'can_all_from_reach_with_flag: tags case' '
 	Y:commit-7-3
 	Y:commit-8-1
 	EOF
-	echo "can_all_from_reach_with_flag(X,_,_,0,0):1" >expect &&
+	echo "can_all_from_reach_with_flag(X,_,_,TIME_MIN,0):1" >expect &&
 	test_all_modes can_all_from_reach_with_flag
+'
+
+test_expect_success 'reachability walks negative timestamps' '
+	test_when_finished "rm -rf negative-reach" &&
+	git init negative-reach &&
+	(
+		cd negative-reach &&
+		tree=$(git mktree </dev/null) &&
+		base=$(GIT_AUTHOR_DATE="@1 +0000" \
+			GIT_COMMITTER_DATE="@1 +0000" \
+			git commit-tree -m base "$tree") &&
+		git update-ref refs/heads/base "$base" &&
+		git commit-graph write --reachable &&
+		parent=$(GIT_AUTHOR_DATE="@-200 +0000" \
+			 GIT_COMMITTER_DATE="@-200 +0000" \
+			 git commit-tree -m parent -p "$base" "$tree") &&
+		tip=$(GIT_AUTHOR_DATE="@-100 +0000" \
+		      GIT_COMMITTER_DATE="@-100 +0000" \
+		      git commit-tree -m tip -p "$parent" "$tree") &&
+
+		cat >input <<-EOF &&
+		A:$tip
+		X:$base
+		EOF
+		echo "is_descendant_of(A,X):1" >expect &&
+		test-tool reach is_descendant_of <input >actual &&
+		test_cmp expect actual &&
+
+		cat >input <<-EOF &&
+		X:$tip
+		Y:$base
+		EOF
+		echo "can_all_from_reach_with_flag(X,_,_,TIME_MIN,0):1" >expect &&
+		test-tool reach can_all_from_reach_with_flag <input >actual &&
+		test_cmp expect actual
+	)
 '
 
 test_expect_success 'commit_contains:hit' '
