@@ -94,7 +94,7 @@ static const char *NONCE_MISSING = "MISSING";
 static const char *NONCE_OK = "OK";
 static const char *NONCE_SLOP = "SLOP";
 static const char *nonce_status;
-static long nonce_stamp_slop;
+static timestamp_t nonce_stamp_slop;
 static timestamp_t nonce_stamp_slop_limit;
 static struct ref_transaction *transaction;
 
@@ -650,6 +650,15 @@ static int constant_memequal(const char *a, const char *b, size_t n)
 	return res;
 }
 
+static timestamp_t subtract_timestamps(timestamp_t a, timestamp_t b)
+{
+	if (b > 0 && a < TIME_MIN + b)
+		return TIME_MIN;
+	if (b < 0 && a > TIME_MAX + b)
+		return TIME_MAX;
+	return a - b;
+}
+
 static const char *check_nonce(const char *buf)
 {
 	size_t noncelen;
@@ -717,10 +726,11 @@ static const char *check_nonce(const char *buf)
 	 * skewed in the future.
 	 */
 	ostamp = parse_timestamp(push_cert_nonce, NULL, 10);
-	nonce_stamp_slop = (long)ostamp - (long)stamp;
+	nonce_stamp_slop = subtract_timestamps(ostamp, stamp);
 
-	if (nonce_stamp_slop_limit &&
-	    labs(nonce_stamp_slop) <= nonce_stamp_slop_limit) {
+	if (nonce_stamp_slop_limit > 0 &&
+	    nonce_stamp_slop >= -nonce_stamp_slop_limit &&
+	    nonce_stamp_slop <= nonce_stamp_slop_limit) {
 		/*
 		 * Pretend as if the received nonce (which passes the
 		 * HMAC check, so it is not a forged by third-party)
@@ -814,7 +824,7 @@ static void prepare_push_cert_sha1(struct run_hooks_opt *opt)
 				     nonce_status);
 			if (nonce_status == NONCE_SLOP)
 				strvec_pushf(&opt->env,
-					     "GIT_PUSH_CERT_NONCE_SLOP=%ld",
+					     "GIT_PUSH_CERT_NONCE_SLOP=%"PRItime,
 					     nonce_stamp_slop);
 		}
 	}
