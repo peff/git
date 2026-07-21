@@ -487,7 +487,7 @@ static void parse_treeish_arg(const char **argv,
 {
 	const char *name = argv[0];
 	const struct object_id *commit_oid;
-	time_t archive_time;
+	timestamp_t archive_time;
 	struct tree *tree;
 	const struct commit *commit;
 	struct object_id oid;
