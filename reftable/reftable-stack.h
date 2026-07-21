@@ -136,7 +136,9 @@ int reftable_stack_reload(struct reftable_stack *st);
 /* Policy for expiring reflog entries. */
 struct reftable_log_expiry_config {
 	/* Drop entries older than this timestamp */
-	uint64_t time;
+	int64_t time;
+	/* Set to make an epoch timestamp an active cutoff. */
+	int time_set;
 
 	/* Drop older entries */
 	uint64_t min_update_index;

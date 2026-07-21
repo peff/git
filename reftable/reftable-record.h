@@ -89,7 +89,7 @@ struct reftable_log_record {
 			unsigned char old_hash[REFTABLE_HASH_SIZE_MAX];
 			char *name;
 			char *email;
-			uint64_t time;
+			int64_t time;
 			int16_t tz_offset;
 			char *message;
 			size_t message_cap;

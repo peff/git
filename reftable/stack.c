@@ -1052,7 +1052,7 @@ static int stack_write_compact(struct reftable_stack *st,
 			continue;
 		}
 
-		if (config && config->time > 0 &&
+		if (config && (config->time_set || config->time != 0) &&
 		    log.value.update.time < config->time) {
 			continue;
 		}

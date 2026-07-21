@@ -294,10 +294,22 @@ out:
 	return ret;
 }
 
-static void fill_reftable_log_record(struct reftable_log_record *log, const struct ident_split *split)
+static int fill_reftable_log_record(struct reftable_log_record *log,
+				    const struct ident_split *split)
 {
+	char *date_end;
 	const char *tz_begin;
+	timestamp_t timestamp;
 	int sign = 1;
+
+	if (!split->date_begin || !split->date_end)
+		return error(_("reflog identity has no timestamp"));
+
+	errno = 0;
+	timestamp = parse_timestamp(split->date_begin, &date_end, 10);
+	if (errno == ERANGE || date_end != split->date_end ||
+	    timestamp < INT64_MIN || timestamp > INT64_MAX)
+		return error(_("invalid reflog timestamp"));
 
 	reftable_log_record_release(log);
 	log->value_type = REFTABLE_LOG_UPDATE;
@@ -305,7 +317,7 @@ static void fill_reftable_log_record(struct reftable_log_record *log, const stru
 		xstrndup(split->name_begin, split->name_end - split->name_begin);
 	log->value.update.email =
 		xstrndup(split->mail_begin, split->mail_end - split->mail_begin);
-	log->value.update.time = atol(split->date_begin);
+	log->value.update.time = timestamp;
 
 	tz_begin = split->tz_begin;
 	if (*tz_begin == '-') {
@@ -318,6 +330,7 @@ static void fill_reftable_log_record(struct reftable_log_record *log, const stru
 	}
 
 	log->value.update.tz_offset = sign * atoi(tz_begin);
+	return 0;
 }
 
 static int reftable_be_config(const char *var, const char *value,
@@ -1583,7 +1596,9 @@ static int write_transaction_table(struct reftable_writer *writer, void *cb_data
 					c = committer_ident;
 				}
 
-				fill_reftable_log_record(log, &c);
+				ret = fill_reftable_log_record(log, &c);
+				if (ret < 0)
+					goto done;
 
 				/*
 				 * Updates are sorted by the writer. So updates for the same
@@ -1865,7 +1880,9 @@ static int write_copy_table(struct reftable_writer *writer, void *cb_data)
 
 		ALLOC_GROW(logs, logs_nr + 1, logs_alloc);
 		memset(&logs[logs_nr], 0, sizeof(logs[logs_nr]));
-		fill_reftable_log_record(&logs[logs_nr], &committer_ident);
+		ret = fill_reftable_log_record(&logs[logs_nr], &committer_ident);
+		if (ret < 0)
+			goto done;
 		logs[logs_nr].refname = xstrdup(arg->newname);
 		logs[logs_nr].update_index = deletion_ts;
 		logs[logs_nr].value.update.message =
@@ -1904,7 +1921,9 @@ static int write_copy_table(struct reftable_writer *writer, void *cb_data)
 	 */
 	ALLOC_GROW(logs, logs_nr + 1, logs_alloc);
 	memset(&logs[logs_nr], 0, sizeof(logs[logs_nr]));
-	fill_reftable_log_record(&logs[logs_nr], &committer_ident);
+	ret = fill_reftable_log_record(&logs[logs_nr], &committer_ident);
+	if (ret < 0)
+		goto done;
 	logs[logs_nr].refname = xstrdup(arg->newname);
 	logs[logs_nr].update_index = creation_ts;
 	logs[logs_nr].value.update.message =

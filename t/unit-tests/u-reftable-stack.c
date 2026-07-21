@@ -843,9 +843,7 @@ void test_reftable_stack__reflog_expire(void)
 	struct reftable_stack *st = NULL;
 	struct reftable_log_record logs[20] = { 0 };
 	size_t i, N = ARRAY_SIZE(logs) - 1;
-	struct reftable_log_expiry_config expiry = {
-		.time = 10,
-	};
+	struct reftable_log_expiry_config expiry = { 0 };
 	struct reftable_log_record log = { 0 };
 
 	cl_assert_equal_i(reftable_new_stack(&st, dir, NULL), 0);
@@ -857,7 +855,8 @@ void test_reftable_stack__reflog_expire(void)
 		logs[i].refname = xstrdup(buf);
 		logs[i].update_index = i;
 		logs[i].value_type = REFTABLE_LOG_UPDATE;
-		logs[i].value.update.time = i;
+		logs[i].value.update.time = i == 1 ? -2 :
+					    i == 2 ? -1 : (int64_t)i;
 		logs[i].value.update.email = xstrdup("identity@invalid");
 		cl_reftable_set_hash(logs[i].value.update.new_hash, i,
 				     REFTABLE_HASH_SHA1);
@@ -873,7 +872,27 @@ void test_reftable_stack__reflog_expire(void)
 	}
 
 	cl_assert_equal_i(reftable_stack_compact_all(st, NULL, NULL), 0);
+	expiry.time_set = 1;
+	expiry.time = -1;
 	cl_assert_equal_i(reftable_stack_compact_all(st, NULL, &expiry), 0);
+	cl_assert_equal_i(reftable_stack_read_log(st, logs[1].refname,
+						  &log), 1);
+	cl_assert_equal_i(reftable_stack_read_log(st, logs[2].refname,
+						  &log), 0);
+	cl_assert_equal_i(reftable_stack_read_log(st, logs[11].refname,
+						  &log), 0);
+
+	expiry.time = 0;
+	cl_assert_equal_i(reftable_stack_compact_all(st, NULL, &expiry), 0);
+	cl_assert_equal_i(reftable_stack_read_log(st, logs[2].refname,
+						  &log), 1);
+	cl_assert_equal_i(reftable_stack_read_log(st, logs[3].refname,
+						  &log), 0);
+
+	expiry.time = 10;
+	cl_assert_equal_i(reftable_stack_compact_all(st, NULL, &expiry), 0);
+	cl_assert_equal_i(reftable_stack_read_log(st, logs[2].refname,
+						  &log), 1);
 	cl_assert_equal_i(reftable_stack_read_log(st, logs[9].refname,
 						  &log), 1);
 	cl_assert_equal_i(reftable_stack_read_log(st, logs[11].refname,
