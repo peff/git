@@ -28,13 +28,7 @@ TEST_NO_MALLOC_CHECK=t
 # GIT-BUILD-OPTIONS, sourced by test-lib.sh, overwrites the `GIT_PERF_*`
 # values that are set by the user (if any). Let's stash them away
 # in a form that test-lib.sh will restore automatically.
-GIT_TEST_ENV_OVERRIDES="$(env |
-	sed -n "/^GIT_PERF_/{
-		# escape all single-quotes in the value
-		s/'/'\\\\''/g
-		# turn this into an eval-able assignment
-		s/^\\([^=]*=\\)\\(.*\\)/\\1'\\2'/p
-	}")"
+GIT_TEST_ENV_OVERRIDES="$(set)"
 
 # While test-lib.sh computes the build directory for us, we also have to do the
 # same thing in order to locate the script via GIT-BUILD-OPTIONS in the first
