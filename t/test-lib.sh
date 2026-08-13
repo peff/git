@@ -121,14 +121,11 @@ export UBSAN_OPTIONS
 # It is important that existing overrides go after what we load from the
 # environment. We want them to take precedence, and shell assignments
 # will overwrite, giving us last-one-wins semantics.
-GIT_TEST_ENV_OVERRIDES="$(env |
-	sed -n "/^\(TEST_OUTPUT_DIRECTORY=\|GIT_TEST_\)/{
-		# escape all single-quotes in the value
-		s/'/'\\\\''/g
-		# turn this into an eval-able assignment
-		s/^\\([^=]*=\\)\\(.*\\)/\\1'\\2'/p
-	}")
+GIT_TEST_ENV_OVERRIDES="$(
+	unset GIT_TEST_ENV_OVERRIDES
+	set
 	$GIT_TEST_ENV_OVERRIDES
+)
 "
 
 if test ! -f "$GIT_BUILD_DIR"/GIT-BUILD-OPTIONS
