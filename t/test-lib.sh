@@ -122,7 +122,7 @@ export UBSAN_OPTIONS
 # environment. We want them to take precedence, and shell assignments
 # will overwrite, giving us last-one-wins semantics.
 GIT_TEST_ENV_OVERRIDES="$(env |
-	sed -n "/^TEST_OUTPUT_DIRECTORY=/{
+	sed -n "/^\(TEST_OUTPUT_DIRECTORY=\|GIT_TEST_\)/{
 		# escape all single-quotes in the value
 		s/'/'\\\\''/g
 		# turn this into an eval-able assignment
