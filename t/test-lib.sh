@@ -123,7 +123,7 @@ export UBSAN_OPTIONS
 # will overwrite, giving us last-one-wins semantics.
 GIT_TEST_ENV_OVERRIDES="$(
 	unset GIT_TEST_ENV_OVERRIDES
-	set
+	set | grep -E '^(GIT_TEST_|TEST_OUTPUT_DIRECTORY=)'
 	$GIT_TEST_ENV_OVERRIDES
 )
 "
