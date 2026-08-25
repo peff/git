@@ -1339,6 +1339,9 @@ static int odb_transaction_files_write_pack(struct odb_transaction *base,
 	if (opts->max_input_size)
 		strvec_pushf(&child.args, "--max-input-size=%"PRIuMAX,
 			     (uintmax_t)opts->max_input_size);
+	if (opts->warn_object_size)
+		strvec_pushf(&child.args, "--warn-object-size=%"PRIuMAX,
+			     (uintmax_t)opts->warn_object_size);
 	child.out = -1;
 	child.in = pack_fd;
 	child.err = err_fd;
