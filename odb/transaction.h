@@ -27,6 +27,12 @@ struct odb_transaction_write_pack_opts {
 	off_t max_input_size;
 
 	/*
+	 * Like max_input_size, but do not abort; just write the names into a
+	 * file which can be interpreted by hooks.
+	 */
+	off_t warn_object_size;
+
+	/*
 	 * Whether the validity of incoming objects should be verified.
 	 */
 	int fsck_objects;
