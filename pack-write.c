@@ -402,6 +402,13 @@ void fixup_pack_header_footer(const struct git_hash_algo *hash_algo,
 	char *buf;
 	ssize_t read_result;
 
+	/*
+	 * We are computing a pack checksum here, not an object hash. So we
+	 * can use a faster "unsafe" variant that does not do collision
+	 * detection.
+	 */
+	hash_algo = unsafe_hash_algo(hash_algo);
+
 	git_hash_init(&old_hash_ctx, hash_algo);
 	git_hash_init(&new_hash_ctx, hash_algo);
 
