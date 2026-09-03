@@ -1413,8 +1413,7 @@ static void write_pack_file(void)
 			const struct git_hash_algo *algo = f->algop;
 			int fd = finalize_hashfile(f, hash, FSYNC_COMPONENT_PACK, 0);
 			fixup_pack_header_footer(algo, fd, hash,
-						 pack_tmp_name, nr_written,
-						 hash, offset);
+						 pack_tmp_name, nr_written);
 			close(fd);
 			if (write_bitmap_index) {
 				if (write_bitmap_index != WRITE_BITMAP_QUIET)
