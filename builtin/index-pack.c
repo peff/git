@@ -1378,7 +1378,6 @@ static void conclude_pack(int fix_thin_pack, const char *curr_pack, unsigned cha
 
 	if (fix_thin_pack) {
 		struct hashfile *f;
-		unsigned char read_hash[GIT_MAX_RAWSZ], tail_hash[GIT_MAX_RAWSZ];
 		struct strbuf msg = STRBUF_INIT;
 		int nr_unresolved = nr_ofs_deltas + nr_ref_deltas - nr_resolved_deltas;
 		int nr_objects_initial = nr_objects;
@@ -1395,14 +1394,9 @@ static void conclude_pack(int fix_thin_pack, const char *curr_pack, unsigned cha
 			    nr_objects - nr_objects_initial);
 		stop_progress_msg(&progress, msg.buf);
 		strbuf_release(&msg);
-		finalize_hashfile(f, tail_hash, FSYNC_COMPONENT_PACK, 0);
-		hashcpy(read_hash, pack_hash, the_repository->hash_algo);
+		finalize_hashfile(f, NULL, FSYNC_COMPONENT_PACK, 0);
 		fixup_pack_header_footer(the_hash_algo, output_fd, pack_hash,
-					 curr_pack, nr_objects,
-					 read_hash, consumed_bytes-the_hash_algo->rawsz);
-		if (!hasheq(read_hash, tail_hash, the_repository->hash_algo))
-			die(_("Unexpected tail checksum for %s "
-			      "(disk corruption?)"), curr_pack);
+					 curr_pack, nr_objects);
 	}
 	if (nr_ofs_deltas + nr_ref_deltas != nr_resolved_deltas)
 		die(Q_("pack has %d unresolved delta",
