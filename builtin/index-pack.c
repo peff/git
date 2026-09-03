@@ -1387,6 +1387,7 @@ static void conclude_pack(int fix_thin_pack, const char *curr_pack, unsigned cha
 		memset(objects + nr_objects + 1, 0,
 		       nr_unresolved * sizeof(*objects));
 		f = hashfd(the_repository->hash_algo, output_fd, curr_pack);
+		f->skip_hash = 1;
 		fix_unresolved_deltas(f);
 		strbuf_addf(&msg, Q_("completed with %d local object",
 				     "completed with %d local objects",
