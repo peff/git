@@ -104,8 +104,7 @@ int verify_pack(struct repository *, struct packed_git *, verify_fn fn, void *fn
 		struct progress *, uint32_t);
 off_t write_pack_header(struct hashfile *f, uint32_t);
 void fixup_pack_header_footer(const struct git_hash_algo *, int,
-			      unsigned char *, const char *, uint32_t,
-			      unsigned char *, off_t);
+			      unsigned char *, const char *, uint32_t);
 char *index_pack_lockfile(struct odb_source *source, int fd,
 			  int *is_well_formed);
 

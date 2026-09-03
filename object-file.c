@@ -833,8 +833,7 @@ static void flush_packfile_transaction(struct odb_transaction_files *transaction
 	} else {
 		int fd = finalize_hashfile(state->f, hash, FSYNC_COMPONENT_PACK, 0);
 		fixup_pack_header_footer(repo->hash_algo, fd, hash, state->pack_tmp_name,
-					 state->nr_written, hash,
-					 state->offset);
+					 state->nr_written);
 		close(fd);
 	}
 
