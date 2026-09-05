@@ -161,27 +161,27 @@ test_expect_success 'pack-object <stdin parsing: --stdin-packs handles garbage' 
 	test_cmp err.expect err.actual
 '
 
-# usage: check_deltas <stderr_from_pack_objects> <cmp_op> <nr_deltas>
-# e.g.: check_deltas stderr -gt 0
+# usage: check_deltas <cmp_op> <nr_deltas> <pack-objects opts...>
+# e.g.: check_deltas -gt 0 --window=10
 check_deltas() {
-	deltas=$(sed -n 's/Total [0-9][0-9]* (delta \([0-9][0-9]*\)).*/\1/p' "$1") &&
-	shift &&
-	if ! test "$deltas" "$@"
+	local op="$1"; shift
+	local nr="$1"; shift
+	git pack-objects --progress --no-reuse-delta "$@" 2>stderr &&
+	deltas=$(perl -lne '/delta (\d+)/ and print $1' stderr) &&
+	deltas=$(sed -n 's/Total [0-9][0-9]* (delta \([0-9][0-9]*\)).*/\1/p' stderr) &&
+	if ! test "$deltas" "$op" "$nr"
 	then
-		echo >&2 "unexpected number of deltas (compared $delta $*)"
+		echo >&2 "unexpected number of deltas (compared $delta $op $nr)"
 		return 1
 	fi
 }
 
 test_expect_success 'pack without delta' '
-	packname_1=$(git pack-objects --progress --window=0 test-1 \
-			<obj-list 2>stderr) &&
-	check_deltas stderr = 0
+	packname_1=$(check_deltas = 0 --window=0 test-1 <obj-list)
 '
 
 test_expect_success 'negative window clamps to 0' '
-	git pack-objects --progress --window=-1 neg-window <obj-list 2>stderr &&
-	check_deltas stderr = 0
+	check_deltas = 0 --window=-1 neg-window <obj-list
 '
 
 test_expect_success 'pack-objects with bogus arguments' '
@@ -213,8 +213,7 @@ test_expect_success 'unpack without delta (core.fsyncmethod=batch)' '
 '
 
 test_expect_success 'pack with REF_DELTA' '
-	packname_2=$(git pack-objects --progress test-2 <obj-list 2>stderr) &&
-	check_deltas stderr -gt 0
+	packname_2=$(check_deltas -gt 0 test-2 <obj-list)
 '
 
 test_expect_success 'unpack with REF_DELTA' '
@@ -226,9 +225,7 @@ test_expect_success 'unpack with REF_DELTA (core.fsyncmethod=batch)' '
 '
 
 test_expect_success 'pack with OFS_DELTA' '
-	packname_3=$(git pack-objects --progress --delta-base-offset test-3 \
-			<obj-list 2>stderr) &&
-	check_deltas stderr -gt 0
+	packname_3=$(check_deltas -gt 0 --delta-base-offset test-3 <obj-list)
 '
 
 test_expect_success 'unpack with OFS_DELTA' '
@@ -509,7 +506,7 @@ test_expect_success 'cleanup for --strict and --fsck-objects downgrading fsck ms
 '
 
 test_expect_success 'honor pack.packSizeLimit' '
-	git config pack.packSizeLimit 3m &&
+	test_config pack.packSizeLimit 3m &&
 	packname_10=$(git pack-objects test-10 <obj-list) &&
 	test 2 = $(ls test-10-*.pack | wc -l)
 '
@@ -519,13 +516,25 @@ test_expect_success 'verify resulting packs' '
 '
 
 test_expect_success 'tolerate packsizelimit smaller than biggest object' '
-	git config pack.packSizeLimit 1 &&
+	test_config pack.packSizeLimit 1 &&
 	packname_11=$(git pack-objects test-11 <obj-list) &&
 	test 5 = $(ls test-11-*.pack | wc -l)
 '
 
 test_expect_success 'verify resulting packs' '
 	git verify-pack test-11-*.pack
+'
+
+test_expect_success 'pack with window=10 finds a delta' '
+	check_deltas = 1 --window=10 window-10 <obj-list
+'
+
+test_expect_success 'pack with work limit' '
+	check_deltas = 0 --window=10 --window-slot-limit=1 limit <obj-list
+'
+
+test_expect_success 'pack with byte limit' '
+	check_deltas = 0 --window=10 --window-byte-limit=100 byte <obj-list
 '
 
 test_expect_success 'set up pack for non-repo tests' '
