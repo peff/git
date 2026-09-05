@@ -306,7 +306,7 @@ struct rev_info {
 	int		patch_name_max;
 	int		no_inline;
 	int		show_log_size;
-	struct string_list *mailmap;
+	struct mailmap *mailmap;
 
 	const char *commit_header;
 	struct strbuf last_commit_header;

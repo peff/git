@@ -123,7 +123,7 @@ static int notes_rewrite_config(const char *k, const char *v,
 		/* note that a refs/ prefix is implied in the
 		 * underlying for_each_glob_ref */
 		if (starts_with(v, "refs/notes/"))
-			string_list_add_refs_by_glob(c->refs, v);
+			string_list_add_refs_by_glob(&c->refs, v);
 		else
 			warning(_("Refusing to rewrite notes in %s"
 				" (outside of refs/notes/)"), v);
@@ -142,8 +142,7 @@ struct notes_rewrite_cfg *init_copy_notes_for_rewrite(const char *cmd)
 	c->cmd = cmd;
 	c->enabled = 1;
 	c->combine = combine_notes_concatenate;
-	CALLOC_ARRAY(c->refs, 1);
-	c->refs->strdup_strings = 1;
+	string_list_init_dup(&c->refs);
 	c->refs_from_env = 0;
 	c->mode_from_env = 0;
 	if (rewrite_mode_env) {
@@ -160,18 +159,16 @@ struct notes_rewrite_cfg *init_copy_notes_for_rewrite(const char *cmd)
 	}
 	if (rewrite_refs_env) {
 		c->refs_from_env = 1;
-		string_list_add_refs_from_colon_sep(c->refs, rewrite_refs_env);
+		string_list_add_refs_from_colon_sep(&c->refs, rewrite_refs_env);
 	}
 	repo_config(the_repository, notes_rewrite_config, c);
-	if (!c->enabled || !c->refs->nr) {
-		string_list_clear(c->refs, 0);
-		free(c->refs);
+	if (!c->enabled || !c->refs.nr) {
+		string_list_clear(&c->refs, 0);
 		free(c);
 		return NULL;
 	}
-	c->trees = load_notes_trees(c->refs, NOTES_INIT_WRITABLE);
-	string_list_clear(c->refs, 0);
-	free(c->refs);
+	c->trees = load_notes_trees(&c->refs, NOTES_INIT_WRITABLE);
+	string_list_clear(&c->refs, 0);
 	return c;
 }
 
