@@ -4524,11 +4524,13 @@ static int try_create_file(struct apply_state *state, const char *path,
 		return !!mkdir(path, 0777);
 	}
 
-	if (repo_has_symlinks(state->repo) && S_ISLNK(mode))
+	if (repo_has_symlinks(state->repo) && S_ISLNK(mode)) {
 		/* Although buf:size is counted string, it also is NUL
 		 * terminated.
 		 */
-		return !!symlink(buf, path);
+		prepare_repo_settings(state->repo);
+		return !!safe_symlink(state->repo, buf, path);
+	}
 
 	fd = open(path, O_CREAT | O_EXCL | O_WRONLY, (mode & 0100) ? 0777 : 0666);
 	if (fd < 0)
