@@ -796,6 +796,7 @@ static void start_packfile(void)
 	p->do_not_close = 1;
 	p->repo = the_repository;
 	pack_file = hashfd(the_repository->hash_algo, pack_fd, p->pack_name);
+	pack_file->skip_hash = 1;
 
 	pack_data = p;
 	pack_size = write_pack_header(pack_file, 0);
@@ -897,18 +898,16 @@ static void end_packfile(void)
 	if (object_count) {
 		struct odb_source_files *files = odb_source_files_downcast(pack_data->repo->objects->sources);
 		struct packed_git *new_p;
-		struct object_id cur_pack_oid;
 		char *idx_name;
 		int i;
 		struct branch *b;
 		struct tag *t;
 
 		close_pack_windows(pack_data);
-		finalize_hashfile(pack_file, cur_pack_oid.hash, FSYNC_COMPONENT_PACK, 0);
+		finalize_hashfile(pack_file, NULL, FSYNC_COMPONENT_PACK, 0);
 		fixup_pack_header_footer(the_hash_algo, pack_data->pack_fd,
 					 pack_data->hash, pack_data->pack_name,
-					 object_count, cur_pack_oid.hash,
-					 pack_size);
+					 object_count);
 
 		if (object_count <= unpack_limit) {
 			if (!loosen_small_pack(pack_data)) {
