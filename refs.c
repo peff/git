@@ -1377,6 +1377,7 @@ struct ref_update *ref_transaction_add_update(
 
 static int transaction_refname_valid(const char *refname,
 				     const struct object_id *new_oid,
+				     const char *new_target,
 				     unsigned int flags, struct strbuf *err)
 {
 	if (flags & REF_SKIP_REFNAME_VERIFICATION)
@@ -1390,7 +1391,7 @@ static int transaction_refname_valid(const char *refname,
 			refusal_msg = _("refusing to update pseudoref '%s'");
 		strbuf_addf(err, refusal_msg, refname);
 		return 0;
-	} else if ((new_oid && !is_null_oid(new_oid)) ?
+	} else if (((new_oid && !is_null_oid(new_oid)) || new_target) ?
 		 check_refname_format(refname, REFNAME_FULLY_QUALIFIED) :
 		 !refname_is_safe(refname)) {
 		const char *refusal_msg;
@@ -1424,8 +1425,17 @@ enum ref_transaction_error ref_transaction_update(struct ref_transaction *transa
 		return REF_TRANSACTION_ERROR_GENERIC;
 	}
 
-	if (!transaction_refname_valid(refname, new_oid, flags, err))
+	if (!transaction_refname_valid(refname, new_oid, new_target, flags,
+				       err))
 		return REF_TRANSACTION_ERROR_GENERIC;
+
+	if (new_target && !(flags & REF_SKIP_OID_VERIFICATION) &&
+	    check_refname_format(new_target, REFNAME_FULLY_QUALIFIED) < 0) {
+		strbuf_addf(err,
+			    _("refusing to set '%s' to invalid ref '%s'"),
+			    refname, new_target);
+		return -1;
+	}
 
 	if (flags & ~REF_TRANSACTION_UPDATE_ALLOWED_FLAGS)
 		BUG("illegal flags 0x%x passed to ref_transaction_update()", flags);
@@ -1488,7 +1498,7 @@ int ref_transaction_update_reflog(struct ref_transaction *transaction,
 	flags = REF_HAVE_OLD | REF_HAVE_NEW | REF_LOG_ONLY | REF_FORCE_CREATE_REFLOG | REF_NO_DEREF |
 		REF_LOG_USE_PROVIDED_OIDS;
 
-	if (!transaction_refname_valid(refname, new_oid, flags, err))
+	if (!transaction_refname_valid(refname, new_oid, NULL, flags, err))
 		return -1;
 
 	update = ref_transaction_add_update(transaction, refname, flags,
@@ -2522,16 +2532,19 @@ int reference_get_peeled_oid(struct repository *repo,
 int refs_update_symref(struct ref_store *refs, const char *ref,
 		       const char *target, const char *logmsg)
 {
-	return refs_update_symref_extended(refs, ref, target, logmsg, NULL, 0);
+	return refs_update_symref_extended(refs, ref, target, logmsg, NULL, 0, 0);
 }
 
 int refs_update_symref_extended(struct ref_store *refs, const char *ref,
 		       const char *target, const char *logmsg,
-		       struct strbuf *referent, int create_only)
+		       struct strbuf *referent, int create_only,
+		       unsigned int flags)
 {
 	struct ref_transaction *transaction;
 	struct strbuf err = STRBUF_INIT;
 	int ret = 0, prepret = 0;
+
+	flags |= REF_NO_DEREF;
 
 	transaction = ref_store_transaction_begin(refs, 0, &err);
 	if (!transaction) {
@@ -2541,14 +2554,14 @@ int refs_update_symref_extended(struct ref_store *refs, const char *ref,
 	}
 	if (create_only) {
 		if (ref_transaction_create(transaction, ref, NULL, target,
-					   REF_NO_DEREF, logmsg, &err))
+					   flags, logmsg, &err))
 			goto error_return;
 		prepret = ref_transaction_prepare(transaction, &err);
 		if (prepret && prepret != REF_TRANSACTION_ERROR_CREATE_EXISTS)
 			goto error_return;
 	} else {
 		if (ref_transaction_update(transaction, ref, NULL, NULL,
-					   target, NULL, REF_NO_DEREF,
+					   target, NULL, flags,
 					   logmsg, &err) ||
 			ref_transaction_prepare(transaction, &err))
 			goto error_return;
