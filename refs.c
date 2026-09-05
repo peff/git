@@ -169,6 +169,8 @@ void update_ref_namespace(enum ref_namespace namespace, char *ref)
 	info->ref_updated = 1;
 }
 
+static int is_root_ref_syntax(const char *refname);
+
 /*
  * Try to read one refname component from the front of refname.
  * Return the length of the component found, or -1 if the component is
@@ -277,6 +279,15 @@ static int check_or_sanitize_refname(const char *refname, int flags,
 {
 	int component_len, component_count = 0;
 
+	if ((flags & REFNAME_FULLY_QUALIFIED)) {
+		const char *bare_ref;
+
+		parse_worktree_ref(refname, NULL, NULL, &bare_ref);
+		if (!starts_with(bare_ref, "refs/") &&
+		    !is_root_ref_syntax(bare_ref))
+			return -1;
+	}
+
 	if (!strcmp(refname, "@")) {
 		/* Refname is a single character '@'. */
 		if (sanitized)
@@ -311,8 +322,11 @@ static int check_or_sanitize_refname(const char *refname, int flags,
 		else
 			return -1;
 	}
-	if (!(flags & REFNAME_ALLOW_ONELEVEL) && component_count < 2)
+
+	if (!(flags & (REFNAME_ALLOW_ONELEVEL | REFNAME_FULLY_QUALIFIED)) &&
+	    component_count < 2)
 		return -1; /* Refname has only one component. */
+
 	return 0;
 }
 
@@ -403,12 +417,7 @@ int refname_is_safe(const char *refname)
 		return result;
 	}
 
-	do {
-		if (!isupper(*refname) && *refname != '_')
-			return 0;
-		refname++;
-	} while (*refname);
-	return 1;
+	return is_root_ref_syntax(refname);
 }
 
 /*
@@ -904,7 +913,7 @@ static int is_root_ref_syntax(const char *refname)
 	const char *c;
 
 	for (c = refname; *c; c++) {
-		if (!isupper(*c) && *c != '-' && *c != '_')
+		if (!isupper(*c) && *c != '_')
 			return 0;
 	}
 
@@ -1381,7 +1390,7 @@ static int transaction_refname_valid(const char *refname,
 		strbuf_addf(err, refusal_msg, refname);
 		return 0;
 	} else if ((new_oid && !is_null_oid(new_oid)) ?
-		 check_refname_format(refname, REFNAME_ALLOW_ONELEVEL) :
+		 check_refname_format(refname, REFNAME_FULLY_QUALIFIED) :
 		 !refname_is_safe(refname)) {
 		const char *refusal_msg;
 		if (flags & REF_LOG_ONLY)
@@ -2128,7 +2137,7 @@ const char *refs_resolve_ref_unsafe(struct ref_store *refs,
 
 	*flags = 0;
 
-	if (check_refname_format(refname, REFNAME_ALLOW_ONELEVEL)) {
+	if (check_refname_format(refname, REFNAME_FULLY_QUALIFIED)) {
 		if (!(resolve_flags & RESOLVE_REF_ALLOW_BAD_NAME) ||
 		    !refname_is_safe(refname))
 			return NULL;
@@ -2187,7 +2196,7 @@ const char *refs_resolve_ref_unsafe(struct ref_store *refs,
 			oidclr(oid, refs->repo->hash_algo);
 			return refname;
 		}
-		if (check_refname_format(refname, REFNAME_ALLOW_ONELEVEL)) {
+		if (check_refname_format(refname, REFNAME_FULLY_QUALIFIED)) {
 			if (!(resolve_flags & RESOLVE_REF_ALLOW_BAD_NAME) ||
 			    !refname_is_safe(refname))
 				return NULL;
