@@ -328,7 +328,7 @@ export SKIP_DASHED_BUILT_INS=YesPlease
 # In order to catch bugs introduced at integration time by mismerges,
 # enable the long tests for pushes to the integration branches as well.
 case "$CI_EVENT,$CI_BRANCH" in
-pull_request,*|push,*next*|push,*master*|push,*main*|push,*maint*)
+pull_request,*|push,*next*|push,*master*|push,*main*|push,*maint*|push,*private*)
 	export GIT_TEST_LONG=${GIT_TEST_LONG:-true}
 	;;
 esac
