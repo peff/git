@@ -755,9 +755,14 @@ int refs_copy_existing_ref(struct ref_store *refs, const char *oldref,
 int refs_update_symref(struct ref_store *refs, const char *refname,
 		       const char *target, const char *logmsg);
 
+/*
+ * This takes the same ref_transaction_flags as ref_transaction_update(),
+ * but assumes REF_NO_DEREF (so there is no need for callers to pass it in).
+ */
 int refs_update_symref_extended(struct ref_store *refs, const char *refname,
 		       const char *target, const char *logmsg,
-		       struct strbuf *referent, int create_only);
+		       struct strbuf *referent, int create_only,
+		       unsigned int flags);
 
 enum action_on_err {
 	UPDATE_REFS_MSG_ON_ERR,

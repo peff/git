@@ -1806,7 +1806,7 @@ static int set_head(const struct ref *remote_refs, struct remote *remote,
 		goto cleanup;
 	}
 	was_detached = refs_update_symref_extended(refs, b_head.buf, b_remote_head.buf,
-					"fetch", &b_local_head, create_only);
+					"fetch", &b_local_head, create_only, 0);
 	if (was_detached == -1) {
 		result = 1;
 		goto cleanup;
