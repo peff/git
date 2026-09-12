@@ -331,3 +331,26 @@ struct odb_source *tmp_objdir_replace_primary_odb(struct tmp_objdir *t,
 	return odb_set_temporary_primary_source(t->repo->objects, t->path.buf,
 						will_destroy, &t->prev_source);
 }
+
+FILE *fopen_quarantine(const char *filename, const char *mode)
+{
+	const char *root;
+	char *path;
+	FILE *ret;
+
+	root = getenv(GIT_QUARANTINE_ENVIRONMENT);
+	if (!root)
+		die("BUG: fopen_quarantine called without %s set",
+		    GIT_QUARANTINE_ENVIRONMENT);
+
+	path = xstrfmt("%s/%s", root, filename);
+	ret = xfopen(path, mode);
+
+	free(path);
+	return ret;
+}
+
+int git_is_quarantined(void)
+{
+	return !!getenv(GIT_QUARANTINE_ENVIRONMENT);
+}
