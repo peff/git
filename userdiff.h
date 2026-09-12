@@ -17,6 +17,13 @@ struct external_diff {
 	unsigned trust_exit_code:1;
 };
 
+struct userdiff_textconv {
+	const char *program;
+	char *program_owned;
+	struct notes_cache *cache;
+	int want_cache;
+};
+
 struct userdiff_driver {
 	const char *name;
 	struct external_diff external;
@@ -27,10 +34,7 @@ struct userdiff_driver {
 	const char *word_regex;
 	char *word_regex_owned;
 	const char *word_regex_multi_byte;
-	const char *textconv;
-	char *textconv_owned;
-	struct notes_cache *textconv_cache;
-	int textconv_want_cache;
+	struct userdiff_textconv textconv;
 };
 enum userdiff_driver_type {
 	USERDIFF_DRIVER_TYPE_BUILTIN = 1<<0,
@@ -48,8 +52,8 @@ struct userdiff_driver *userdiff_find_by_path(struct index_state *istate,
  * Initialize any textconv-related fields in the driver and return it, or NULL
  * if it does not have textconv enabled at all.
  */
-struct userdiff_driver *userdiff_get_textconv(struct repository *r,
-					      struct userdiff_driver *driver);
+struct userdiff_textconv *userdiff_get_textconv(struct repository *r,
+						struct userdiff_driver *driver);
 
 /*
  * Iterate over all userdiff drivers. The userdiff_driver_type
