@@ -822,6 +822,7 @@ void show_log(struct rev_info *opt)
 		 * below should happen sooner so we can use it.
 		 */
 		ctx.color = opt->diffopt.use_color;
+		ctx.rev = opt;
 		show_commit_header(opt, &ctx, commit);
 	}
 
