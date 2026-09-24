@@ -32,7 +32,7 @@ ifeq ($(strict),)
   CFLAGS += -DCURLOPT_USE_SSL=CURLOPT_USE_SSL
   CFLAGS += -std=c99
   CFLAGS += -Wno-discarded-qualifiers
-imap-send.o: EXTRA_CPPFLAGS += -DNO_OPENSSL
+  NO_OPENSSL = NotForOldBuilds
 else
   DEVELOPER = 1
 endif
