@@ -51,6 +51,7 @@ GIT_PROVE_OPTS= -j32 --state=slow,save
 DEFAULT_TEST_TARGET = prove
 export GIT_TEST_HTTPD = Yes
 export GIT_TEST_GIT_DAEMON = Yes
+export GIT_TEST_USE_SET_E = 1
 
 GNU_ROFF = Yes
 
