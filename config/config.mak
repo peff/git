@@ -40,6 +40,10 @@ ifeq ($(filter-out %maint, $(head)),)
   CFLAGS += -Wno-unused-value -Wno-strict-prototypes
 endif
 
+prove: tweak-prove-state
+tweak-prove-state:
+	@perl -i -ne 'if ($$m) { $$m = /^\s{3,}/ } else { $$m = /^\s+unit-tests/ } print unless $$m' .prove
+
 USE_LIBPCRE2 = YesPlease
 
 GIT_TEST_OPTS = --root=/var/ram/git-tests -x --verbose-log
