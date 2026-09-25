@@ -31,6 +31,7 @@
 #include "run-command.h"
 #include "setup.h"
 #include "strvec.h"
+#include "tmp-objdir.h"
 
 static const char index_pack_usage[] =
 "git index-pack [-v] [-o <index-file>] [--keep | --keep=<msg>] [--[no-]rev-index] [--verify] [--strict[=<msg-id>=<severity>...]] [--fsck-objects[=<msg-id>=<severity>...]] (<pack-file> | --stdin [--fix-thin] [<pack-file>])";
@@ -164,6 +165,8 @@ static const char *curr_pack;
 static struct oidset outgoing_links = OIDSET_INIT;
 static int record_outgoing_links;
 
+static unsigned long warn_object_size;
+
 static struct thread_local_data *thread_data;
 static int nr_dispatched;
 static int threads_active;
@@ -183,6 +186,10 @@ static pthread_mutex_t work_mutex;
 static pthread_mutex_t deepest_delta_mutex;
 #define deepest_delta_lock()	lock_mutex(&deepest_delta_mutex)
 #define deepest_delta_unlock()	unlock_mutex(&deepest_delta_mutex)
+
+static pthread_mutex_t large_obj_mutex;
+#define large_obj_lock() lock_mutex(&large_obj_mutex)
+#define large_obj_unlock() unlock_mutex(&large_obj_mutex)
 
 static pthread_key_t key;
 
@@ -207,6 +214,8 @@ static void init_thread(void)
 	init_recursive_mutex(&read_mutex);
 	pthread_mutex_init(&counter_mutex, NULL);
 	pthread_mutex_init(&work_mutex, NULL);
+	if (warn_object_size)
+		pthread_mutex_init(&large_obj_mutex, NULL);
 	if (show_stat)
 		pthread_mutex_init(&deepest_delta_mutex, NULL);
 	pthread_key_create(&key, NULL);
@@ -227,12 +236,31 @@ static void cleanup_thread(void)
 	pthread_mutex_destroy(&read_mutex);
 	pthread_mutex_destroy(&counter_mutex);
 	pthread_mutex_destroy(&work_mutex);
+	if (warn_object_size)
+		pthread_mutex_destroy(&large_obj_mutex);
 	if (show_stat)
 		pthread_mutex_destroy(&deepest_delta_mutex);
 	for (i = 0; i < nr_threads; i++)
 		close(thread_data[i].pack_fd);
 	pthread_key_delete(key);
 	free(thread_data);
+}
+
+static void warn_large_object(const struct object_id *oid, unsigned long size)
+{
+	static FILE *logfile = NULL;
+
+	large_obj_lock();
+
+	if (!logfile)
+		logfile = git_is_quarantined() ? fopen_quarantine(".large-objects", "w") : stderr;
+
+	if (logfile == stderr)
+		fprintf(logfile, "large-object: ");
+
+	fprintf(logfile, "%s %"PRIuMAX"\n", oid_to_hex(oid), (uintmax_t)size);
+
+	large_obj_unlock();
 }
 
 static int mark_link(struct object *obj, enum object_type type,
@@ -890,6 +918,12 @@ static void process_object(const void *data, struct object_entry *obj_entry,
 	int collision_test_needed = 0;
 
 	assert(data || obj_entry);
+
+	if (warn_object_size && size > warn_object_size) {
+		if (type != OBJ_BLOB)
+			die("non-blob object size limit exceeded");
+		warn_large_object(oid, size);
+	}
 
 	if (startup_info->have_repository) {
 		read_lock();
@@ -2025,6 +2059,8 @@ int cmd_index_pack(int argc,
 			} else if (skip_prefix(arg, "--unpack-limit=", &arg)) {
 				if (!git_parse_ulong(arg, &unpack_limit))
 					die("--unpack-limit expects a non-negative integer");
+			} else if (skip_prefix(arg, "--warn-object-size=", &arg)) {
+				warn_object_size = strtoul(arg, NULL, 10);
 			} else
 				usage(index_pack_usage);
 			continue;
