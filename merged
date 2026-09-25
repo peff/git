@@ -16,6 +16,10 @@ my @topics = do {
   open(my $fh, '-|', qw(Meta/topics -t));
   grep { !/-(?:wip|stale)$/ } map { chomp; $_ } <$fh>
 };
+my $max_len;
+for (@topics) {
+  $max_len = length if length > $max_len;
+}
 
 for my $u (@upstreams) {
   next unless @topics;
@@ -52,5 +56,5 @@ for my $t (@topics) {
 }
 
 sub show {
-  printf "%30s: %s\n", @_;
+  printf "%${max_len}s: %s\n", @_;
 }
