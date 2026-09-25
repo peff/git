@@ -178,9 +178,10 @@ static struct ll_merge_driver ll_merge_drv[] = {
 static struct tempfile *create_temp(mmfile_t *src)
 {
 	struct tempfile *t = xmks_tempfile(".merge_file_XXXXXX");
-	if (write_in_full(t->fd, src->ptr, src->size) < 0 ||
-	    close_tempfile_gently(t) < 0)
-		die_errno("unable to write temp-file");
+	if (write_in_full(t->fd, src->ptr, src->size) < 0)
+		die_errno(_("unable to write %s"), get_tempfile_path(t));
+	if (close_tempfile_gently(t) < 0)
+		die_errno(_("unable to close %s"), get_tempfile_path(t));
 	return t;
 }
 
