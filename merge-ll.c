@@ -254,6 +254,13 @@ static enum ll_merge_result ll_ext_merge(const struct ll_merge_driver *fn,
 	child.use_shell = 1;
 	strvec_push(&child.args, cmd.buf);
 	status = run_command(&child);
+	if (!status)
+		ret = LL_MERGE_OK;
+	else if (status <= 128)
+		ret = LL_MERGE_CONFLICT;
+	else
+		/* died due to a signal: WTERMSIG(status) + 128 */
+		ret = LL_MERGE_ERROR;
 
 	/* We can ignore errors; result is left NULL/0 in that case. */
 	read_mmfile(result, get_tempfile_path(tmp_a));
@@ -262,13 +269,6 @@ static enum ll_merge_result ll_ext_merge(const struct ll_merge_driver *fn,
 	delete_tempfile(&tmp_a);
 	delete_tempfile(&tmp_b);
 	strbuf_release(&cmd);
-	if (!status)
-		ret = LL_MERGE_OK;
-	else if (status <= 128)
-		ret = LL_MERGE_CONFLICT;
-	else
-		/* died due to a signal: WTERMSIG(status) + 128 */
-		ret = LL_MERGE_ERROR;
 	return ret;
 }
 
