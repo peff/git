@@ -1396,8 +1396,7 @@ static void write_pack_file(void)
 			display_progress(progress_state, written);
 		}
 
-		bytes_written += hashfile_total(f) +
-			the_repository->hash_algo->rawsz;
+		bytes_written += hashfile_total(f) + f->algop->rawsz;
 		if (pack_to_stdout) {
 			/*
 			 * We never fsync when writing to stdout since we may
@@ -1416,11 +1415,10 @@ static void write_pack_file(void)
 			 * If we wrote the wrong number of entries in the
 			 * header, rewrite it like in fast-import.
 			 */
-
+			const struct git_hash_algo *algo = f->algop;
 			int fd = finalize_hashfile(f, hash, FSYNC_COMPONENT_PACK, 0);
-			fixup_pack_header_footer(the_hash_algo, fd, hash,
-						 pack_tmp_name, nr_written,
-						 hash, offset);
+			fixup_pack_header_footer(algo, fd, hash,
+						 pack_tmp_name, nr_written);
 			close(fd);
 			if (write_bitmap_index) {
 				if (write_bitmap_index != WRITE_BITMAP_QUIET)
