@@ -7,6 +7,12 @@
 #include "setup.h"
 #include "config.h"
 
+void mailmap_init(struct mailmap *map)
+{
+	struct mailmap blank = MAILMAP_INIT;
+	memcpy(map, &blank, sizeof(*map));
+}
+
 struct mailmap_info {
 	char *name;
 	char *email;
@@ -36,7 +42,6 @@ static void free_mailmap_entry(void *p, const char *s UNUSED)
 	free(me->name);
 	free(me->email);
 
-	me->namemap.strdup_strings = 1;
 	string_list_clear_func(&me->namemap, free_mailmap_info);
 	free(me);
 }
@@ -55,7 +60,7 @@ static int namemap_cmp(const char *a, const char *b)
 	return strcasecmp(a, b);
 }
 
-static void add_mapping(struct string_list *map,
+static void add_mapping(struct mailmap *map,
 			char *new_name, char *new_email,
 			char *old_name, char *old_email)
 {
@@ -67,12 +72,12 @@ static void add_mapping(struct string_list *map,
 		new_email = NULL;
 	}
 
-	item = string_list_insert(map, old_email);
+	item = string_list_insert(&map->map, old_email);
 	if (item->util) {
 		me = (struct mailmap_entry *)item->util;
 	} else {
 		CALLOC_ARRAY(me, 1);
-		me->namemap.strdup_strings = 1;
+		string_list_init_dup(&me->namemap);
 		me->namemap.cmp = namemap_cmp;
 		item->util = me;
 	}
@@ -124,7 +129,7 @@ static char *parse_name_and_email(char *buffer, char **name,
 	return (*right == '\0' ? NULL : right);
 }
 
-static void read_mailmap_line(struct string_list *map, char *buffer)
+static void read_mailmap_line(struct mailmap *map, char *buffer)
 {
 	char *name1 = NULL, *email1 = NULL, *name2 = NULL, *email2 = NULL;
 
@@ -138,7 +143,7 @@ static void read_mailmap_line(struct string_list *map, char *buffer)
 		add_mapping(map, name1, email1, name2, email2);
 }
 
-int read_mailmap_file(struct string_list *map, const char *filename,
+int read_mailmap_file(struct mailmap *map, const char *filename,
 		      unsigned flags)
 {
 	char buffer[1024];
@@ -166,7 +171,7 @@ int read_mailmap_file(struct string_list *map, const char *filename,
 	return 0;
 }
 
-static void read_mailmap_string(struct string_list *map, char *buf)
+static void read_mailmap_string(struct mailmap *map, char *buf)
 {
 	while (*buf) {
 		char *end = strchrnul(buf, '\n');
@@ -179,7 +184,7 @@ static void read_mailmap_string(struct string_list *map, char *buf)
 	}
 }
 
-int read_mailmap_blob(struct repository *repo, struct string_list *map,
+int read_mailmap_blob(struct repository *repo, struct mailmap *map,
 		      const char *name)
 {
 	struct object_id oid;
@@ -206,7 +211,7 @@ int read_mailmap_blob(struct repository *repo, struct string_list *map,
 	return 0;
 }
 
-int read_mailmap(struct repository *repo, struct string_list *map)
+int read_mailmap(struct repository *repo, struct mailmap *map)
 {
 	int err = 0;
 	char *mailmap_file = NULL, *mailmap_blob = NULL;
@@ -214,8 +219,7 @@ int read_mailmap(struct repository *repo, struct string_list *map)
 	repo_config_get_pathname(repo, "mailmap.file", &mailmap_file);
 	repo_config_get_string(repo, "mailmap.blob", &mailmap_blob);
 
-	map->strdup_strings = 1;
-	map->cmp = namemap_cmp;
+	map->map.cmp = namemap_cmp;
 
 	if (!mailmap_blob && is_bare_repository(repo))
 		mailmap_blob = xstrdup("HEAD:.mailmap");
@@ -235,10 +239,9 @@ int read_mailmap(struct repository *repo, struct string_list *map)
 	return err;
 }
 
-void clear_mailmap(struct string_list *map)
+void clear_mailmap(struct mailmap *map)
 {
-	map->strdup_strings = 1;
-	string_list_clear_func(map, free_mailmap_entry);
+	string_list_clear_func(&map->map, free_mailmap_entry);
 }
 
 /*
@@ -291,14 +294,14 @@ static struct string_list_item *lookup_prefix(struct string_list *map,
 	return NULL;
 }
 
-int map_user(struct string_list *map,
+int map_user(struct mailmap *map,
 	     const char **email, size_t *emaillen,
 	     const char **name, size_t *namelen)
 {
 	struct string_list_item *item;
 	struct mailmap_entry *me;
 
-	item = lookup_prefix(map, *email, *emaillen);
+	item = lookup_prefix(&map->map, *email, *emaillen);
 	if (item) {
 		me = (struct mailmap_entry *)item->util;
 		if (me->namemap.nr) {
