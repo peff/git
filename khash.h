@@ -175,7 +175,7 @@ static const double __ac_HASH_UPPER = 0.77;
 	SCOPE khint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret) \
 	{																	\
 		khint_t x;														\
-		if (h->n_occupied >= h->upper_bound) { /* update the hash table */ \
+		if (!h->keys || !h->flags || h->n_occupied >= h->upper_bound) { /* update the hash table */ \
 			if (h->n_buckets > (h->size<<1)) {							\
 				kh_resize_##name(h, h->n_buckets - 1); /* clear "deleted" elements */ \
 			} else { \
