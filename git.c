@@ -29,6 +29,11 @@
 #define DELAY_PAGER_CONFIG	(1<<4)
 #define NO_PARSEOPT		(1<<5) /* parse-options is not used */
 #define DEPRECATED		(1<<6)
+/*
+ * May run without settling provisional formats; must settle before writing
+ * hash-dependent data. This also applies when the command does its own setup.
+ */
+#define ALLOW_PROVISIONAL_FORMAT (1<<7)
 
 struct cmd_struct {
 	const char *cmd;
@@ -476,6 +481,8 @@ static int run_builtin(struct cmd_struct *p, int argc, const char **argv, struct
 	int run_setup = (p->option & (RUN_SETUP | RUN_SETUP_GENTLY));
 
 	help = argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help-all"));
+	startup_info->settle_object_format =
+		!help && !(p->option & ALLOW_PROVISIONAL_FORMAT);
 	if (help && (run_setup & RUN_SETUP))
 		/* demote to GENTLY to allow 'git cmd -h' outside repo */
 		run_setup = RUN_SETUP_GENTLY;
