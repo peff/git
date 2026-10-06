@@ -58,7 +58,7 @@ current working directory.
 	independent of `--object-format`, which continues to select the
 	default as usual. For example, `--object-format=sha1
 	--provisional-object-format=sha256` creates an empty SHA-1 repository
-	that permits a future push to select SHA-256. Other writes commit to the
+	that can adopt SHA-256 on its first push. Other writes commit to the
 	default format and remove all provisional formats. Once a format is
 	chosen, the repository no longer accepts other formats through this
 	feature, even if the operation that selected it fails.
@@ -66,8 +66,8 @@ current working directory.
 This option is intended primarily for newly created bare repositories on
 hosting services. It cannot be used to reinitialize an existing repository.
 Most commands
-commit to the default format even when they do not write. Protocol support
-for selecting a provisional format is not yet implemented. See
+commit to the default format even when they do not write; cloning preserves
+the provisional choices for a later push. See
 `extensions.provisionalObjectFormat` in linkgit:git-config[1].
 
 `--object-format=<format>`::

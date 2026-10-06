@@ -667,6 +667,17 @@ const char *parse_feature_value(const char *feature_list, const char *feature, s
 	return NULL;
 }
 
+int server_supports_provisional_hash(const char *desired)
+{
+	size_t offset = 0, len;
+	const char *hash;
+
+	while ((hash = next_server_feature_value("provisional-object-format", &len, &offset)))
+		if (!xstrncmpz(desired, hash, len))
+			return 1;
+	return 0;
+}
+
 int server_supports_hash(const char *desired, int *feature_supported)
 {
 	size_t offset = 0;
