@@ -211,6 +211,7 @@ static struct odb_source *odb_add_alternate_recursively(struct object_database *
 	if (!odb_is_source_usable(odb, source))
 		goto error;
 
+	repo_require_object_format(odb->repo);
 	alternate = odb_source_new(odb, source, false);
 
 	/* add the alternate entry */
