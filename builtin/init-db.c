@@ -6,6 +6,7 @@
 #define USE_THE_REPOSITORY_VARIABLE
 #include "builtin.h"
 #include "abspath.h"
+#include "config.h"
 #include "environment.h"
 #include "gettext.h"
 #include "parse-options.h"
@@ -57,7 +58,7 @@ static int shared_callback(const struct option *opt, const char *arg, int unset)
 static const char *const init_db_usage[] = {
 	N_("git init [-q | --quiet] [--bare] [--template=<template-directory>]\n"
 	   "         [--separate-git-dir <git-dir>] [--object-format=<format>]\n"
-	   "         [--ref-storage-format=<format>]\n"
+	   "         [--ref-storage-format=<format>] [--provisional-object-format=<format>]\n"
 	   "         [-b <branch-name> | --initial-branch=<branch-name>]\n"
 	   "         [--shared[=<permissions>]] [<directory>]"),
 	NULL
@@ -81,6 +82,7 @@ int cmd_init_db(int argc,
 	const char *template_dir = NULL;
 	char *template_dir_to_free = NULL;
 	int quiet = 0;
+	struct string_list provisional_object_formats = STRING_LIST_INIT_DUP;
 	int bare = startup_info->force_bare_repository ? 1 : -1;
 	const char *object_format = NULL;
 	const char *ref_storage_format_uri = NULL;
@@ -88,6 +90,8 @@ int cmd_init_db(int argc,
 	int hash_algo = GIT_HASH_UNKNOWN;
 	int init_shared_repository = -1;
 	const struct option init_db_options[] = {
+		OPT_STRING_LIST(0, "provisional-object-format", &provisional_object_formats,
+				N_("format"), N_("allow the first push to select this object format")),
 		OPT_STRING(0, "template", &template_dir, N_("template-directory"),
 				N_("directory from which templates will be used")),
 		OPT_SET_INT(0, "bare", &bare,
@@ -116,6 +120,14 @@ int cmd_init_db(int argc,
 	int reinit;
 
 	argc = parse_options(argc, argv, prefix, init_db_options, init_db_usage, 0);
+
+	for (size_t i = 0; i < provisional_object_formats.nr; i++) {
+		const char *name = provisional_object_formats.items[i].string;
+		if (hash_algo_by_name(name) == GIT_HASH_UNKNOWN)
+			die(_("unknown provisional object format '%s'"), name);
+	}
+	string_list_sort(&provisional_object_formats);
+	string_list_remove_duplicates(&provisional_object_formats, 0);
 
 	if (real_git_dir && bare == 1)
 		die(_("options '%s' and '%s' cannot be used together"), "--separate-git-dir", "--bare");
@@ -244,8 +256,17 @@ int cmd_init_db(int argc,
 	create_repository(the_repository, git_dir, real_git_dir, work_tree,
 			  template_dir, hash_algo, ref_storage_format_uri,
 			  init_shared_repository, &reinit);
+	if (provisional_object_formats.nr && reinit)
+		die(_("cannot enable provisional object formats on an existing repository"));
 	create_reference_database(the_repository, initial_branch, quiet);
 	create_object_database(the_repository, NULL);
+	if (provisional_object_formats.nr) {
+		repo_config_set(the_repository, "core.repositoryformatversion", "1");
+		for (size_t i = 0; i < provisional_object_formats.nr; i++)
+			repo_config_set_multivar(the_repository, "extensions.provisionalobjectformat",
+						  provisional_object_formats.items[i].string,
+						  CONFIG_REGEX_NONE, 0);
+	}
 
 	if (!quiet) {
 		int len = strlen(git_dir);
@@ -262,6 +283,7 @@ int cmd_init_db(int argc,
 			       git_dir, len && git_dir[len-1] != '/' ? "/" : "");
 	}
 
+	string_list_clear(&provisional_object_formats, 0);
 	free(template_dir_to_free);
 	free(real_git_dir_to_free);
 	free(work_tree);
