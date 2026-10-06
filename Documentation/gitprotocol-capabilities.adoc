@@ -203,6 +203,30 @@ that the server supports.
 If this capability is not provided, it is assumed that the only
 supported algorithm is SHA-1.
 
+provisional-object-format
+-------------------------
+
+A receive-pack server may advertise `provisional-object-format=<hash>` when
+an empty repository can adopt that hash algorithm on its first push. Other
+writes commit to the initial algorithm and remove all provisional formats.
+The server must also advertise its initial algorithm with
+`object-format=<hash>`, which determines
+the encoding of the advertisement. The provisional capability may be repeated.
+Clients that do not understand it continue to use the initial algorithm.
+
+A client may select an advertised alternative by sending its usual
+`object-format=<hash>` capability. It uses that algorithm for command object
+names, shallow object names, and the pack. Shallow lines precede the client
+capabilities, so the server must defer interpreting them until the algorithm
+has been selected. The server commits to the selected algorithm before
+accepting objects or updating refs, even if the push subsequently fails.
+
+Only explicitly advertised formats are permitted. An advertisement does not
+reserve the format. A concurrent writer may commit the repository to another
+algorithm, in which case the server rejects the
+push. Writers choosing the same algorithm may proceed subject to the normal
+reference update checks. Fetch does not negotiate alternative formats.
+
 symref
 ------
 
