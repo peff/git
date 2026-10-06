@@ -503,4 +503,29 @@ test_expect_success 'report error server does not provide ref status' '
 	test_cmp expect actual
 '
 
+for refs in files
+do
+	for incoming in sha1 sha256
+	do
+		test_expect_success "first $incoming push to a provisional $refs repository over HTTP" '
+			cd "$ROOT_PATH" &&
+			case "$incoming" in
+			sha1) initial=sha256 ;;
+			sha256) initial=sha1 ;;
+			esac &&
+			name=provisional-$refs-$incoming &&
+			git init --object-format=$incoming "$name-client" &&
+			test_commit -C "$name-client" initial &&
+			git init --bare --object-format=$initial \
+				--ref-storage-format=$refs --provisional-object-format=$incoming \
+				"$HTTPD_DOCUMENT_ROOT_PATH/$name" &&
+			git config --file "$HTTPD_DOCUMENT_ROOT_PATH/$name/config" http.receivepack true &&
+			git -C "$name-client" push "$HTTPD_URL/smart/$name" HEAD:refs/heads/main &&
+			test "$(git -C "$HTTPD_DOCUMENT_ROOT_PATH/$name" rev-parse --show-object-format)" = "$incoming" &&
+			test_must_fail git -C "$HTTPD_DOCUMENT_ROOT_PATH/$name" config get extensions.provisionalObjectFormat &&
+			git -C "$HTTPD_DOCUMENT_ROOT_PATH/$name" fsck
+		'
+	done
+done
+
 test_done
