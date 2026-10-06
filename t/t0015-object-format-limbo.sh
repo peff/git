@@ -111,6 +111,14 @@ do
 	'
 done
 
+test_expect_success 'loading alternates settles the default' '
+	git init --bare --object-format=sha1 --provisional-object-format=sha256 alternate &&
+	pwd >base &&
+	printf "%s/sha1/.git/objects\n" "$(cat base)" >alternate/objects/info/alternates &&
+	git receive-pack --advertise-refs alternate >advertisement &&
+	assert_settled alternate sha1
+'
+
 test_expect_success 'cannot opt an existing repository into provisional formats' '
 	test_must_fail git -C sha1 init --provisional-object-format=sha256 &&
 	assert_settled sha1 sha1
