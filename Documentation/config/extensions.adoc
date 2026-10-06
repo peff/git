@@ -38,18 +38,30 @@ linkgit:git-clone[1].  Trying to change it after initialization will not
 work and will produce hard-to-diagnose issues.
 
 provisionalObjectFormat:::
-	An object format that an empty repository may adopt in place of its
-	configured `objectFormat`. This multi-valued key accepts `sha1` and
-	`sha256`, and requires repository format version 1. It cannot be
-	combined with `compatObjectFormat`.
+	An object format permitted for the first push to an empty repository,
+	in addition to its configured `objectFormat`. This multi-valued key
+	accepts `sha1` and `sha256`. It does not change the default object
+	format. Create this state with `git init --provisional-object-format`;
+	do not add it to an existing repository. It cannot be combined with
+	`compatObjectFormat`.
 +
-Opening the repository commits to the configured object format and removes
-all provisional formats. An operation that fails after selecting the format
-does not undo that selection. Implementations that do not recognize this
-extension must refuse to open the repository.
+The first push may select an advertised provisional format, making it
+permanent and removing all values of this extension. Other writes commit to
+the configured object format and remove all provisional formats. Writing an
+index or refs, or creating a linked worktree also commits
+the format. An operation that fails after selecting the format does not undo
+that selection.
 +
-Create this state with `git init --provisional-object-format`. Do not add
-this extension to an existing repository.
+Most commands conservatively commit the configured format as soon as they
+open the repository, even if they do not write anything. Only `receive-pack`
+and `upload-pack` are exempt, so cloning an empty repository preserves the
+choices for a later push. Initialization and reinitialization also preserve
+the choices.
+Readers that preserve provisional formats may fail if another process changes
+the format concurrently. Implementations that do not recognize this extension
+must refuse to open the repository.
+
+Switching algorithms currently requires the files ref backend.
 
 partialClone:::
 	When enabled, indicates that the repo was created with a partial clone

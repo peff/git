@@ -552,7 +552,8 @@ int send_pack(struct repository *r,
 	if (server_supports("push-options"))
 		push_options_supported = 1;
 
-	if (!server_supports_hash(r->hash_algo->name, &object_format_supported))
+	if (!server_supports_hash(r->hash_algo->name, &object_format_supported) &&
+	    !server_supports_provisional_hash(r->hash_algo->name))
 		die(_("the receiving end does not support this repository's hash algorithm"));
 
 	if (args->push_cert != SEND_PACK_PUSH_CERT_NEVER) {
