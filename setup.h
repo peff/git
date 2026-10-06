@@ -188,6 +188,7 @@ struct repository_format {
 	int is_bare;
 	int hash_algo;
 	int compat_hash_algo;
+	struct string_list provisional_object_formats;
 	enum ref_storage_format ref_storage_format;
 	char *ref_storage_payload;
 	int sparse_index;
@@ -209,6 +210,7 @@ struct repository_format {
 	.ref_storage_format = REF_STORAGE_FORMAT_FILES, \
 	.unknown_extensions = STRING_LIST_INIT_DUP, \
 	.v1_only_extensions = STRING_LIST_INIT_DUP, \
+	.provisional_object_formats = STRING_LIST_INIT_DUP, \
 }
 
 /*
@@ -321,6 +323,9 @@ struct startup_info {
 	 * `git --bare`, even if it's not.
 	 */
 	bool force_bare_repository;
+
+	/* Builtin dispatch policy, also used by commands doing their own setup. */
+	bool settle_object_format;
 
 	int have_repository;
 	const char *original_cwd;
