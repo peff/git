@@ -642,6 +642,13 @@ static enum extension_result handle_extension(const char *var,
 {
 	if (!strcmp(ext, "noop-v1")) {
 		return EXTENSION_OK;
+	} else if (!strcmp(ext, "provisionalobjectformat")) {
+		if (!value)
+			return config_error_nonbool(var);
+		if (hash_algo_by_name(value) == GIT_HASH_UNKNOWN)
+			return error(_("invalid value for '%s': '%s'"), var, value);
+		string_list_insert(&data->provisional_object_formats, value);
+		return EXTENSION_OK;
 	} else if (!strcmp(ext, "objectformat")) {
 		int format;
 
@@ -861,6 +868,7 @@ void clear_repository_format(struct repository_format *format)
 {
 	string_list_clear(&format->unknown_extensions, 0);
 	string_list_clear(&format->v1_only_extensions, 0);
+	string_list_clear(&format->provisional_object_formats, 0);
 	free(format->work_tree);
 	free(format->partial_clone);
 	free(format->ref_storage_payload);
@@ -873,6 +881,11 @@ int verify_repository_format(const struct repository_format *format,
 	if (GIT_REPO_VERSION_READ < format->version) {
 		strbuf_addf(err, _("Expected git repo version <= %d, found %d"),
 			    GIT_REPO_VERSION_READ, format->version);
+		return -1;
+	}
+
+	if (format->provisional_object_formats.nr && format->compat_hash_algo) {
+		strbuf_addstr(err, _("provisionalObjectFormat is incompatible with compatObjectFormat"));
 		return -1;
 	}
 
@@ -1780,6 +1793,10 @@ int apply_repository_format(struct repository *repo,
 			set_alternate_shallow_file(repo, shallow_file);
 	}
 
+	string_list_clear(&repo->provisional_object_formats, 0);
+	for (size_t i = 0; i < format->provisional_object_formats.nr; i++)
+		string_list_insert(&repo->provisional_object_formats,
+				   format->provisional_object_formats.items[i].string);
 	repo->bare_cfg = format->is_bare;
 	repo_set_hash_algo(repo, format->hash_algo);
 	repo_set_compat_hash_algo(repo, format->compat_hash_algo);
@@ -1885,6 +1902,8 @@ const char *enter_repo(struct repository *repo, const char *path, unsigned flags
 
 		clear_repository_format(&fmt);
 		strbuf_release(&err);
+		if (startup_info->settle_object_format)
+			repo_require_object_format(repo);
 		return path;
 	}
 
@@ -2106,6 +2125,8 @@ const char *setup_git_directory_gently(struct repository *repo, int *nongit_ok)
 	setup_original_cwd(repo);
 
 	repo_discovery_release(&discovery);
+	if (startup_info->have_repository && startup_info->settle_object_format)
+		repo_require_object_format(repo);
 	return repo->prefix;
 }
 
@@ -2437,7 +2458,8 @@ void initialize_repository_version(struct repository *repo,
 	 * version will get adjusted by git-clone(1) once it has learned about
 	 * the remote repository's format.
 	 */
-	if (hash_algo != GIT_HASH_SHA1_LEGACY ||
+	if (repo->provisional_object_formats.nr ||
+	    hash_algo != GIT_HASH_SHA1_LEGACY ||
 	    ref_storage_format != REF_STORAGE_FORMAT_FILES ||
 	    repo->ref_storage_payload)
 		target_version = GIT_REPO_VERSION_READ;

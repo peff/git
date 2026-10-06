@@ -37,6 +37,17 @@ Note that this setting should only be set by linkgit:git-init[1] or
 linkgit:git-clone[1].  Trying to change it after initialization will not
 work and will produce hard-to-diagnose issues.
 
+provisionalObjectFormat:::
+	An object format that an empty repository may adopt in place of its
+	configured `objectFormat`. This multi-valued key accepts `sha1` and
+	`sha256`, and requires repository format version 1. It cannot be
+	combined with `compatObjectFormat`.
++
+Opening the repository commits to the configured object format and removes
+all provisional formats. An operation that fails after selecting the format
+does not undo that selection. Implementations that do not recognize this
+extension must refuse to open the repository.
+
 partialClone:::
 	When enabled, indicates that the repo was created with a partial clone
 	(or later performed a partial fetch) and that the remote may have
