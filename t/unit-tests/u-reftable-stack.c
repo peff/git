@@ -1338,3 +1338,82 @@ void test_reftable_stack__two_additions(void)
 	reftable_stack_destroy(st);
 	clear_dir(dir);
 }
+
+static int count_physical_table(struct reftable_table *table, void *data)
+{
+	size_t *count = data;
+	struct reftable_iterator it = {0};
+	struct reftable_ref_record ref = {0};
+	int ret;
+
+	ret = reftable_table_init_ref_iterator(table, &it);
+	if (ret < 0)
+		goto out;
+	ret = reftable_iterator_seek_ref(&it, "");
+	if (ret < 0)
+		goto out;
+	while (!(ret = reftable_iterator_next_ref(&it, &ref)))
+		(*count)++;
+	if (ret > 0)
+		ret = 0;
+out:
+	reftable_iterator_destroy(&it);
+	reftable_ref_record_release(&ref);
+	return ret;
+}
+
+void test_reftable_stack__replace_hash(void)
+{
+	char *dir = get_tmp_dir(__LINE__);
+	struct reftable_stack *stack = NULL;
+	struct reftable_addition *add = NULL;
+	struct reftable_write_options opts = { .disable_auto_compact = 1 };
+	struct reftable_stack_options stack_opts = { .hash_id = REFTABLE_HASH_SHA256 };
+	struct reftable_ref_record ref = {
+		.refname = (char *)"HEAD",
+		.update_index = 1,
+		.value_type = REFTABLE_REF_SYMREF,
+		.value.symref = (char *)"refs/heads/main",
+	};
+	struct reftable_ref_record actual = {0};
+	size_t count = 0;
+
+	cl_assert_equal_i(reftable_new_stack(&stack, dir, NULL), 0);
+	cl_assert_equal_i(reftable_stack_add(stack, write_test_ref, &ref, &opts), 0);
+	ref.update_index++;
+	cl_assert_equal_i(reftable_stack_add(stack, write_test_ref, &ref, &opts), 0);
+	cl_assert_equal_i(reftable_stack_addition_new(&add, stack, &opts), 0);
+	cl_assert_equal_i(reftable_stack_for_each_table(stack, count_physical_table, &count), 0);
+	cl_assert_equal_i(count, 2);
+	cl_assert_equal_i(reftable_addition_replace(add, REFTABLE_HASH_SHA256), 0);
+	cl_assert_equal_i(reftable_addition_add(add, write_test_ref, &ref), 0);
+
+	/* Aborting must leave both the contents and the hash unchanged. */
+	reftable_addition_destroy(add);
+	cl_assert_equal_i(reftable_stack_hash_id(stack), REFTABLE_HASH_SHA1);
+	cl_assert_equal_i(stack->tables_len, 2);
+
+	cl_assert_equal_i(reftable_stack_addition_new(&add, stack, &opts), 0);
+	cl_assert_equal_i(reftable_addition_replace(add, REFTABLE_HASH_SHA256), 0);
+	cl_assert_equal_i(reftable_addition_add(add, write_test_ref, &ref), 0);
+	cl_assert_equal_i(reftable_addition_commit(add), 0);
+	reftable_addition_destroy(add);
+	cl_assert_equal_i(reftable_stack_hash_id(stack), REFTABLE_HASH_SHA256);
+	cl_assert_equal_i(stack->tables_len, 1);
+	reftable_stack_destroy(stack);
+
+	cl_assert_equal_i(reftable_new_stack(&stack, dir, &stack_opts), 0);
+	cl_assert_equal_i(reftable_stack_read_ref(stack, "HEAD", &actual), 0);
+	cl_assert(reftable_ref_record_equal(&ref, &actual, REFTABLE_HASH_SIZE_SHA256));
+	reftable_ref_record_release(&actual);
+
+	/* Replacement can also remove all tables. */
+	cl_assert_equal_i(reftable_stack_addition_new(&add, stack, &opts), 0);
+	cl_assert_equal_i(reftable_addition_replace(add, REFTABLE_HASH_SHA1), 0);
+	cl_assert_equal_i(reftable_addition_commit(add), 0);
+	reftable_addition_destroy(add);
+	cl_assert_equal_i(stack->tables_len, 0);
+	cl_assert_equal_i(reftable_stack_hash_id(stack), REFTABLE_HASH_SHA1);
+	reftable_stack_destroy(stack);
+	clear_dir(dir);
+}
