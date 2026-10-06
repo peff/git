@@ -282,6 +282,9 @@ static void show_ref(const char *path, const struct object_id *oid)
 		if (advertise_sid)
 			strbuf_addf(&cap, " session-id=%s", trace2_session_id());
 		strbuf_addf(&cap, " object-format=%s", the_hash_algo->name);
+		for (size_t i = 0; i < the_repository->provisional_object_formats.nr; i++)
+			strbuf_addf(&cap, " provisional-object-format=%s",
+				    the_repository->provisional_object_formats.items[i].string);
 		strbuf_addf(&cap, " agent=%s", git_user_agent_sanitized());
 		packet_write_fmt(1, "%s %s%c%s\n",
 			     oid_to_hex(oid), path, 0, cap.buf);
@@ -2235,6 +2238,8 @@ static struct command *read_head_info(struct packet_reader *reader,
 {
 	struct command *commands = NULL;
 	struct command **p = &commands;
+	struct string_list shallow_lines = STRING_LIST_INIT_DUP;
+	int have_format = 0;
 	for (;;) {
 		int linelen;
 
@@ -2242,18 +2247,28 @@ static struct command *read_head_info(struct packet_reader *reader,
 			break;
 
 		if (reader->pktlen > 8 && starts_with(reader->line, "shallow ")) {
-			struct object_id oid;
-			if (get_oid_hex(reader->line + 8, &oid))
-				die("protocol error: expected shallow sha, got '%s'",
-				    reader->line + 8);
-			oid_array_append(shallow, &oid);
+			/* Capabilities selecting the hash follow these lines. */
+			string_list_append(&shallow_lines, reader->line + 8);
 			continue;
 		}
 
 		linelen = strlen(reader->line);
+		if (!have_format) {
+			const char *features = linelen < reader->pktlen ?
+				reader->line + linelen + 1 : "";
+			size_t len = 0;
+			const char *hash = parse_feature_value(features, "object-format", &len, NULL);
+			char *name = hash ? xstrndup(hash, len) : xstrdup("sha1");
+			int algo = hash_algo_by_name(name);
+
+			if (!algo || repo_settle_object_format(the_repository, &hash_algos[algo]))
+				die("error: unsupported object format '%s'", name);
+			free(name);
+			reader->hash_algo = the_hash_algo;
+			have_format = 1;
+		}
 		if (linelen < reader->pktlen) {
 			const char *feature_list = reader->line + linelen + 1;
-			const char *hash = NULL;
 			const char *client_sid;
 			size_t len = 0;
 			if (parse_feature_request(feature_list, "report-status"))
@@ -2270,13 +2285,6 @@ static struct command *read_head_info(struct packet_reader *reader,
 			if (advertise_push_options
 			    && parse_feature_request(feature_list, "push-options"))
 				use_push_options = 1;
-			hash = parse_feature_value(feature_list, "object-format", &len, NULL);
-			if (!hash) {
-				hash = hash_algos[GIT_HASH_SHA1_LEGACY].name;
-				len = strlen(hash);
-			}
-			if (xstrncmpz(the_hash_algo->name, hash, len))
-				die("error: unsupported object format '%s'", hash);
 			client_sid = parse_feature_value(feature_list, "session-id", &len, NULL);
 			if (client_sid) {
 				char *sid = xstrndup(client_sid, len);
@@ -2312,6 +2320,15 @@ static struct command *read_head_info(struct packet_reader *reader,
 
 		p = queue_command(p, reader->line, linelen);
 	}
+
+	for (size_t i = 0; i < shallow_lines.nr; i++) {
+		struct object_id oid;
+		const char *hex = shallow_lines.items[i].string;
+		if (strlen(hex) != the_hash_algo->hexsz || get_oid_hex(hex, &oid))
+			die("protocol error: expected shallow sha, got '%s'", hex);
+		oid_array_append(shallow, &oid);
+	}
+	string_list_clear(&shallow_lines, 0);
 
 	if (push_cert.len)
 		queue_commands_from_cert(p, &push_cert);
