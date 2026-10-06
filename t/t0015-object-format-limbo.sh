@@ -217,6 +217,36 @@ test_expect_success 'reference tracing works through conversion' '
 	git -C traced fsck
 '
 
+test_expect_success 'provisional initialization rejects objects seeded by templates' '
+	mkdir template-objects &&
+	cp -R sha1/.git/objects template-objects/ &&
+	test_must_fail git init --object-format=sha1 --provisional-object-format=sha256 \
+		--template=template-objects seeded-objects 2>err &&
+	test_grep "existing object data" err &&
+	assert_settled seeded-objects sha1 &&
+	git -C seeded-objects cat-file -e "$(git -C sha1 rev-parse HEAD)"
+'
+
+test_expect_success 'provisional initialization rejects an index seeded by templates' '
+	git init --object-format=sha1 index-source &&
+	git -C index-source read-tree --empty &&
+	mkdir template-index &&
+	cp index-source/.git/index template-index/ &&
+	test_must_fail git init --object-format=sha1 --provisional-object-format=sha256 \
+		--template=template-index seeded-index 2>err &&
+	test_grep "existing metadata" err &&
+	assert_settled seeded-index sha1
+'
+
+test_expect_success 'provisional initialization rejects direct refs seeded by templates' '
+	mkdir -p template-refs/refs/heads &&
+	git -C sha1 rev-parse HEAD >template-refs/refs/heads/main &&
+	test_must_fail git init --ref-storage-format=files --object-format=sha1 \
+		--provisional-object-format=sha256 --template=template-refs seeded-refs 2>err &&
+	test_grep "hash-dependent refs" err &&
+	assert_settled seeded-refs sha1
+'
+
 test_expect_success 'a dry-run push leaves provisional formats intact' '
 	git init --bare --object-format=sha1 --provisional-object-format=sha256 dry-run &&
 	git -C sha256 push --dry-run ../dry-run HEAD:refs/heads/main &&

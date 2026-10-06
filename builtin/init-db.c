@@ -7,13 +7,44 @@
 #include "builtin.h"
 #include "abspath.h"
 #include "config.h"
+#include "dir.h"
+#include "dir-iterator.h"
 #include "environment.h"
 #include "gettext.h"
+#include "iterator.h"
 #include "parse-options.h"
 #include "path.h"
 #include "refs.h"
 #include "setup.h"
 #include "strbuf.h"
+
+/* Templates may seed objects or metadata even in a newly created repository. */
+static void check_provisional_object_formats(struct repository *repo)
+{
+	const char *paths[] = { "index", "shallow", "FETCH_HEAD", "worktrees" };
+	struct dir_iterator *it;
+	int ret;
+
+	it = dir_iterator_begin(repo_get_object_directory(repo), DIR_ITERATOR_PEDANTIC);
+	if (!it)
+		die_errno(_("cannot inspect object directory"));
+	while ((ret = dir_iterator_advance(it)) == ITER_OK) {
+		if (!S_ISDIR(it->st.st_mode))
+			die(_("cannot enable provisional object formats with existing object data: %s"),
+			    it->path.buf);
+	}
+	dir_iterator_free(it);
+	if (ret != ITER_DONE)
+		die(_("cannot inspect object directory"));
+	for (size_t i = 0; i < ARRAY_SIZE(paths); i++) {
+		char *path = repo_git_path(repo, "%s", paths[i]);
+		if (file_exists(path))
+			die(_("cannot enable provisional object formats with existing metadata: %s"), path);
+		free(path);
+	}
+	if (refs_set_object_format(get_main_ref_store(repo), repo->hash_algo, 1))
+		die(_("cannot enable provisional object formats with hash-dependent refs"));
+}
 
 static int guess_repository_type(const char *git_dir)
 {
@@ -261,6 +292,7 @@ int cmd_init_db(int argc,
 	create_reference_database(the_repository, initial_branch, quiet);
 	create_object_database(the_repository, NULL);
 	if (provisional_object_formats.nr) {
+		check_provisional_object_formats(the_repository);
 		repo_config_set(the_repository, "core.repositoryformatversion", "1");
 		for (size_t i = 0; i < provisional_object_formats.nr; i++)
 			repo_config_set_multivar(the_repository, "extensions.provisionalobjectformat",
