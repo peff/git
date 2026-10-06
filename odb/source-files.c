@@ -17,6 +17,7 @@
 #include "promisor-remote.h"
 #include "quote.h"
 #include "repack.h"
+#include "repository.h"
 #include "run-command.h"
 #include "strbuf.h"
 #include "string-list.h"
@@ -362,6 +363,7 @@ static void add_alternate_recursively(struct odb_source_files *files,
 	if (!odb_files_dir_is_usable(files, path))
 		goto out;
 
+	repo_require_object_format(files->base.odb->repo);
 	alternate = odb_files_dir_new(files->base.odb, path, false);
 
 	/* add the alternate entry */
