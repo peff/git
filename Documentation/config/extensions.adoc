@@ -61,8 +61,6 @@ Readers that preserve provisional formats may fail if another process changes
 the format concurrently. Implementations that do not recognize this extension
 must refuse to open the repository.
 
-Switching algorithms currently requires the files ref backend.
-
 partialClone:::
 	When enabled, indicates that the repo was created with a partial clone
 	(or later performed a partial fetch) and that the remote may have
