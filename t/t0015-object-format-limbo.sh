@@ -20,6 +20,22 @@ assert_settled () {
 	test "$(git -C "$1" rev-parse --show-object-format)" = "$2"
 }
 
+other_format () {
+	case "$1" in
+	sha1) echo sha256 ;;
+	sha256) echo sha1 ;;
+	esac
+}
+
+push_status () {
+	if git -C "$1" push "$2" "$3" >"$4.out" 2>&1
+	then
+		echo success >"$4.status"
+	else
+		echo failure >"$4.status"
+	fi
+}
+
 test_expect_success 'an ordinary command settles a manually configured empty repository' '
 	git init --bare --ref-storage-format=files --object-format=sha1 manual &&
 	git config --file manual/config core.repositoryFormatVersion 1 &&
@@ -27,6 +43,77 @@ test_expect_success 'an ordinary command settles a manually configured empty rep
 	echo content | git -C manual hash-object -w --stdin >oid &&
 	assert_settled manual sha1 &&
 	git -C manual cat-file -e "$(cat oid)"
+'
+
+test_expect_success 'setup sources for both algorithms' '
+	git init --object-format=sha1 sha1 &&
+	git init --object-format=sha256 sha256 &&
+	test_commit -C sha1 one &&
+	test_commit -C sha256 two
+'
+
+for refs in files
+do
+	for default in sha1 sha256
+	do
+		for incoming in sha1 sha256
+		do
+			test_expect_success "$refs: $default accepts first $incoming push" '
+				target=$refs-$default-$incoming &&
+				git init --bare --ref-storage-format=$refs \
+					--object-format=$default --provisional-object-format="$(other_format "$default")" "$target" &&
+				assert_provisional "$target" &&
+				git receive-pack --advertise-refs "$target" >advertisement &&
+				test_grep "provisional-object-format=" advertisement &&
+				git ls-remote "$target" &&
+				assert_provisional "$target" &&
+				git -C "$incoming" push "../$target" HEAD:refs/heads/main &&
+				assert_settled "$target" "$incoming" &&
+				git -C "$target" fsck &&
+				git -C "$incoming" rev-parse HEAD >expect &&
+				git -C "$target" rev-parse refs/heads/main >actual &&
+				test_cmp expect actual
+			'
+		done
+	done
+
+	test_expect_success "$refs: object write settles default" '
+		git init --bare --ref-storage-format=$refs --object-format=sha1 \
+			--provisional-object-format=sha256 "$refs-object" &&
+		echo content | git -C "$refs-object" hash-object -w --stdin &&
+		assert_settled "$refs-object" sha1
+	'
+
+	test_expect_success "$refs: empty index write settles default" '
+		git init --ref-storage-format=$refs --object-format=sha256 \
+			--provisional-object-format=sha1 "$refs-index" &&
+		git -C "$refs-index" read-tree --empty &&
+		assert_settled "$refs-index" sha256 &&
+		git -C "$refs-index" ls-files --stage
+	'
+
+	test_expect_success "$refs: symref write settles default" '
+		git init --bare --ref-storage-format=$refs --object-format=sha1 \
+			--provisional-object-format=sha256 "$refs-symref" &&
+		git -C "$refs-symref" symbolic-ref HEAD refs/heads/other &&
+		assert_settled "$refs-symref" sha1
+	'
+
+	test_expect_success "$refs: rejected push still settles selected format" '
+		git init --bare --ref-storage-format=$refs --object-format=sha1 \
+			--provisional-object-format=sha256 "$refs-reject" &&
+		write_script "$refs-reject/hooks/pre-receive" <<-\EOF &&
+		exit 1
+		EOF
+		test_must_fail git -C sha256 push "../$refs-reject" HEAD:refs/heads/main &&
+		assert_settled "$refs-reject" sha256 &&
+		test_must_fail git -C "$refs-reject" show-ref --verify refs/heads/main
+	'
+done
+
+test_expect_success 'cannot opt an existing repository into provisional formats' '
+	test_must_fail git -C sha1 init --provisional-object-format=sha256 &&
+	assert_settled sha1 sha1
 '
 
 test_expect_success 'a command doing its own setup settles even without writing' '
@@ -41,6 +128,62 @@ test_expect_success 'reinitialization preserves provisional formats and reposito
 	git -C reinit init --bare &&
 	assert_provisional reinit &&
 	test "$(git config --file reinit/config core.repositoryFormatVersion)" = 1
+'
+
+test_expect_success 'shallow push uses the selected alternative hash' '
+	git clone --depth=1 "file://$PWD/sha256" shallow-source &&
+	git init --bare --ref-storage-format=files --object-format=sha1 \
+		--provisional-object-format=sha256 shallow-target &&
+	git config --file shallow-target/config receive.shallowUpdate true &&
+	git -C shallow-source push ../shallow-target HEAD:refs/heads/main &&
+	assert_settled shallow-target sha256 &&
+	git -C shallow-target fsck
+'
+
+test_expect_success 'legacy push without object-format capability selects SHA-1' '
+	git init --bare --ref-storage-format=files --object-format=sha1 \
+		--provisional-object-format=sha256 legacy &&
+	git -C sha1 pack-objects --stdout --all >pack &&
+	{
+		packetize "$(test_oid --hash=sha1 zero) $(git -C sha1 rev-parse HEAD) refs/heads/main" &&
+		printf 0000 &&
+		cat pack
+	} >request &&
+	git receive-pack legacy <request >response &&
+	assert_settled legacy sha1 &&
+	git -C legacy fsck
+'
+
+test_expect_success 'reference tracing works through conversion' '
+	git init --bare --ref-storage-format=files --object-format=sha1 \
+		--provisional-object-format=sha256 traced &&
+	GIT_TRACE_REFS=1 git -C sha256 push ../traced HEAD:refs/heads/main 2>trace &&
+	assert_settled traced sha256 &&
+	git -C traced fsck
+'
+
+test_expect_success 'a dry-run push leaves provisional formats intact' '
+	git init --bare --object-format=sha1 --provisional-object-format=sha256 dry-run &&
+	git -C sha256 push --dry-run ../dry-run HEAD:refs/heads/main &&
+	assert_provisional dry-run
+'
+
+test_expect_success 'index-pack settles before importing a pack' '
+	git init --bare --ref-storage-format=files --object-format=sha1 \
+		--provisional-object-format=sha256 packed &&
+	git -C sha1 pack-objects --stdout --all >pack &&
+	git -C packed index-pack --stdin <pack &&
+	assert_settled packed sha1 &&
+	git -C packed cat-file -e "$(git -C sha1 rev-parse HEAD)" &&
+	git -C packed fsck
+'
+
+test_expect_success 'adding a linked worktree settles the main repository first' '
+	git init --bare --ref-storage-format=files --object-format=sha256 \
+		--provisional-object-format=sha1 worktree-main &&
+	git -C worktree-main worktree add --orphan ../worktree-linked &&
+	assert_settled worktree-main sha256 &&
+	assert_settled worktree-linked sha256
 '
 
 test_expect_success 'provisional formats require repository format version 1' '
@@ -66,6 +209,20 @@ test_expect_success 'provisional formats do not select the default format' '
 	assert_settled independent sha1
 '
 
+test_expect_success 'repeatable provisional formats are advertised and removed together' '
+	git init --bare --object-format=sha1 --provisional-object-format=sha1 \
+		--provisional-object-format=sha256 --provisional-object-format=sha256 choices &&
+	printf "sha1\nsha256\n" >expect &&
+	git config get --file choices/config --all extensions.provisionalObjectFormat >actual &&
+	test_cmp expect actual &&
+	git receive-pack --advertise-refs choices >advertisement &&
+	test_grep "provisional-object-format=sha1" advertisement &&
+	test_grep "provisional-object-format=sha256" advertisement &&
+	git -C sha256 push ../choices HEAD:refs/heads/main &&
+	assert_settled choices sha256 &&
+	git -C choices fsck
+'
+
 test_expect_success 'unknown provisional format is rejected before initialization' '
 	test_must_fail git init --provisional-object-format=unknown invalid-format 2>err &&
 	test_grep "unknown provisional object format" err &&
@@ -85,6 +242,21 @@ test_expect_success 'discovery rejects an unknown provisional format in the exte
 	test_must_fail git -C invalid-extension rev-parse --git-dir 2>err &&
 	test_grep "invalid value" err
 '
+
+for refs in files
+do
+	test_expect_success "$refs: clone, commit and push into a provisional repository" '
+		target=clone-$refs &&
+		git init --bare --ref-storage-format=$refs --object-format=sha1 \
+			--provisional-object-format=sha256 "$target" &&
+		git clone "file://$PWD/$target" "$target-client" &&
+		assert_provisional "$target" &&
+		test_commit -C "$target-client" initial &&
+		git -C "$target-client" push origin HEAD:refs/heads/main &&
+		assert_settled "$target" sha1 &&
+		git -C "$target" fsck
+	'
+done
 
 test_expect_success 'ordinary read commands conservatively settle the format' '
 	git init --bare --object-format=sha1 --provisional-object-format=sha256 read-command &&
