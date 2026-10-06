@@ -503,7 +503,7 @@ test_expect_success 'report error server does not provide ref status' '
 	test_cmp expect actual
 '
 
-for refs in files
+for refs in files reftable
 do
 	for incoming in sha1 sha256
 	do

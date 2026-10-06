@@ -565,6 +565,8 @@ typedef int fsck_fn(struct ref_store *ref_store,
 		    struct worktree *wt);
 
 struct ref_storage_be {
+	/* Settle the encoding of a hash-free store, or refresh after a race. */
+	int (*set_object_format)(struct ref_store *, const struct git_hash_algo *, int convert);
 	const char *name;
 	ref_store_init_fn *init;
 	ref_store_release_fn *release;
