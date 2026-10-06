@@ -124,6 +124,32 @@ test_expect_success 'cannot opt an existing repository into provisional formats'
 	assert_settled sha1 sha1
 '
 
+for refs in files reftable
+do
+	for chosen in sha1 sha256
+	do
+		test_expect_success "$refs: stale writer accepts $chosen winner and refreshes refs" '
+			target=stale-$refs-$chosen &&
+			git init --bare --ref-storage-format=$refs --object-format=sha1 \
+				--provisional-object-format=sha256 "$target" &&
+			test-tool repository settle-object-format "$target" "$chosen" "$chosen" &&
+			assert_settled "$target" "$chosen" &&
+			git -C "$target" fsck
+		'
+	done
+
+	test_expect_success "$refs: stale writer rejects a different winner" '
+		target=race-$refs &&
+		git init --bare --ref-storage-format=$refs --object-format=sha1 \
+			--provisional-object-format=sha256 "$target" &&
+		test_must_fail test-tool repository settle-object-format "$target" sha1 sha256 2>err &&
+		test_grep "does not permit object format" err &&
+		assert_settled "$target" sha256 &&
+		git -C "$target" fsck
+	'
+
+done
+
 for chosen in sha1 sha256
 do
 	test_expect_success "recover interrupted reftable conversion by choosing $chosen" '
@@ -150,7 +176,7 @@ test_expect_success 'conversion rejects physical OIDs hidden by a symref' '
 	GIT_TEST_REFTABLE_AUTOCOMPACTION=0 git -C physical symbolic-ref refs/hidden refs/missing &&
 	git config --file physical/config extensions.provisionalObjectFormat sha256 &&
 	cp physical/reftable/tables.list before &&
-	test_must_fail git -C sha256 push ../physical HEAD:refs/heads/main &&
+	test_must_fail test-tool repository settle-object-format physical sha256 &&
 	assert_provisional physical &&
 	test_cmp before physical/reftable/tables.list &&
 	git config unset --file physical/config extensions.provisionalObjectFormat &&
@@ -163,8 +189,31 @@ test_expect_success 'conversion rejects physical tombstones' '
 	GIT_TEST_REFTABLE_AUTOCOMPACTION=0 git -C tombstone symbolic-ref --delete refs/gone &&
 	git config --file tombstone/config extensions.provisionalObjectFormat sha256 &&
 	cp tombstone/reftable/tables.list before &&
-	test_must_fail git -C sha256 push ../tombstone HEAD:refs/heads/main &&
+	test_must_fail test-tool repository settle-object-format tombstone sha256 &&
 	test_cmp before tombstone/reftable/tables.list
+'
+
+test_expect_success 'settlement waits for a contended config lock' '
+	git init --bare --object-format=sha1 --provisional-object-format=sha256 contention &&
+	git config --file contention/config core.configLockTimeout 5000 &&
+	test_when_finished "rm -f contention/config.lock" &&
+	>contention/config.lock &&
+	{
+		(sleep 1 && rm -f contention/config.lock) &
+	} &&
+	test-tool repository settle-object-format contention sha256 &&
+	assert_settled contention sha256
+'
+
+test_expect_success 'settlement times out without changing the repository' '
+	git init --bare --object-format=sha1 --provisional-object-format=sha256 timeout &&
+	git config --file timeout/config core.configLockTimeout 0 &&
+	test_when_finished "rm -f timeout/config.lock" &&
+	>timeout/config.lock &&
+	cp timeout/config before &&
+	test_must_fail test-tool repository settle-object-format timeout sha256 2>err &&
+	test_grep "cannot lock repository configuration" err &&
+	test_cmp before timeout/config
 '
 
 test_expect_success 'a command doing its own setup settles even without writing' '
@@ -189,7 +238,7 @@ test_expect_success 'conversion rejects a reflog with null object IDs' '
 	) &&
 	git config --file log-only/config extensions.provisionalObjectFormat sha256 &&
 	cp log-only/reftable/tables.list before &&
-	test_must_fail git -C sha256 push ../log-only HEAD:refs/heads/main &&
+	test_must_fail test-tool repository settle-object-format log-only sha256 &&
 	test_cmp before log-only/reftable/tables.list
 '
 
@@ -224,6 +273,60 @@ test_expect_success 'reference tracing works through conversion' '
 	assert_settled traced sha256 &&
 	git -C traced fsck
 '
+
+test_expect_success 'settlement preserves unrelated config and file permissions' '
+	git init --bare --object-format=sha1 --provisional-object-format=sha256 config-test &&
+	git config --file config-test/config custom.value kept &&
+	chmod 600 config-test/config &&
+	test-tool repository settle-object-format config-test sha256 &&
+	test "$(git config --file config-test/config custom.value)" = kept &&
+	test_modebits config-test/config >actual &&
+	echo -rw------- >expect &&
+	test_cmp expect actual
+'
+
+for refs in files reftable
+do
+	test_expect_success "$refs: concurrent first pushes choosing the same format both succeed" '
+		target=parallel-same-$refs &&
+		git init --bare --ref-storage-format=$refs --object-format=sha1 \
+			--provisional-object-format=sha256 "$target" &&
+		git config --file "$target/config" core.configLockTimeout 5000 &&
+		{
+			push_status sha256 "../$target" HEAD:refs/heads/one one &
+			push_status sha256 "../$target" HEAD:refs/heads/two two &
+		} &&
+		wait &&
+		test_grep "^success$" one.status &&
+		test_grep "^success$" two.status &&
+		git -C "$target" show-ref --verify refs/heads/one &&
+		git -C "$target" show-ref --verify refs/heads/two &&
+		assert_settled "$target" sha256 &&
+		git -C "$target" fsck
+	'
+
+	test_expect_success "$refs: concurrent first pushes choosing different formats have one winner" '
+		target=parallel-different-$refs &&
+		git init --bare --ref-storage-format=$refs --object-format=sha1 \
+			--provisional-object-format=sha256 "$target" &&
+		git config --file "$target/config" core.configLockTimeout 5000 &&
+		{
+			push_status sha1 "../$target" HEAD:refs/heads/sha1 sha1 &
+			push_status sha256 "../$target" HEAD:refs/heads/sha256 sha256 &
+		} &&
+		wait &&
+		git -C "$target" for-each-ref --format="%(refname)" >actual &&
+		chosen=$(git -C "$target" rev-parse --show-object-format) &&
+		test_grep "^success$" "$chosen.status" &&
+		cat sha1.status sha256.status | sort >statuses &&
+		printf "failure\nsuccess\n" >expect &&
+		test_cmp expect statuses &&
+		echo refs/heads/$chosen >expect &&
+		test_cmp expect actual &&
+		assert_settled "$target" "$chosen" &&
+		git -C "$target" fsck
+	'
+done
 
 test_expect_success 'provisional initialization rejects objects seeded by templates' '
 	mkdir template-objects &&
@@ -314,6 +417,16 @@ test_expect_success 'repeatable provisional formats are advertised and removed t
 	git -C sha256 push ../choices HEAD:refs/heads/main &&
 	assert_settled choices sha256 &&
 	git -C choices fsck
+'
+
+test_expect_success 'settlement rejects an algorithm not in the configured choices' '
+	git init --bare --object-format=sha1 --provisional-object-format=sha1 restricted &&
+	cp restricted/config before &&
+	test_must_fail test-tool repository settle-object-format restricted sha256 2>err &&
+	test_grep "does not permit object format" err &&
+	test_cmp before restricted/config &&
+	test_must_fail git -C sha256 push ../restricted HEAD:refs/heads/main &&
+	assert_provisional restricted
 '
 
 test_expect_success 'unknown provisional format is rejected before initialization' '
