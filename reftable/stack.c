@@ -646,6 +646,8 @@ struct reftable_addition {
 	 * clearing the lock of another 'reftable_addition'.
 	 */
 	unsigned int locked : 1;
+	unsigned int replace : 1;
+	enum reftable_hash hash_id;
 
 	char **new_tables;
 	size_t new_tables_len, new_tables_cap;
@@ -683,6 +685,7 @@ static int reftable_stack_init_addition(struct reftable_addition *add,
 
 	memset(add, 0, sizeof(*add));
 	add->stack = st;
+	add->hash_id = st->opts.hash_id;
 	if (opts)
 		add->opts = *opts;
 
@@ -778,10 +781,10 @@ int reftable_addition_commit(struct reftable_addition *add)
 	int err = 0;
 	size_t i;
 
-	if (add->new_tables_len == 0)
+	if (add->new_tables_len == 0 && !add->replace)
 		goto done;
 
-	for (i = 0; i < add->stack->merged->tables_len; i++) {
+	for (i = 0; !add->replace && i < add->stack->merged->tables_len; i++) {
 		if ((err = reftable_buf_addstr(&table_list, add->stack->tables[i]->name)) < 0 ||
 		    (err = reftable_buf_addstr(&table_list, "\n")) < 0)
 			goto done;
@@ -812,6 +815,8 @@ int reftable_addition_commit(struct reftable_addition *add)
 		goto done;
 	}
 	add->locked = 0;
+
+	add->stack->opts.hash_id = add->hash_id;
 
 	/* success, no more state to clean up. */
 	for (i = 0; i < add->new_tables_len; i++)
@@ -866,6 +871,29 @@ int reftable_stack_addition_new(struct reftable_addition **dest,
 	return err;
 }
 
+int reftable_stack_for_each_table(struct reftable_stack *st,
+	int (*fn)(struct reftable_table *, void *), void *data)
+{
+	for (size_t i = 0; i < st->tables_len; i++) {
+		int err = fn(st->tables[i], data);
+		if (err)
+			return err;
+	}
+	return 0;
+}
+
+int reftable_addition_replace(struct reftable_addition *add,
+			     enum reftable_hash hash_id)
+{
+	if (!add->locked || add->new_tables_len ||
+	    (hash_id != REFTABLE_HASH_SHA1 && hash_id != REFTABLE_HASH_SHA256))
+		return REFTABLE_API_ERROR;
+	add->replace = 1;
+	add->hash_id = hash_id;
+	add->next_update_index = 0;
+	return 0;
+}
+
 int reftable_addition_add(struct reftable_addition *add,
 			  int (*write_table)(struct reftable_writer *wr,
 					     void *arg),
@@ -908,7 +936,7 @@ int reftable_addition_add(struct reftable_addition *add,
 
 	writer.fd = tab_file.fd;
 	err = reftable_writer_new(&wr, fd_writer_write, fd_writer_flush,
-				  &writer, add->stack->opts.hash_id, &add->opts);
+				  &writer, add->hash_id, &add->opts);
 	if (err < 0)
 		goto done;
 
