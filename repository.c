@@ -18,6 +18,7 @@
 #include "trace2.h"
 #include "promisor-remote.h"
 #include "refs.h"
+#include "write-or-die.h"
 
 /*
  * We do not define `USE_THE_REPOSITORY_VARIABLE` in this file because we do
@@ -67,6 +68,7 @@ void initialize_repository(struct repository *repo)
 	if (repo->initialized)
 		BUG("repository initialized already");
 	repo->initialized = true;
+	string_list_init_dup(&repo->provisional_object_formats);
 
 	repo->remote_state = remote_state_new();
 	repo->parsed_objects = parsed_object_pool_new(repo);
@@ -194,6 +196,86 @@ void repo_set_gitdir(struct repository *repo,
 void repo_set_hash_algo(struct repository *repo, uint32_t hash_algo)
 {
 	repo->hash_algo = &hash_algos[hash_algo];
+}
+
+int repo_settle_object_format(struct repository *repo,
+			      const struct git_hash_algo *algo)
+{
+	struct repository_format format = REPOSITORY_FORMAT_INIT;
+	struct lock_file lock = LOCK_INIT;
+	struct strbuf path = STRBUF_INIT, contents = STRBUF_INIT;
+	struct strbuf err = STRBUF_INIT;
+	struct stat st;
+	int timeout = 1000, fd, ret = -1;
+
+	if (!repo->provisional_object_formats.nr)
+		return repo->hash_algo == algo ? 0 :
+			error(_("repository already uses object format '%s'"), repo->hash_algo->name);
+
+	/* Other ref backends may encode the hash algorithm even without refs. */
+	if (repo->hash_algo != algo &&
+	    repo->ref_storage_format != REF_STORAGE_FORMAT_FILES)
+		return error(_("changing provisional object formats requires files refs"));
+
+	repo_config_get_int(repo, "core.configlocktimeout", &timeout);
+	repo_common_path_append(repo, &path, "config");
+	fd = repo_hold_lock_file_for_update_timeout(repo, &lock, path.buf, 0, timeout);
+	if (fd < 0) {
+		error_errno(_("cannot lock repository configuration"));
+		goto out;
+	}
+
+	/* Discovery may have raced with another writer. */
+	read_repository_format(&format, path.buf);
+	if (format.version < 0 || verify_repository_format(&format, &err) < 0) {
+		error(_("cannot read repository format: %s"), err.buf);
+		goto out;
+	}
+	if (&hash_algos[format.hash_algo] != algo &&
+	    !string_list_has_string(&format.provisional_object_formats, algo->name)) {
+		error(_("repository does not permit object format '%s' (current format is '%s')"),
+		      algo->name, hash_algos[format.hash_algo].name);
+		goto out;
+	}
+
+
+	if (format.provisional_object_formats.nr) {
+		if (stat(path.buf, &st) < 0 ||
+		    strbuf_read_file(&contents, path.buf, 0) < 0 ||
+		    write_in_full(fd, contents.buf, contents.len) < 0 ||
+		    fchmod(fd, st.st_mode & 07777) < 0 || close_lock_file_gently(&lock) < 0) {
+			error_errno(_("cannot prepare repository configuration"));
+			goto out;
+		}
+		if (repo_config_set_in_file_gently(repo, get_lock_file_path(&lock),
+						   "extensions.objectformat", NULL, algo->name) ||
+		    repo_config_set_multivar_in_file_gently(repo, get_lock_file_path(&lock),
+							    "extensions.provisionalobjectformat",
+							    NULL, NULL, NULL, CONFIG_FLAGS_MULTI_REPLACE))
+			goto out;
+		if (commit_lock_file(&lock)) {
+			error_errno(_("cannot commit repository object format"));
+			goto out;
+		}
+	}
+
+	repo_set_hash_algo(repo, hash_algo_by_ptr(algo));
+	string_list_clear(&repo->provisional_object_formats, 0);
+	repo_config_clear(repo);
+	ret = 0;
+out:
+	rollback_lock_file(&lock);
+	clear_repository_format(&format);
+	strbuf_release(&path);
+	strbuf_release(&contents);
+	strbuf_release(&err);
+	return ret;
+}
+
+void repo_require_object_format(struct repository *repo)
+{
+	if (repo->provisional_object_formats.nr && repo_settle_object_format(repo, repo->hash_algo))
+		die(_("unable to settle repository object format"));
 }
 
 void repo_set_compat_hash_algo(struct repository *repo MAYBE_UNUSED, uint32_t algo)
@@ -382,6 +464,7 @@ void repo_clear(struct repository *repo)
 	FREE_AND_NULL(repo->worktree);
 	FREE_AND_NULL(repo->submodule_prefix);
 	FREE_AND_NULL(repo->ref_storage_payload);
+	string_list_clear(&repo->provisional_object_formats, 0);
 
 	odb_free(repo->objects);
 	repo->objects = NULL;

@@ -6,6 +6,7 @@
 #include "repo-settings.h"
 #include "environment.h"
 
+struct repository;
 struct config_set;
 struct git_hash_algo;
 struct index_state;
@@ -37,6 +38,15 @@ struct repo_path_cache {
 	char *fetch_head;
 	char *shallow;
 };
+
+/*
+ * Commit a repository with provisional formats to algo before any hash-dependent mutation.
+ * A competing writer choosing the same algorithm is success. Only callers
+ * which have not constructed hash-dependent state may request another algo.
+ */
+int repo_settle_object_format(struct repository *repo,
+			      const struct git_hash_algo *algo);
+void repo_require_object_format(struct repository *repo);
 
 struct repository {
 	/* Environment */
@@ -163,6 +173,9 @@ struct repository {
 
 	/* Repository's current hash algorithm, as serialized on disk. */
 	const struct git_hash_algo *hash_algo;
+
+	/* Formats permitted for the first push; other writes remove these choices. */
+	struct string_list provisional_object_formats;
 
 	/* Repository's compatibility hash algorithm. */
 	const struct git_hash_algo *compat_hash_algo;
