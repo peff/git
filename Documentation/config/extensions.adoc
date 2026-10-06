@@ -48,7 +48,7 @@ provisionalObjectFormat:::
 The first push may select an advertised provisional format, making it
 permanent and removing all values of this extension. Other writes commit to
 the configured object format and remove all provisional formats. Writing an
-index or refs, or creating a linked worktree also commits
+index or refs, creating a linked worktree, or loading alternates also commits
 the format. An operation that fails after selecting the format does not undo
 that selection.
 +
