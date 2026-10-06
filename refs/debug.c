@@ -433,7 +433,15 @@ static int debug_fsck(struct ref_store *ref_store,
 	return res;
 }
 
+static int debug_set_object_format(struct ref_store *refs,
+	const struct git_hash_algo *algo, int convert)
+{
+	struct debug_ref_store *drefs = (struct debug_ref_store *)refs;
+	return refs_set_object_format(drefs->refs, algo, convert);
+}
+
 struct ref_storage_be refs_be_debug = {
+	.set_object_format = debug_set_object_format,
 	.name = "debug",
 	.init = NULL,
 	.release = debug_release,

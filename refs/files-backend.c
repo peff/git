@@ -4084,7 +4084,31 @@ static int files_fsck(struct ref_store *ref_store,
 	return ret;
 }
 
+static int reject_hash_ref(const struct reference *ref, void *data UNUSED)
+{
+	return !(ref->flags & REF_ISSYMREF);
+}
+
+static int reject_reflog(const char *refname UNUSED, void *data UNUSED)
+{
+	return 1;
+}
+
+static int files_set_object_format(struct ref_store *refs,
+	const struct git_hash_algo *algo UNUSED, int convert)
+{
+	struct refs_for_each_ref_options opts = {
+		.flags = REFS_FOR_EACH_INCLUDE_ROOT_REFS | REFS_FOR_EACH_INCLUDE_BROKEN,
+	};
+
+	if (!convert)
+		return 0;
+	return refs_for_each_ref_ext(refs, reject_hash_ref, NULL, &opts) ||
+		refs_for_each_reflog(refs, reject_reflog, NULL);
+}
+
 struct ref_storage_be refs_be_files = {
+	.set_object_format = files_set_object_format,
 	.name = "files",
 	.init = files_ref_store_init,
 	.release = files_ref_store_release,
