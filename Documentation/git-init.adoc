@@ -11,7 +11,7 @@ SYNOPSIS
 [synopsis]
 git init [-q | --quiet] [--bare] [--template=<template-directory>]
 	 [--separate-git-dir <git-dir>] [--object-format=<format>]
-	 [--ref-storage-format=<format>]
+	 [--ref-storage-format=<format>] [--provisional-object-format=<format>]
 	 [-b <branch-name> | --initial-branch=<branch-name>]
 	 [--shared[=<permissions>]] [<directory>]
 
@@ -50,6 +50,25 @@ Only print error and warning messages; all other output will be suppressed.
 
 Create a bare repository. If `GIT_DIR` environment is not set, it is set to the
 current working directory.
+
+`--provisional-object-format=<format>`::
+	Permit the first push to an empty repository to choose this object
+	format instead of the default. This option can be given once per
+	permitted format. It is
+	independent of `--object-format`, which continues to select the
+	default as usual. For example, `--object-format=sha1
+	--provisional-object-format=sha256` creates an empty SHA-1 repository
+	that permits a future push to select SHA-256. Other writes commit to the
+	default format and remove all provisional formats. Once a format is
+	chosen, the repository no longer accepts other formats through this
+	feature, even if the operation that selected it fails.
++
+This option is intended primarily for newly created bare repositories on
+hosting services. It cannot be used to reinitialize an existing repository.
+Most commands
+commit to the default format even when they do not write. Protocol support
+for selecting a provisional format is not yet implemented. See
+`extensions.provisionalObjectFormat` in linkgit:git-config[1].
 
 `--object-format=<format>`::
 Specify the given object _<format>_ (hash algorithm) for the repository.  The valid

@@ -47,6 +47,9 @@ Opening the repository commits to the configured object format and removes
 all provisional formats. An operation that fails after selecting the format
 does not undo that selection. Implementations that do not recognize this
 extension must refuse to open the repository.
++
+Create this state with `git init --provisional-object-format`. Do not add
+this extension to an existing repository.
 
 partialClone:::
 	When enabled, indicates that the repo was created with a partial clone
