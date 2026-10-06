@@ -64,8 +64,8 @@ current working directory.
 	feature, even if the operation that selected it fails.
 +
 This option is intended primarily for newly created bare repositories on
-hosting services. It cannot be used to reinitialize an existing repository.
-Most commands
+hosting services. It cannot be used to reinitialize an existing repository,
+or with templates that seed objects or hash-dependent metadata. Most commands
 commit to the default format even when they do not write; cloning preserves
 the provisional choices for a later push. See
 `extensions.provisionalObjectFormat` in linkgit:git-config[1].
