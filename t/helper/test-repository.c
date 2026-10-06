@@ -6,6 +6,7 @@
 #include "environment.h"
 #include "hex.h"
 #include "object.h"
+#include "run-command.h"
 #include "refs.h"
 #include "lockfile.h"
 #include "path.h"
@@ -68,6 +69,52 @@ static void test_get_commit_tree_in_graph(const char *gitdir,
 	repo_clear(&r);
 }
 
+/* Keep one repository instance stale while a second writer settles it. */
+static int test_settle_object_format(int argc, const char **argv)
+{
+	struct repository r, other;
+	struct object_id oid;
+	int algo, ret;
+
+	if (argc < 4 || argc > 5)
+		die("usage: repository settle-object-format <gitdir> <hash> [<competing-hash>]");
+	algo = hash_algo_by_name(argv[3]);
+	if (!algo || repo_init(&r, argv[2], NULL))
+		die("cannot initialize repository");
+	/* Exercise refresh of a backend opened before the competing write. */
+	get_main_ref_store(&r);
+	if (argc == 5) {
+		struct child_process cmd = CHILD_PROCESS_INIT;
+		struct strbuf output = STRBUF_INIT;
+		int competing = hash_algo_by_name(argv[4]);
+		if (!competing || repo_init(&other, argv[2], NULL) ||
+		    repo_settle_object_format(&other, &hash_algos[competing]))
+			die("competing writer failed");
+		repo_clear(&other);
+		cmd.git_cmd = 1;
+		strvec_pushl(&cmd.args, "--git-dir", argv[2], "hash-object", "-w", "--stdin", NULL);
+		if (pipe_command(&cmd, "winner", 6, &output, 0, NULL, 0) ||
+		    get_oid_hex_algop(output.buf, &oid, &hash_algos[competing]))
+			die("cannot write object");
+		strbuf_release(&output);
+		child_process_init(&cmd);
+		cmd.git_cmd = 1;
+		strvec_pushl(&cmd.args, "--git-dir", argv[2], "update-ref",
+			      "refs/winner", oid_to_hex(&oid), NULL);
+		if (run_command(&cmd))
+			die("cannot write ref");
+	}
+	ret = repo_settle_object_format(&r, &hash_algos[algo]);
+	if (!ret && argc == 5) {
+		struct object_id actual;
+		if (refs_read_ref(get_main_ref_store(&r), "refs/winner", &actual) ||
+		    !oideq(&actual, &oid))
+			die("stale ref backend after settlement");
+	}
+	repo_clear(&r);
+	return !!ret;
+}
+
 /* Simulate interruption after replacing reftables but before updating config. */
 static int test_rewrite_object_format(int argc, const char **argv)
 {
@@ -94,7 +141,9 @@ int cmd__repository(int argc, const char **argv)
 {
 	if (argc < 2)
 		die("must have at least 2 arguments");
-	if (!strcmp(argv[1], "rewrite-object-format")) {
+	if (!strcmp(argv[1], "settle-object-format")) {
+		return test_settle_object_format(argc, argv);
+	} else if (!strcmp(argv[1], "rewrite-object-format")) {
 		return test_rewrite_object_format(argc, argv);
 	} else if (!strcmp(argv[1], "parse_commit_in_graph")) {
 		struct object_id oid;
