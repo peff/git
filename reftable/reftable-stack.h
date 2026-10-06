@@ -66,6 +66,22 @@ int reftable_stack_addition_new(struct reftable_addition **dest,
 				struct reftable_stack *st,
 				const struct reftable_write_options *opts);
 
+/*
+ * Visit every physical table, including records hidden by newer tables.
+ * Hold an addition open if the stack must remain locked during inspection.
+ * The callback must not modify the stack or retain the borrowed table.
+ */
+struct reftable_table;
+int reftable_stack_for_each_table(struct reftable_stack *st,
+	int (*fn)(struct reftable_table *, void *), void *data);
+
+/*
+ * Replace the entire stack instead of appending to it. Call before adding
+ * any tables. The caller is responsible for translating records to hash_id.
+ */
+int reftable_addition_replace(struct reftable_addition *add,
+			     enum reftable_hash hash_id);
+
 /* Adds a reftable to transaction. */
 int reftable_addition_add(struct reftable_addition *add,
 			  int (*write_table)(struct reftable_writer *wr,
