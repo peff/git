@@ -19,6 +19,7 @@
 #include "../reftable/reftable-iterator.h"
 #include "../reftable/reftable-record.h"
 #include "../reftable/reftable-stack.h"
+#include "../reftable/reftable-table.h"
 #include "../repo-settings.h"
 #include "../setup.h"
 #include "../strmap.h"
@@ -403,6 +404,136 @@ static void reftable_be_reparent(const char *old_cwd,
 	refs->base.gitdir = tmp;
 }
 
+/* Inspect physical records: a merged iterator would hide old OIDs. */
+static int check_hash_free_table(struct reftable_table *table, void *data UNUSED)
+{
+	struct reftable_iterator it = {0};
+	struct reftable_ref_record ref = {0};
+	struct reftable_log_record log = {0};
+	int ret;
+
+	if (table->obj_offsets.is_present)
+		return REFTABLE_FORMAT_ERROR;
+
+	ret = reftable_table_init_ref_iterator(table, &it);
+	if (ret < 0)
+		goto out;
+	ret = reftable_iterator_seek_ref(&it, "");
+	if (ret < 0)
+		goto out;
+	while (!(ret = reftable_iterator_next_ref(&it, &ref))) {
+		if (ref.value_type != REFTABLE_REF_SYMREF) {
+			ret = REFTABLE_FORMAT_ERROR;
+			goto out;
+		}
+	}
+	if (ret < 0)
+		goto out;
+	reftable_iterator_destroy(&it);
+
+	ret = reftable_table_init_log_iterator(table, &it);
+	if (ret < 0)
+		goto out;
+	ret = reftable_iterator_seek_log(&it, "");
+	if (ret < 0)
+		goto out;
+	ret = reftable_iterator_next_log(&it, &log);
+	if (!ret)
+		ret = REFTABLE_FORMAT_ERROR;
+	else if (ret > 0)
+		ret = 0;
+out:
+	reftable_iterator_destroy(&it);
+	reftable_ref_record_release(&ref);
+	reftable_log_record_release(&log);
+	return ret;
+}
+
+static int rewrite_symrefs(struct reftable_writer *writer, void *data)
+{
+	struct reftable_stack *stack = data;
+	struct reftable_iterator it = {0};
+	struct reftable_ref_record ref = {0};
+	int ret;
+
+	ret = reftable_writer_set_limits(writer, 0,
+					 reftable_stack_next_update_index(stack) - 1);
+	if (ret < 0)
+		goto out;
+	ret = reftable_stack_init_ref_iterator(stack, &it);
+	if (ret < 0)
+		goto out;
+	ret = reftable_iterator_seek_ref(&it, "");
+	if (ret < 0)
+		goto out;
+	while (!(ret = reftable_iterator_next_ref(&it, &ref))) {
+		ret = reftable_writer_add_ref(writer, &ref);
+		if (ret < 0)
+			goto out;
+	}
+	if (ret > 0)
+		ret = 0;
+out:
+	reftable_iterator_destroy(&it);
+	reftable_ref_record_release(&ref);
+	return ret;
+}
+
+static int reftable_be_set_object_format(struct ref_store *ref_store,
+	const struct git_hash_algo *algo, int convert)
+{
+	struct reftable_ref_store *refs = reftable_be_downcast(ref_store, 0, "set_object_format");
+	struct reftable_backend *be = &refs->main_backend;
+	struct reftable_stack_options opts = refs->stack_options;
+	struct reftable_addition *add = NULL;
+	struct reftable_write_options write_opts = reftable_be_write_options(refs)->opts;
+	struct strbuf path = STRBUF_INIT;
+	enum reftable_hash target = algo->format_id == GIT_SHA1_FORMAT_ID ?
+		REFTABLE_HASH_SHA1 : REFTABLE_HASH_SHA256;
+	int ret;
+
+	/* Linked worktrees must settle the format before they are created. */
+	if (be->stack)
+		reftable_backend_release(be);
+	strbuf_addf(&path, "%s/reftable", refs->base.gitdir);
+	opts.hash_id = target;
+	ret = reftable_backend_init(be, path.buf, &opts);
+	if (ret == REFTABLE_FORMAT_ERROR && convert) {
+		opts.hash_id = target == REFTABLE_HASH_SHA1 ?
+			REFTABLE_HASH_SHA256 : REFTABLE_HASH_SHA1;
+		ret = reftable_backend_init(be, path.buf, &opts);
+	}
+	if (ret < 0)
+		goto out;
+	if (!convert)
+		goto out;
+
+	/* Config is locked first while the object format is provisional. */
+	write_opts.disable_auto_compact = 1;
+	ret = reftable_stack_addition_new(&add, be->stack, &write_opts);
+	if (ret < 0)
+		goto out;
+	ret = reftable_stack_for_each_table(be->stack, check_hash_free_table, NULL);
+	if (ret < 0)
+		goto out;
+	if (reftable_stack_hash_id(be->stack) == target)
+		goto out;
+	ret = reftable_addition_replace(add, target);
+	if (ret < 0)
+		goto out;
+	ret = reftable_addition_add(add, rewrite_symrefs, be->stack);
+	if (ret < 0)
+		goto out;
+	ret = reftable_addition_commit(add);
+out:
+	reftable_addition_destroy(add);
+	strbuf_release(&path);
+	refs->err = ret;
+	if (!ret)
+		refs->stack_options.hash_id = target;
+	return ret;
+}
+
 static struct ref_store *reftable_be_init(struct repository *repo,
 					  const char *payload,
 					  const char *gitdir,
@@ -444,6 +575,12 @@ static struct ref_store *reftable_be_init(struct repository *repo,
 	strbuf_addstr(&path, "/reftable");
 	refs->err = reftable_backend_init(&refs->main_backend, path.buf,
 					  &refs->stack_options);
+	if (refs->err == REFTABLE_FORMAT_ERROR && repo->provisional_object_formats.nr) {
+		struct reftable_stack_options opts = refs->stack_options;
+		opts.hash_id = opts.hash_id == REFTABLE_HASH_SHA1 ?
+			REFTABLE_HASH_SHA256 : REFTABLE_HASH_SHA1;
+		refs->err = reftable_backend_init(&refs->main_backend, path.buf, &opts);
+	}
 	if (refs->err)
 		goto done;
 
@@ -2863,6 +3000,7 @@ struct ref_storage_be refs_be_reftable = {
 	.init = reftable_be_init,
 	.release = reftable_be_release,
 	.create_on_disk = reftable_be_create_on_disk,
+	.set_object_format = reftable_be_set_object_format,
 	.remove_on_disk = reftable_be_remove_on_disk,
 
 	.transaction_prepare = reftable_be_transaction_prepare,

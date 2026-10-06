@@ -6,6 +6,9 @@
 #include "environment.h"
 #include "hex.h"
 #include "object.h"
+#include "refs.h"
+#include "lockfile.h"
+#include "path.h"
 #include "repository.h"
 #include "setup.h"
 #include "tree.h"
@@ -65,11 +68,35 @@ static void test_get_commit_tree_in_graph(const char *gitdir,
 	repo_clear(&r);
 }
 
+/* Simulate interruption after replacing reftables but before updating config. */
+static int test_rewrite_object_format(int argc, const char **argv)
+{
+	struct repository r;
+	struct lock_file lock = LOCK_INIT;
+	struct strbuf config = STRBUF_INIT;
+	int algo, ret;
+
+	if (argc != 4)
+		die("usage: repository rewrite-object-format <gitdir> <hash>");
+	algo = hash_algo_by_name(argv[3]);
+	if (!algo || repo_init(&r, argv[2], NULL) || !r.provisional_object_formats.nr)
+		die("expected a repository with provisional object formats");
+	repo_common_path_append(&r, &config, "config");
+	hold_lock_file_for_update(&lock, config.buf, LOCK_DIE_ON_ERROR);
+	ret = refs_set_object_format(get_main_ref_store(&r), &hash_algos[algo], 1);
+	rollback_lock_file(&lock);
+	strbuf_release(&config);
+	repo_clear(&r);
+	return !!ret;
+}
+
 int cmd__repository(int argc, const char **argv)
 {
 	if (argc < 2)
 		die("must have at least 2 arguments");
-	if (!strcmp(argv[1], "parse_commit_in_graph")) {
+	if (!strcmp(argv[1], "rewrite-object-format")) {
+		return test_rewrite_object_format(argc, argv);
+	} else if (!strcmp(argv[1], "parse_commit_in_graph")) {
 		struct object_id oid;
 		if (argc < 5)
 			die("not enough arguments");

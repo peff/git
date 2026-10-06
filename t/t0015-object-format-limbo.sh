@@ -52,7 +52,7 @@ test_expect_success 'setup sources for both algorithms' '
 	test_commit -C sha256 two
 '
 
-for refs in files
+for refs in files reftable
 do
 	for default in sha1 sha256
 	do
@@ -116,6 +116,49 @@ test_expect_success 'cannot opt an existing repository into provisional formats'
 	assert_settled sha1 sha1
 '
 
+for chosen in sha1 sha256
+do
+	test_expect_success "recover interrupted reftable conversion by choosing $chosen" '
+		target=recover-$chosen &&
+		git init --bare --ref-storage-format=reftable --object-format=sha1 \
+			--provisional-object-format=sha256 --initial-branch=master "$target" &&
+		test-tool repository rewrite-object-format "$target" sha256 &&
+		assert_provisional "$target" &&
+		echo refs/heads/master >before &&
+		git receive-pack --advertise-refs "$target" >advertisement &&
+		assert_provisional "$target" &&
+		git -C "$chosen" push "../$target" HEAD:refs/heads/main &&
+		assert_settled "$target" "$chosen" &&
+		git -C "$target" symbolic-ref HEAD >after &&
+		test_cmp before after &&
+		git -C "$target" fsck
+	'
+done
+
+test_expect_success 'conversion rejects physical OIDs hidden by a symref' '
+	git init --bare --ref-storage-format=reftable --object-format=sha1 physical &&
+	oid=$(echo content | git -C physical hash-object -w --stdin) &&
+	GIT_TEST_REFTABLE_AUTOCOMPACTION=0 git -C physical update-ref refs/hidden "$oid" &&
+	GIT_TEST_REFTABLE_AUTOCOMPACTION=0 git -C physical symbolic-ref refs/hidden refs/missing &&
+	git config --file physical/config extensions.provisionalObjectFormat sha256 &&
+	cp physical/reftable/tables.list before &&
+	test_must_fail git -C sha256 push ../physical HEAD:refs/heads/main &&
+	assert_provisional physical &&
+	test_cmp before physical/reftable/tables.list &&
+	git config unset --file physical/config extensions.provisionalObjectFormat &&
+	git -C physical cat-file -e "$oid"
+'
+
+test_expect_success 'conversion rejects physical tombstones' '
+	git init --bare --ref-storage-format=reftable --object-format=sha1 tombstone &&
+	git -C tombstone symbolic-ref refs/gone refs/missing &&
+	GIT_TEST_REFTABLE_AUTOCOMPACTION=0 git -C tombstone symbolic-ref --delete refs/gone &&
+	git config --file tombstone/config extensions.provisionalObjectFormat sha256 &&
+	cp tombstone/reftable/tables.list before &&
+	test_must_fail git -C sha256 push ../tombstone HEAD:refs/heads/main &&
+	test_cmp before tombstone/reftable/tables.list
+'
+
 test_expect_success 'a command doing its own setup settles even without writing' '
 	git init --bare --object-format=sha1 --provisional-object-format=sha256 hash-only &&
 	echo content | git -C hash-only hash-object --stdin &&
@@ -130,9 +173,21 @@ test_expect_success 'reinitialization preserves provisional formats and reposito
 	test "$(git config --file reinit/config core.repositoryFormatVersion)" = 1
 '
 
+test_expect_success 'conversion rejects a reflog with null object IDs' '
+	git init --bare --ref-storage-format=reftable --object-format=sha1 log-only &&
+	(
+		cd log-only &&
+		test-tool ref-store main create-reflog refs/heads/main
+	) &&
+	git config --file log-only/config extensions.provisionalObjectFormat sha256 &&
+	cp log-only/reftable/tables.list before &&
+	test_must_fail git -C sha256 push ../log-only HEAD:refs/heads/main &&
+	test_cmp before log-only/reftable/tables.list
+'
+
 test_expect_success 'shallow push uses the selected alternative hash' '
 	git clone --depth=1 "file://$PWD/sha256" shallow-source &&
-	git init --bare --ref-storage-format=files --object-format=sha1 \
+	git init --bare --ref-storage-format=reftable --object-format=sha1 \
 		--provisional-object-format=sha256 shallow-target &&
 	git config --file shallow-target/config receive.shallowUpdate true &&
 	git -C shallow-source push ../shallow-target HEAD:refs/heads/main &&
@@ -141,7 +196,7 @@ test_expect_success 'shallow push uses the selected alternative hash' '
 '
 
 test_expect_success 'legacy push without object-format capability selects SHA-1' '
-	git init --bare --ref-storage-format=files --object-format=sha1 \
+	git init --bare --ref-storage-format=reftable --object-format=sha1 \
 		--provisional-object-format=sha256 legacy &&
 	git -C sha1 pack-objects --stdout --all >pack &&
 	{
@@ -155,7 +210,7 @@ test_expect_success 'legacy push without object-format capability selects SHA-1'
 '
 
 test_expect_success 'reference tracing works through conversion' '
-	git init --bare --ref-storage-format=files --object-format=sha1 \
+	git init --bare --ref-storage-format=reftable --object-format=sha1 \
 		--provisional-object-format=sha256 traced &&
 	GIT_TRACE_REFS=1 git -C sha256 push ../traced HEAD:refs/heads/main 2>trace &&
 	assert_settled traced sha256 &&
@@ -169,7 +224,7 @@ test_expect_success 'a dry-run push leaves provisional formats intact' '
 '
 
 test_expect_success 'index-pack settles before importing a pack' '
-	git init --bare --ref-storage-format=files --object-format=sha1 \
+	git init --bare --ref-storage-format=reftable --object-format=sha1 \
 		--provisional-object-format=sha256 packed &&
 	git -C sha1 pack-objects --stdout --all >pack &&
 	git -C packed index-pack --stdin <pack &&
@@ -179,7 +234,7 @@ test_expect_success 'index-pack settles before importing a pack' '
 '
 
 test_expect_success 'adding a linked worktree settles the main repository first' '
-	git init --bare --ref-storage-format=files --object-format=sha256 \
+	git init --bare --ref-storage-format=reftable --object-format=sha256 \
 		--provisional-object-format=sha1 worktree-main &&
 	git -C worktree-main worktree add --orphan ../worktree-linked &&
 	assert_settled worktree-main sha256 &&
@@ -243,7 +298,7 @@ test_expect_success 'discovery rejects an unknown provisional format in the exte
 	test_grep "invalid value" err
 '
 
-for refs in files
+for refs in files reftable
 do
 	test_expect_success "$refs: clone, commit and push into a provisional repository" '
 		target=clone-$refs &&
