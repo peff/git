@@ -212,11 +212,6 @@ int repo_settle_object_format(struct repository *repo,
 		return repo->hash_algo == algo ? 0 :
 			error(_("repository already uses object format '%s'"), repo->hash_algo->name);
 
-	/* Other ref backends may encode the hash algorithm even without refs. */
-	if (repo->hash_algo != algo &&
-	    repo->ref_storage_format != REF_STORAGE_FORMAT_FILES)
-		return error(_("changing provisional object formats requires files refs"));
-
 	repo_config_get_int(repo, "core.configlocktimeout", &timeout);
 	repo_common_path_append(repo, &path, "config");
 	fd = repo_hold_lock_file_for_update_timeout(repo, &lock, path.buf, 0, timeout);
@@ -238,6 +233,16 @@ int repo_settle_object_format(struct repository *repo,
 		goto out;
 	}
 
+	/*
+	 * Rewrite refs before config. If interrupted, the extension remains
+	 * and a later writer can retry conversion of the hash-free stack.
+	 * Reopen even when another writer settled on our desired algorithm.
+	 */
+	if (refs_set_object_format(get_main_ref_store(repo), algo,
+				   format.provisional_object_formats.nr)) {
+		error(_("cannot settle object format: reference conversion failed"));
+		goto out;
+	}
 
 	if (format.provisional_object_formats.nr) {
 		if (stat(path.buf, &st) < 0 ||
