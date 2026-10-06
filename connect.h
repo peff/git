@@ -22,6 +22,7 @@ const char *server_feature_value(const char *feature, size_t *len_ret);
 struct packet_reader;
 enum protocol_version discover_version(struct packet_reader *reader);
 
+int server_supports_provisional_hash(const char *desired);
 int server_supports_hash(const char *desired, int *feature_supported);
 const char *parse_feature_value(const char *feature_list, const char *feature, size_t *lenp, size_t *offset);
 int server_supports_v2(const char *c);
