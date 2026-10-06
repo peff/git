@@ -2508,6 +2508,13 @@ void base_ref_store_init(struct ref_store *refs, struct repository *repo,
 	refs->gitdir = xstrdup(path);
 }
 
+int refs_set_object_format(struct ref_store *refs,
+	const struct git_hash_algo *algo, int convert)
+{
+	return refs->be->set_object_format ?
+		refs->be->set_object_format(refs, algo, convert) : 0;
+}
+
 int refs_optimize(struct ref_store *refs, struct refs_optimize_opts *opts)
 {
 	return refs->be->optimize(refs, opts);

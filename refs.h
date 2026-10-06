@@ -1183,6 +1183,15 @@ int refs_reflog_expire(struct ref_store *refs,
 
 struct ref_store *get_main_ref_store(struct repository *r);
 
+/*
+ * When convert is set, verify that the store contains only symrefs and
+ * convert its encoding to algo. Otherwise, refresh a stale backend after
+ * another writer settled on algo. The caller holds the common config lock
+ * (except when checking a newly initialized, unpublished repository).
+ */
+int refs_set_object_format(struct ref_store *refs,
+			   const struct git_hash_algo *algo, int convert);
+
 /**
  * Submodules
  * ----------
