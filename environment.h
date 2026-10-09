@@ -93,6 +93,8 @@
  */
 extern const char * const local_repo_env[];
 
+extern FILE *original_stderr;
+
 struct strvec;
 
 struct repository;
