@@ -777,12 +777,13 @@ const char *repo_logmsg_reencode(struct repository *r,
 static int mailmap_name(const char **email, size_t *email_len,
 			const char **name, size_t *name_len)
 {
-	static struct string_list *mail_map;
+	static struct mailmap *mail_map;
 	if (!mail_map) {
-		CALLOC_ARRAY(mail_map, 1);
+		ALLOC_ARRAY(mail_map, 1);
+		mailmap_init(mail_map);
 		read_mailmap(the_repository, mail_map);
 	}
-	return mail_map->nr && map_user(mail_map, email, email_len, name, name_len);
+	return mail_map->map.nr && map_user(mail_map, email, email_len, name, name_len);
 }
 
 static void format_initials(struct strbuf *out, const char *name, size_t len)

@@ -24,7 +24,7 @@ static const struct option check_mailmap_options[] = {
 	OPT_END()
 };
 
-static void check_mailmap(struct string_list *mailmap, const char *contact)
+static void check_mailmap(struct mailmap *mailmap, const char *contact)
 {
 	const char *name, *mail;
 	size_t namelen, maillen;
@@ -55,7 +55,7 @@ int cmd_check_mailmap(int argc,
 		      struct repository *repo UNUSED)
 {
 	int i;
-	struct string_list mailmap = STRING_LIST_INIT_NODUP;
+	struct mailmap mailmap = MAILMAP_INIT;
 
 	repo_config(the_repository, git_default_config, NULL);
 	argc = parse_options(argc, argv, prefix, check_mailmap_options,
