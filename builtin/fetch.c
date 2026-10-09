@@ -105,6 +105,7 @@ struct fetch_config {
 	enum display_format display_format;
 	char *follow_remote_head_raw;
 	int follow_remote_head_seen;
+	char *default_remote;
 	int all;
 	int prune;
 	int prune_tags;
@@ -122,6 +123,11 @@ static int git_fetch_config(const char *k, const char *v,
 	if (!strcmp(k, "fetch.all")) {
 		fetch_config->all = git_config_bool(k, v);
 		return 0;
+	}
+
+	if (!strcmp(k, "fetch.defaultremote")) {
+		FREE_AND_NULL(fetch_config->default_remote);
+		return git_config_string(&fetch_config->default_remote, k, v);
 	}
 
 	if (!strcmp(k, "fetch.prune")) {
@@ -2792,7 +2798,7 @@ int cmd_fetch(int argc,
 			remote = remote_get(list.items[0].string);
 	} else if (argc == 0) {
 		/* No arguments -- use default remote */
-		remote = remote_get(NULL);
+		remote = remote_get(config.default_remote);
 	} else if (multiple) {
 		/* All arguments are assumed to be remotes or groups */
 		for (i = 0; i < argc; i++)
