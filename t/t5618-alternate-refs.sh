@@ -71,13 +71,13 @@ test_expect_success 'connectivity check of a deepening fetch excludes alternate 
 '
 
 test_expect_success 'refs of a shallow alternate are ignored' '
-	git clone --depth=1 "file://$TRASH_DIRECTORY" "$TRASH_DIRECTORY/shallow" &&
-	test_commit -C "$TRASH_DIRECTORY/shallow" shallow-only &&
-	git -C "$TRASH_DIRECTORY/shallow" rev-parse HEAD >shallow-tip &&
+	git clone --depth=1 --no-local . shallow &&
+	test_commit -C shallow shallow-only &&
+	shallow_tip=$(git -C shallow rev-parse HEAD) &&
 	cp .git/objects/info/alternates alternates.bak &&
 	test_when_finished "mv alternates.bak .git/objects/info/alternates" &&
-	echo "$TRASH_DIRECTORY/shallow/.git/objects" >>.git/objects/info/alternates &&
-	git cat-file -e $(cat shallow-tip) &&
+	echo "$(pwd)/shallow/.git/objects" >>.git/objects/info/alternates &&
+	git cat-file -e $shallow_tip &&
 	git rev-list --remotes=origin >expect &&
 	git rev-list --alternate-refs >actual &&
 	test_cmp expect actual
