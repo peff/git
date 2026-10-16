@@ -63,6 +63,8 @@ struct repo_settings {
 	int max_allowed_tree_depth;
 
 	char *hooks_path;
+
+	int allow_external_symlinks;
 };
 #define REPO_SETTINGS_INIT { \
 	.shared_repository = -1, \
