@@ -324,6 +324,8 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
 
 	memset(&w, 0, sizeof(w));
 	userformat_find_requirements(NULL, &w);
+	if (rev->commit_header)
+		userformat_find_requirements(rev->commit_header, &w);
 
 	if (!rev->show_notes_given && (!rev->pretty_given || w.notes))
 		rev->show_notes = 1;
