@@ -434,6 +434,7 @@ int read_index_pack_report(struct repository *repo, int ip_out,
 	char packname[GIT_MAX_HEXSZ + 6];
 	int is_keep_ignored;
 	const char *name;
+	ssize_t got;
 
 	if (!is_keep)
 		is_keep = &is_keep_ignored;
@@ -445,8 +446,19 @@ int read_index_pack_report(struct repository *repo, int ip_out,
 	 * bytes of prefix, `hexsz` bytes of name, and a trailing newline. A
 	 * "keep" prefix tells us that index-pack has also created the
 	 * corresponding ".keep" file.
+	 *
+	 * Alternatively, it may print nothing if it chose not to keep the pack
+	 * due to unpack limits. We just see an immediate EOF in that case
+	 * (this is indistinguishable from an error, but we'd find the latter
+	 * by checking index-pack's exit code).
 	 */
-	if (read_in_full(ip_out, packname, len) != len || packname[len - 1] != '\n')
+	got = read_in_full(ip_out, packname, len);
+	if (!got) {
+		*is_keep = 0;
+		return 0;
+	}
+
+	if (got != len || packname[len - 1] != '\n')
 		return -1;
 
 	packname[len - 1] = 0;
