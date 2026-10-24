@@ -354,7 +354,7 @@ person_only:
  */
 static ssize_t rewrite_ident_line(const char *person, size_t len,
 				   struct strbuf *buf,
-				   struct string_list *mailmap)
+				   struct mailmap *mailmap)
 {
 	size_t namelen, maillen;
 	const char *name;
@@ -390,7 +390,7 @@ static ssize_t rewrite_ident_line(const char *person, size_t len,
 }
 
 void apply_mailmap_to_header(struct strbuf *buf, const char **header,
-			       struct string_list *mailmap)
+			     struct mailmap *mailmap)
 {
 	size_t buf_offset = 0;
 
