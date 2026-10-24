@@ -11,6 +11,8 @@
 #include "trailer.h"
 #include "list.h"
 #include "tempfile.h"
+#include "mailmap.h"
+#include "ident.h"
 
 /*
  * Copyright (c) 2013, 2014 Christian Couder <chriscool@tuxfamily.org>
@@ -1138,6 +1140,29 @@ void trailer_block_release(struct trailer_block *trailer_block)
 	free(trailer_block);
 }
 
+static int mailmap_value(struct string_list *mailmap,
+			 struct strbuf *out, const struct strbuf *in)
+{
+	const char *mailbuf, *namebuf;
+	size_t namelen, maillen;
+	struct ident_split ident;
+
+	if (split_ident_line(&ident, in->buf, in->len))
+		return -1; /* not an ident */
+
+	namebuf = ident.name_begin;
+	namelen = ident.name_end - ident.name_begin;
+	mailbuf = ident.mail_begin;
+	maillen = ident.mail_end - ident.mail_begin;
+
+	map_user(mailmap, &mailbuf, &maillen, &namebuf, &namelen);
+	strbuf_add(out, namebuf, namelen);
+	strbuf_addstr(out, " <");
+	strbuf_add(out, mailbuf, maillen);
+	strbuf_addch(out, '>');
+	return 0;
+}
+
 void format_trailers(const struct process_trailer_options *opts,
 		     struct list_head *trailers,
 		     struct strbuf *out)
@@ -1179,8 +1204,11 @@ void format_trailers(const struct process_trailer_options *opts,
 							strbuf_addf(out, "%c ", separators[0]);
 					}
 				}
-				if (!opts->key_only)
-					strbuf_addbuf(out, &val);
+				if (!opts->key_only) {
+					if (!opts->mailmap ||
+					    mailmap_value(opts->mailmap, out, &val) < 0)
+						strbuf_addbuf(out, &val);
+				}
 				if (!opts->separator)
 					strbuf_addch(out, '\n');
 			}
@@ -1210,7 +1238,7 @@ void format_trailers_from_commit(const struct process_trailer_options *opts,
 	/* If we want the whole block untouched, we can take the fast path. */
 	if (!opts->only_trailers && !opts->unfold && !opts->filter &&
 	    !opts->separator && !opts->key_only && !opts->value_only &&
-	    !opts->key_value_separator) {
+	    !opts->key_value_separator && !opts->mailmap) {
 		strbuf_add(out, msg + trailer_block->start,
 			   trailer_block->end - trailer_block->start);
 	} else
