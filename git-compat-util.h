@@ -628,23 +628,52 @@ int git_open_cloexec(const char *name, int flags);
 #else
 static inline bool st_add_overflow(size_t a, size_t b, size_t *out)
 {
-	if (unsigned_add_overflows(a, b))
-		return true;
 	*out = a + b;
-	return false;
+	return *out < a;
 }
 #endif
 
 static inline size_t st_add(size_t a, size_t b)
 {
 	size_t result;
+
 	if (st_add_overflow(a, b, &result))
 		die("size_t overflow: %"PRIuMAX" + %"PRIuMAX,
 		    (uintmax_t)a, (uintmax_t)b);
 	return result;
 }
-#define st_add3(a,b,c)   st_add(st_add((a),(b)),(c))
-#define st_add4(a,b,c,d) st_add(st_add3((a),(b),(c)),(d))
+
+/*
+ * Accumulate overflow flags without short-circuiting, allowing the compiler
+ * to combine the checks before reporting all the original operands. This
+ * relies on st_add_overflow() storing the wrapped sum even on overflow,
+ * matching the behavior of __builtin_add_overflow().
+ */
+static inline size_t st_add3(size_t a, size_t b, size_t c)
+{
+	size_t result;
+	bool overflow = st_add_overflow(a, b, &result);
+
+	overflow |= st_add_overflow(result, c, &result);
+	if (overflow)
+		die("size_t overflow: %"PRIuMAX" + %"PRIuMAX" + %"PRIuMAX,
+		    (uintmax_t)a, (uintmax_t)b, (uintmax_t)c);
+	return result;
+}
+
+static inline size_t st_add4(size_t a, size_t b, size_t c, size_t d)
+{
+	size_t result;
+	bool overflow = st_add_overflow(a, b, &result);
+
+	overflow |= st_add_overflow(result, c, &result);
+	overflow |= st_add_overflow(result, d, &result);
+	if (overflow)
+		die("size_t overflow: %"PRIuMAX" + %"PRIuMAX" + %"PRIuMAX
+		    " + %"PRIuMAX,
+		    (uintmax_t)a, (uintmax_t)b, (uintmax_t)c, (uintmax_t)d);
+	return result;
+}
 
 static inline size_t st_mult(size_t a, size_t b)
 {
