@@ -55,6 +55,7 @@ struct process_trailer_options {
 	int no_divider;
 	int key_only;
 	int value_only;
+	struct string_list *mailmap;
 	const struct strbuf *separator;
 	const struct strbuf *key_value_separator;
 	int (*filter)(const struct strbuf *, void *);
