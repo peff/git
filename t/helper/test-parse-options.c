@@ -69,10 +69,11 @@ static int collect_expect(const struct option *opt, const char *arg, int unset)
 	if (!colon)
 		die("malformed --expect option, lacking a colon");
 	strbuf_add(&label, arg, colon - arg);
-	item = string_list_insert(expect, strbuf_detach(&label, NULL));
+	item = string_list_insert(expect, label.buf);
 	if (item->util)
 		die("malformed --expect option, duplicate %s", label.buf);
 	item->util = (void *)arg;
+	strbuf_release(&label);
 	return 0;
 }
 
@@ -118,7 +119,7 @@ int cmd__parse_options(int argc, const char **argv)
 		"A helper function for the parse-options API.",
 		NULL
 	};
-	struct string_list expect = STRING_LIST_INIT_NODUP;
+	struct string_list expect = STRING_LIST_INIT_DUP;
 	struct string_list list = STRING_LIST_INIT_NODUP;
 	uint16_t u16 = 0;
 	int16_t i16 = 0;
@@ -246,7 +247,6 @@ int cmd__parse_options(int argc, const char **argv)
 	for (int i = 0; i < argc; i++)
 		show(&expect, &ret, "arg %02d: %s", i, argv[i]);
 
-	expect.strdup_strings = 1;
 	string_list_clear(&expect, 0);
 	string_list_clear(&list, 0);
 	free(file);

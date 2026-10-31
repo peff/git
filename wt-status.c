@@ -155,9 +155,9 @@ void wt_status_prepare(struct repository *r, struct wt_status *s)
 	s->reference = "HEAD";
 	s->fp = stdout;
 	s->index_file = repo_get_index_file(r);
-	s->change.strdup_strings = 1;
-	s->untracked.strdup_strings = 1;
-	s->ignored.strdup_strings = 1;
+	string_list_init_dup(&s->change);
+	string_list_init_dup(&s->untracked);
+	string_list_init_dup(&s->ignored);
 	s->show_branch = -1;  /* unspecified */
 	s->show_stash = 0;
 	s->ahead_behind_flags = AHEAD_BEHIND_UNSPECIFIED;
