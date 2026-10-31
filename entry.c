@@ -4,6 +4,7 @@
 #include "odb.h"
 #include "odb/streaming.h"
 #include "dir.h"
+#include "path.h"
 #include "environment.h"
 #include "gettext.h"
 #include "hex.h"
@@ -323,7 +324,7 @@ static int write_entry(struct cache_entry *ce, char *path, struct conv_attrs *ca
 				       state->istate->repo : the_repository) || to_tempfile)
 			goto write_file_entry;
 
-		ret = symlink(new_blob, path);
+		ret = safe_symlink(the_repository, new_blob, path);
 		free(new_blob);
 		if (ret)
 			return error_errno("unable to create symlink %s", path);
