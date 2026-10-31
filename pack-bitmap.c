@@ -188,15 +188,6 @@ struct ewah_bitmap *read_bitmap(const unsigned char *map,
 	return b;
 }
 
-/*
- * Read a bitmap from the current read position on the mmaped
- * index, and increase the read position accordingly
- */
-static struct ewah_bitmap *read_bitmap_1(struct bitmap_index *index)
-{
-	return read_bitmap(index->map, index->map_size, &index->map_pos);
-}
-
 static uint32_t bitmap_num_objects_total(struct bitmap_index *index)
 {
 	if (index->midx) {
@@ -233,6 +224,47 @@ static uint32_t bitmap_name_hash(struct bitmap_index *index, uint32_t pos)
 		return 0;
 
 	return get_be32(index->hashes + pos);
+}
+
+/*
+ * Read a bitmap from the current read position on the mmaped
+ * index, and increase the read position accordingly
+ */
+static struct ewah_bitmap *read_bitmap_1(struct bitmap_index *index)
+{
+	struct ewah_bitmap *b;
+	size_t expected_bits;
+
+	b = read_bitmap(index->map, index->map_size, &index->map_pos);
+	if (!b)
+		return NULL;
+
+	/*
+	 * It's OK for us to have too fewer bits than objects, as the EWAH
+	 * writer may have simply left off an ending that is all-zeroes.
+	 *
+	 * However it's not OK for us to have too many bits, as that would
+	 * entail touching objects that we don't have. We are careful
+	 * enough to avoid doing so in later code, but in the case of
+	 * nonsensical values, we would want to avoid even allocating
+	 * memory to hold the expanded bitmap.
+	 *
+	 * There is one exception: we may "go over" to round up to the next
+	 * 64-bit ewah word, since the storage comes in chunks of that size.
+	 */
+	expected_bits = bitmap_num_objects(index);
+	if (expected_bits & 63) {
+		expected_bits &= ~63;
+		expected_bits += 64;
+	}
+	if (b->bit_size > expected_bits) {
+		error("unexpected number of bits in bitmap: %"PRIuMAX" > %"PRIuMAX,
+		      (uintmax_t)b->bit_size, (uintmax_t)expected_bits);
+		ewah_pool_free(b);
+		return NULL;
+	}
+
+	return b;
 }
 
 static struct repository *bitmap_repo(struct bitmap_index *bitmap_git)
