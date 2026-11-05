@@ -205,7 +205,7 @@ static int cat_one_file(int opt, const char *exp_type, const char *obj_name)
 	case 'c':
 	{
 		unsigned long size_ul = 0;
-		int textconv_ret = textconv_object(the_repository, path,
+		int textconv_ret = textconv_object(the_repository, NULL, path,
 						   obj_context.mode, &oid, 1,
 						   &buf, &size_ul);
 		size = size_ul;
@@ -464,7 +464,7 @@ static void print_object_or_die(struct batch_options *opt, struct expand_data *d
 			} else if (opt->transform_mode == 'c') {
 				enum object_type type;
 				unsigned long size_ul = 0;
-				if (textconv_object(the_repository,
+				if (textconv_object(the_repository, NULL,
 						    data->rest, 0100644, oid,
 						    1, &contents, &size_ul))
 					size = size_ul;
