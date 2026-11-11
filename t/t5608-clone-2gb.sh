@@ -94,7 +94,7 @@ test_expect_success SIZE_T_IS_64BIT,EXPENSIVE 'fetch >4GB object via unpack-obje
 	GIT_TRACE2_EVENT="$(pwd)/trace-unpack" \
 		git -C 4gb-fetch-unpack -c fetch.unpackLimit=100 fetch \
 		"file://$(pwd)/4gb-repo" main:refs/heads/main &&
-	test_subcommand_flex git unpack-objects <trace-unpack &&
+	test_subcommand_flex git index-pack --unpack-limit=100 <trace-unpack &&
 
 	# Verify the large blob survived the fetch by comparing its OID
 	# between source and destination.  We cannot use "cat-file -s" because
