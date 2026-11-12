@@ -881,7 +881,7 @@ static void do_record_outgoing_links(struct object *obj)
 }
 
 static void process_object(const void *data, struct object_entry *obj_entry,
-			   unsigned long size, enum object_type type,
+			   size_t size, enum object_type type,
 			   const struct object_id *oid)
 {
 	void *new_data = NULL;
