@@ -882,6 +882,72 @@ static void do_record_outgoing_links(struct object *obj)
 	}
 }
 
+struct unpack_stream {
+	struct odb_stream base;
+	git_zstream zstream;
+	off_t offset;
+	off_t remaining;
+	int status;
+	unsigned char buf[64 * 1024];
+};
+
+static ssize_t unpack_stream_read(struct odb_stream *stream,
+				 char *buf, size_t len)
+{
+	struct unpack_stream *data = container_of(stream, struct unpack_stream, base);
+	git_zstream *zstream = &data->zstream;
+
+	if (data->status == Z_STREAM_END)
+		return 0;
+
+	zstream->next_out = (unsigned char *)buf;
+	zstream->avail_out = len;
+	while (zstream->avail_out == len) {
+		if (!zstream->avail_in && data->remaining) {
+			ssize_t n = xpread(get_thread_data()->pack_fd, data->buf,
+					   data->remaining < sizeof(data->buf) ?
+					   data->remaining : sizeof(data->buf),
+					   data->offset);
+			if (n < 0)
+				die_errno(_("cannot pread pack file"));
+			if (!n)
+				die(_("premature end of pack file"));
+			data->offset += n;
+			data->remaining -= n;
+			zstream->next_in = data->buf;
+			zstream->avail_in = n;
+		}
+		data->status = git_inflate(zstream, 0);
+		if (data->status == Z_STREAM_END)
+			break;
+		if (data->status != Z_OK)
+			die(_("serious inflate inconsistency"));
+	}
+	return len - zstream->avail_out;
+}
+
+static void stream_blob(struct object_entry *obj, struct object_id *oid)
+{
+	struct unpack_stream stream = {
+		.base = {
+			.read = unpack_stream_read,
+			.size = obj->size,
+			.type = OBJ_BLOB,
+		},
+		.offset = obj->idx.offset + obj->hdr_size,
+		.status = Z_OK,
+	};
+
+	stream.remaining = obj[1].idx.offset - stream.offset;
+	git_inflate_init(&stream.zstream);
+	if (odb_write_object_stream(the_repository->objects, &stream.base, oid))
+		die(_("failed to write object in stream"));
+	if (stream.status != Z_STREAM_END ||
+	    stream.zstream.total_out != obj->size)
+		die(_("serious inflate inconsistency"));
+	git_inflate_end(&stream.zstream);
+}
+
 static void process_object(const void *data, struct object_entry *obj_entry,
 			   size_t size, enum object_type type,
 			   const struct object_id *oid)
@@ -980,14 +1046,11 @@ static void process_object(const void *data, struct object_entry *obj_entry,
 	if (unpack_to_loose) {
 		struct object_id dummy;
 
-		/* XXX This will expand too-large objects! */
-		if (!data)
-			data = new_data = get_data_from_pack(obj_entry);
-
-		/* XXX extra unnecessary hash! */
 		/* XXX there should be a thread-safe write_sha1_file! */
 		read_lock();
-		if (odb_write_object(the_repository->objects, data, size, type, &dummy) < 0)
+		if (!data)
+			stream_blob(obj_entry, &dummy);
+		else if (odb_write_object(the_repository->objects, data, size, type, &dummy) < 0)
 			die("failed to write object %s", oid_to_hex(oid));
 		read_unlock();
 	}

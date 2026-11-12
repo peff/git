@@ -82,4 +82,16 @@ test_expect_success 'unpack limit (over)' '
 	verify_packs 1
 '
 
+test_expect_success 'stream large blobs under an allocation limit' '
+	mktmp &&
+	test-tool genrandom large 2097152 >large &&
+	blob=$(git hash-object -w large) &&
+	echo "$blob" | git pack-objects --stdout >large.pack &&
+	GIT_ALLOC_LIMIT=1m git -C tmp -c core.bigFileThreshold=1m \
+		index-pack --stdin --unpack <large.pack &&
+	verify_packs 0 &&
+	git -C tmp cat-file blob "$blob" >actual &&
+	test_cmp large actual
+'
+
 test_done
