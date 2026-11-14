@@ -39,7 +39,7 @@ struct notes_rewrite_cfg {
 	const char *cmd;
 	int enabled;
 	combine_notes_fn combine;
-	struct string_list *refs;
+	struct string_list refs;
 	int refs_from_env;
 	int mode_from_env;
 };
