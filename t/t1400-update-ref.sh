@@ -2223,7 +2223,7 @@ do
 			git update-ref refs/heads/ref2 $head &&
 
 			format_command $type "update refs/heads/ref1" "$old_head" "$head" >stdin &&
-			format_command $type "symref-update refs/heads/ref2" "$old_head" "ref" "refs/heads/nonexistent" >>stdin &&
+			format_command $type "symref-update refs/heads/ref2" "refs/heads/new" "ref" "refs/heads/nonexistent" >>stdin &&
 			git update-ref $type --no-deref --stdin --batch-updates <stdin >stdout 2>err &&
 			echo $old_head >expect &&
 			git rev-parse refs/heads/ref1 >actual &&
@@ -2483,6 +2483,14 @@ test_expect_success 'dangling symref overwritten without old oid' '
 	EOF
 	git rev-parse --verify refs/heads/dangling &&
 	test_must_fail git rev-parse --verify refs/heads/does-not-exist
+'
+
+test_expect_success 'update-ref validates refs as fully qualified' '
+	git symbolic-ref refs/heads/valid refs/heads/one &&
+	test_must_fail git update-ref --no-deref --stdin <<-\EOF 2>err &&
+	symref-update refs/heads/valid refs/heads/two ref invalid-at-root
+	EOF
+	test_grep "invalid ref: invalid-at-root" err
 '
 
 test_done
