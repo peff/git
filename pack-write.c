@@ -377,32 +377,26 @@ off_t write_pack_header(struct hashfile *f, uint32_t nr_entries)
  * associated to pack_fd, and write that SHA1 at the end.  That new SHA1
  * is also returned in new_pack_sha1.
  *
- * If partial_pack_sha1 is non null, then the SHA1 of the existing pack
- * (without the header update) is computed and validated against the
- * one provided in partial_pack_sha1.  The validation is performed at
- * partial_pack_offset bytes in the pack file.  The SHA1 of the remaining
- * data (i.e. from partial_pack_offset to the end) is then computed and
- * returned in partial_pack_sha1.
- *
- * Note that new_pack_sha1 is updated last, so both new_pack_sha1 and
- * partial_pack_sha1 can refer to the same buffer if the caller is not
- * interested in the resulting SHA1 of pack data above partial_pack_offset.
  */
 void fixup_pack_header_footer(const struct git_hash_algo *hash_algo,
 			 int pack_fd,
 			 unsigned char *new_pack_hash,
 			 const char *pack_name,
-			 uint32_t object_count,
-			 unsigned char *partial_pack_hash,
-			 off_t partial_pack_offset)
+			 uint32_t object_count)
 {
-	int aligned_sz, buf_sz = 8 * 1024;
-	struct git_hash_ctx old_hash_ctx, new_hash_ctx;
+	int buf_sz = 8 * 1024;
+	struct git_hash_ctx new_hash_ctx;
 	struct pack_header hdr;
 	char *buf;
 	ssize_t read_result;
 
-	git_hash_init(&old_hash_ctx, hash_algo);
+	/*
+	 * We are computing a pack checksum here, not an object hash. So we
+	 * can use a faster "unsafe" variant that does not do collision
+	 * detection.
+	 */
+	hash_algo = unsafe_hash_algo(hash_algo);
+
 	git_hash_init(&new_hash_ctx, hash_algo);
 
 	if (lseek(pack_fd, 0, SEEK_SET) != 0)
@@ -415,55 +409,19 @@ void fixup_pack_header_footer(const struct git_hash_algo *hash_algo,
 			  pack_name);
 	if (lseek(pack_fd, 0, SEEK_SET) != 0)
 		die_errno("Failed seeking to start of '%s'", pack_name);
-	git_hash_update(&old_hash_ctx, &hdr, sizeof(hdr));
 	hdr.hdr_entries = htonl(object_count);
 	git_hash_update(&new_hash_ctx, &hdr, sizeof(hdr));
 	write_or_die(pack_fd, &hdr, sizeof(hdr));
-	partial_pack_offset -= sizeof(hdr);
-
 	buf = xmalloc(buf_sz);
-	aligned_sz = buf_sz - sizeof(hdr);
 	for (;;) {
-		ssize_t m, n;
-		m = (partial_pack_hash && partial_pack_offset < aligned_sz) ?
-			partial_pack_offset : aligned_sz;
-		n = xread(pack_fd, buf, m);
+		ssize_t n = xread(pack_fd, buf, buf_sz);
 		if (!n)
 			break;
 		if (n < 0)
 			die_errno("Failed to checksum '%s'", pack_name);
 		git_hash_update(&new_hash_ctx, buf, n);
-
-		aligned_sz -= n;
-		if (!aligned_sz)
-			aligned_sz = buf_sz;
-
-		if (!partial_pack_hash)
-			continue;
-
-		git_hash_update(&old_hash_ctx, buf, n);
-		partial_pack_offset -= n;
-		if (partial_pack_offset == 0) {
-			unsigned char hash[GIT_MAX_RAWSZ];
-			git_hash_final(hash, &old_hash_ctx);
-			if (!hasheq(hash, partial_pack_hash,
-				    hash_algo))
-				die("Unexpected checksum for %s "
-				    "(disk corruption?)", pack_name);
-			/*
-			 * Now let's compute the SHA1 of the remainder of the
-			 * pack, which also means making partial_pack_offset
-			 * big enough not to matter anymore.
-			 */
-			git_hash_init(&old_hash_ctx, hash_algo);
-			partial_pack_offset = ~partial_pack_offset;
-			partial_pack_offset -= MSB(partial_pack_offset, 1);
-		}
 	}
 	free(buf);
-
-	if (partial_pack_hash)
-		git_hash_final(partial_pack_hash, &old_hash_ctx);
 	git_hash_final(new_pack_hash, &new_hash_ctx);
 	write_or_die(pack_fd, new_pack_hash, hash_algo->rawsz);
 	fsync_component_or_die(FSYNC_COMPONENT_PACK, pack_fd, pack_name);
