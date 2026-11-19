@@ -1020,21 +1020,6 @@ int index_path(struct index_state *istate, struct object_id *oid,
 	return rc;
 }
 
-int read_pack_header(int fd, struct pack_header *header)
-{
-	if (read_in_full(fd, header, sizeof(*header)) != sizeof(*header))
-		/* "eof before pack header was fully read" */
-		return PH_ERROR_EOF;
-
-	if (header->hdr_signature != htonl(PACK_SIGNATURE))
-		/* "protocol error (pack signature mismatch detected)" */
-		return PH_ERROR_PACK_SIGNATURE;
-	if (!pack_version_ok(header->hdr_version))
-		/* "protocol error (pack version unsupported)" */
-		return PH_ERROR_PROTOCOL;
-	return 0;
-}
-
 int for_each_file_in_obj_subdir(unsigned int subdir_nr,
 				struct strbuf *path,
 				const struct git_hash_algo *algop,
@@ -1376,32 +1361,6 @@ static int odb_transaction_files_commit(struct odb_transaction *base)
 	return 0;
 }
 
-static const char *parse_pack_header(struct pack_header *hdr, int pack_fd)
-{
-	switch (read_pack_header(pack_fd, hdr)) {
-	case PH_ERROR_EOF:
-		return "eof before pack header was fully read";
-
-	case PH_ERROR_PACK_SIGNATURE:
-		return "protocol error (pack signature mismatch detected)";
-
-	case PH_ERROR_PROTOCOL:
-		return "protocol error (pack version unsupported)";
-
-	default:
-		return "unknown error in parse_pack_header";
-
-	case 0:
-		return NULL;
-	}
-}
-
-static void push_header_arg(struct strvec *args, struct pack_header *hdr)
-{
-	strvec_pushf(args, "--pack_header=%"PRIu32",%"PRIu32,
-		     ntohl(hdr->hdr_version), ntohl(hdr->hdr_entries));
-}
-
 static unsigned int get_unpack_limit(struct repository *repo,
 				     enum odb_transaction_flags flags)
 {
@@ -1425,18 +1384,9 @@ static int odb_transaction_files_write_pack(struct odb_transaction *base,
 	struct repository *repo = base->source->odb->repo;
 	struct child_process child = CHILD_PROCESS_INIT;
 	struct strbuf pack_name = STRBUF_INIT;
-	struct pack_header hdr;
-	const char *hdr_err;
 	int err_fd = opts->err_fd;
+	int report_err;
 	int ret;
-
-	hdr_err = parse_pack_header(&hdr, pack_fd);
-	if (hdr_err) {
-		if (err_fd > 0)
-			close(err_fd);
-		strbuf_addstr(err_msg, hdr_err);
-		return -1;
-	}
 
 	if (opts->shallow_file) {
 		strvec_push(&child.args, "--shallow-file");
@@ -1445,72 +1395,51 @@ static int odb_transaction_files_write_pack(struct odb_transaction *base,
 
 	odb_transaction_env(base, &child.env);
 
-	if (ntohl(hdr.hdr_entries) < get_unpack_limit(repo, transaction->flags)) {
-		strvec_push(&child.args, "unpack-objects");
-		push_header_arg(&child.args, &hdr);
-		if (opts->quiet)
-			strvec_push(&child.args, "-q");
-		if (opts->fsck_objects)
-			strvec_pushf(&child.args, "--strict%s",
-				     opts->fsck_msg_types);
-		if (opts->max_input_size)
-			strvec_pushf(&child.args, "--max-input-size=%"PRIuMAX,
-				     (uintmax_t)opts->max_input_size);
-		child.no_stdout = 1;
-		child.in = pack_fd;
-		child.err = err_fd;
-		child.git_cmd = 1;
-		if (run_command(&child)) {
-			strbuf_addstr(err_msg, "unpack-objects abnormal exit");
-			return -1;
-		}
-	} else {
-		int report_err;
+	strvec_pushl(&child.args, "index-pack", "--stdin", NULL);
+	strvec_pushf(&child.args, "--unpack-limit=%d",
+		     get_unpack_limit(repo, transaction->flags));
 
-		strvec_pushl(&child.args, "index-pack", "--stdin", NULL);
-		push_header_arg(&child.args, &hdr);
+	if (!opts->quiet && err_fd)
+		strvec_push(&child.args, "--show-resolving-progress");
+	if (err_fd)
+		strvec_push(&child.args, "--report-end-of-input");
+	if (opts->fsck_objects)
+		strvec_pushf(&child.args, "--strict%s",
+			     opts->fsck_msg_types);
+	if (!opts->reject_thin)
+		strvec_push(&child.args, "--fix-thin");
+	if (opts->max_input_size)
+		strvec_pushf(&child.args, "--max-input-size=%"PRIuMAX,
+			     (uintmax_t)opts->max_input_size);
+	child.out = -1;
+	child.in = pack_fd;
+	child.err = err_fd;
+	child.git_cmd = 1;
+	if (start_command(&child)) {
+		strbuf_addstr(err_msg, "index-pack fork failed");
+		return -1;
+	}
 
-		if (!opts->quiet && err_fd)
-			strvec_push(&child.args, "--show-resolving-progress");
-		if (err_fd)
-			strvec_push(&child.args, "--report-end-of-input");
-		if (opts->fsck_objects)
-			strvec_pushf(&child.args, "--strict%s",
-				     opts->fsck_msg_types);
-		if (!opts->reject_thin)
-			strvec_push(&child.args, "--fix-thin");
-		if (opts->max_input_size)
-			strvec_pushf(&child.args, "--max-input-size=%"PRIuMAX,
-				     (uintmax_t)opts->max_input_size);
-		child.out = -1;
-		child.in = pack_fd;
-		child.err = err_fd;
-		child.git_cmd = 1;
-		if (start_command(&child)) {
-			strbuf_addstr(err_msg, "index-pack fork failed");
-			return -1;
-		}
+	report_err = read_index_pack_report(repo, child.out, &pack_name, NULL);
 
-		report_err = read_index_pack_report(repo, child.out, &pack_name, NULL);
+	close(child.out);
 
-		close(child.out);
+	if (finish_command(&child)) {
+		strbuf_addstr(err_msg, "index-pack abnormal exit");
+		ret = -1;
+		goto out;
+	}
 
-		if (finish_command(&child)) {
-			strbuf_addstr(err_msg, "index-pack abnormal exit");
-			ret = -1;
-			goto out;
-		}
+	if (report_err) {
+		strbuf_addstr(err_msg, "index-pack failed to report pack name");
+		ret = -1;
+		goto out;
+	}
 
-		if (report_err) {
-			strbuf_addstr(err_msg, "index-pack failed to report pack name");
-			ret = -1;
-			goto out;
-		}
-
+	if (pack_name.len)
 		strvec_push(&transaction->pack_names, pack_name.buf);
 
-		odb_source_prepare(base->source, ODB_PREPARE_FLUSH_CACHES);
-	}
+	odb_source_prepare(base->source, ODB_PREPARE_FLUSH_CACHES);
 
 	ret = 0;
 
